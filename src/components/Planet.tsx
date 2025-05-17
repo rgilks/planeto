@@ -7,7 +7,7 @@ import * as THREE from "three";
 import { CelestialBodyState } from "@/lib/domain/game.types";
 import { RigidBody, RapierRigidBody } from "@react-three/rapier";
 import { useTexture } from "@react-three/drei";
-// import { generatePlanetTexture } from "@/lib/textureUtils"; // Module not found
+import { generatePlanetTexture } from "@/lib/textureUtils";
 
 export interface PlanetProps {
   celestialBody: CelestialBodyState;
@@ -64,15 +64,17 @@ const Planet = forwardRef<RapierRigidBody, PlanetProps>(
       ref,
     ]);
 
-    // const proceduralTexture = useMemo(() => { // Temporarily disable procedural texture
-    //   if (textureUrl) return undefined;
-    //   return generatePlanetTexture(name); // Module not found
-    // }, [textureUrl, name]);
+    const proceduralTexture = useMemo(() => {
+      if (textureUrl) return undefined;
+      return generatePlanetTexture(name);
+    }, [textureUrl, name]);
 
-    const [map, bumpMap] = useTexture([
+    const [loadedMap, bumpMap] = useTexture([
       textureUrl || placeholderImageDataUrl,
       celestialBody.bumpMapUrl || defaultBumpImageDataUrl,
     ]);
+
+    const displayMap = proceduralTexture || loadedMap;
 
     const atmosphereRadius = useMemo(() => {
       return atmosphere?.thickness
@@ -101,7 +103,7 @@ const Planet = forwardRef<RapierRigidBody, PlanetProps>(
       >
         <Sphere ref={meshRef} args={[radius, 32, 32]} castShadow receiveShadow>
           <meshStandardMaterial
-            map={map}
+            map={displayMap}
             bumpMap={bumpMap}
             bumpScale={0.02}
             metalness={0.3}
