@@ -9,7 +9,7 @@ export interface SpaceshipProps {
   id: SpaceshipId; // Changed to SpaceshipId type
   initialPosition?: Position;
   initialRotation?: Rotation;
-  color?: string;
+  color?: string; // Changed to optional
   isCurrentUser?: boolean; // To distinguish the player's own spaceship
 }
 

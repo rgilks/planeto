@@ -6,6 +6,20 @@ export type UserId = z.infer<typeof UserIdSchema>;
 export const SpaceshipIdSchema = z.string().uuid().brand<"SpaceshipId">();
 export type SpaceshipId = z.infer<typeof SpaceshipIdSchema>;
 
+export const CelestialBodyIdSchema = z
+  .string()
+  .uuid()
+  .brand<"CelestialBodyId">();
+export type CelestialBodyId = z.infer<typeof CelestialBodyIdSchema>;
+
+export const CelestialTypeSchema = z.enum([
+  "sun",
+  "planet",
+  "moon",
+  "asteroid",
+]);
+export type CelestialType = z.infer<typeof CelestialTypeSchema>;
+
 export const PositionSchema = z.object({
   x: z.number(),
   y: z.number(),
@@ -32,8 +46,23 @@ export const SpaceshipStateSchema = z.object({
 });
 export type SpaceshipState = z.infer<typeof SpaceshipStateSchema>;
 
+export const CelestialBodyStateSchema = z.object({
+  id: CelestialBodyIdSchema,
+  type: CelestialTypeSchema,
+  name: z.string(),
+  mass: z.number().positive(),
+  radius: z.number().positive(), // For rendering and potentially collisions
+  position: PositionSchema,
+  velocity: PositionSchema, // Represents dx, dy, dz per second or physics tick
+  rotation: RotationSchema, // For visual representation (e.g., axial tilt, rotation period)
+  orbitingBodyId: CelestialBodyIdSchema.optional(), // For initial setup, physics will take over
+  lastUpdated: z.string().datetime(),
+});
+export type CelestialBodyState = z.infer<typeof CelestialBodyStateSchema>;
+
 export const GameStateSchema = z.object({
   spaceships: z.record(SpaceshipIdSchema, SpaceshipStateSchema),
+  celestialBodies: z.record(CelestialBodyIdSchema, CelestialBodyStateSchema),
 });
 export type GameState = z.infer<typeof GameStateSchema>;
 

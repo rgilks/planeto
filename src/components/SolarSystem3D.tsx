@@ -1,130 +1,39 @@
 "use client";
 
-import { Sphere, MeshDistortMaterial, OrbitControls } from "@react-three/drei";
+import { OrbitControls, Html } from "@react-three/drei";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import type { OrbitControls as ThreeOrbitControls } from "three-stdlib";
 import type {
-  PlanetData,
-  StarData,
   UserId,
-  SpaceshipState,
-  MoonData,
-  SpaceshipId,
-} from "@/lib/domain";
+  // SpaceshipState, // Removed as unused
+} from "@/lib/domain/game.types";
 import React, {
   useRef,
-  Suspense,
+  // Suspense, // Removed as unused
   useEffect,
   useState,
-  useCallback,
+  // useCallback, // Removed as unused
+  createRef,
 } from "react";
 import * as THREE from "three";
-import { useSolarSystemStore } from "@/lib/store/useSolarSystemStore";
-import { SunShaderMaterial } from "@/components/SunSurfaceMaterial";
 import Starfield from "@/components/Starfield";
 import { useGameStore } from "@/lib/store/gameStore";
 import Spaceship from "./Spaceship";
+import Sun from "./Sun";
+import Planet from "./Planet";
 import { v4 as uuidv4 } from "uuid";
 
-// Physics Constants
-const GRAVITATIONAL_CONSTANT = 0.005; // Adjusted for game scale
-const MAX_SOLAR_DISTANCE = 1500; // Max distance from star before recovery force
-const RECOVERY_FORCE_STRENGTH = 0.02; // Strength of the recovery force
-const SPACESHIP_THRUST_FORCE = 0.1; // Magnitude of thrust applied by player
-// const SPACESHIP_ROTATION_SPEED = 0.05; // For future torque-based rotation
+// Physics Constants for spaceship client-side thrust application
+const SPACESHIP_THRUST_FORCE = 0.1;
+// const ACCELERATION_CHANGE_THRESHOLD_SQUARED = 0.00001; // Removed as unused
 
-const ACCELERATION_CHANGE_THRESHOLD_SQUARED = 0.00001; // (approx 0.00316^2) Minimum squared magnitude of acceleration change to trigger an update
-
-// Helper to convert game Position to THREE.Vector3
 const toVec3 = (p: { x: number; y: number; z: number }) =>
   new THREE.Vector3(p.x, p.y, p.z);
-// Helper to convert THREE.Vector3 to game Position
 const fromVec3 = (v: THREE.Vector3): { x: number; y: number; z: number } => ({
   x: v.x,
   y: v.y,
   z: v.z,
 });
-
-interface PlanetProps {
-  data: PlanetData | MoonData;
-  isMoon?: boolean;
-}
-
-const Planet = ({ data, isMoon = false }: PlanetProps) => {
-  const meshRef = useRef<THREE.Mesh>(null!);
-  const groupRef = useRef<THREE.Group>(null!);
-
-  useFrame(({ clock }) => {
-    if (groupRef.current && data.orbitalPeriod > 0 && data.orbitRadius > 0) {
-      const elapsedTime = clock.getElapsedTime();
-      const angle = (elapsedTime / (data.orbitalPeriod * 5)) * 2 * Math.PI;
-
-      const x = data.orbitRadius * Math.cos(angle);
-      const z = data.orbitRadius * Math.sin(angle);
-
-      groupRef.current.position.set(x, 0, z);
-    } else if (
-      groupRef.current &&
-      (data.orbitalPeriod === 0 || data.orbitRadius === 0)
-    ) {
-      groupRef.current.position.set(0, 0, 0);
-    }
-  });
-
-  const planetScale = isMoon ? data.radius * 0.5 : data.radius;
-
-  return (
-    <group ref={groupRef}>
-      <Sphere
-        ref={meshRef}
-        visible
-        args={[planetScale, 32, 32]}
-        castShadow
-        receiveShadow
-      >
-        <MeshDistortMaterial
-          color={data.color || "#808080"}
-          attach="material"
-          distort={0.1}
-          speed={1}
-          roughness={0.7}
-        />
-      </Sphere>
-      {data.moons &&
-        data.moons.map((moon: MoonData) => {
-          return <Planet key={moon.id} data={moon} isMoon={true} />;
-        })}
-    </group>
-  );
-};
-
-interface StarProps {
-  data: StarData;
-}
-
-const Star = ({ data: _data }: StarProps) => {
-  const starRadius = _data.radius > 0 ? _data.radius : 2;
-  const materialRef = useRef<SunShaderMaterial>(null!);
-  const { camera } = useThree();
-
-  useFrame((_state, delta) => {
-    if (materialRef.current) {
-      materialRef.current.time += delta;
-      if (materialRef.current.uniforms["u_cameraPosition"]) {
-        materialRef.current.cameraPosition = camera.getWorldPosition(
-          new THREE.Vector3()
-        );
-      }
-    }
-  });
-
-  return (
-    <mesh position={[0, 0, 0]} castShadow>
-      <sphereGeometry args={[starRadius, 32, 32]} />
-      <sunShaderMaterial ref={materialRef} attach="material" />
-    </mesh>
-  );
-};
 
 const useCurrentUser = (): { userId: UserId | null; isLoading: boolean } => {
   const [userId, setUserId] = useState<UserId | null>(null);
@@ -133,7 +42,6 @@ const useCurrentUser = (): { userId: UserId | null; isLoading: boolean } => {
   useEffect(() => {
     setTimeout(() => {
       const mockUserId = uuidv4() as UserId;
-      // console.log("SolarSystem3D: Assigning mock user ID (UUID):", mockUserId); // Keep this commented or remove
       setUserId(mockUserId);
       setIsLoading(false);
     }, 500);
@@ -151,8 +59,6 @@ const SceneContent = ({
   currentUserIdFromHook,
   userLoadingFromHook,
 }: SceneContentProps) => {
-  // Hooks, Refs, State (MUST BE AT THE TOP, IN ORDER)
-  const currentSystem = useSolarSystemStore((state) => state.currentSystem);
   const { camera, gl, clock } = useThree();
   const canvasElementRef = useRef<HTMLCanvasElement | null>(null);
 
@@ -161,6 +67,7 @@ const SceneContent = ({
   >("orbitCamera");
 
   const gameState = useGameStore((state) => state.gameState);
+  // console.log("Celestial Bodies from GameState:", gameState.celestialBodies);
   const currentSpaceshipId = useGameStore((state) => state.currentSpaceshipId);
   const isConnected = useGameStore((state) => state.isConnected);
   const gameError = useGameStore((state) => state.error);
@@ -168,7 +75,7 @@ const SceneContent = ({
   const moveMySpaceship = useGameStore((state) => state.moveMySpaceship);
 
   const connectionAttemptedRef = useRef(false);
-  const previousSentAccelerationRef = useRef<THREE.Vector3 | null>(null);
+  // const previousSentAccelerationRef = useRef<THREE.Vector3 | null>(null); // Removed as unused
   const lastSentThrustInputRef = useRef({ forward: 0, up: 0, strafe: 0 });
 
   const [thrustInput, setThrustInput] = useState({
@@ -178,17 +85,16 @@ const SceneContent = ({
   });
 
   const UPDATE_INTERVAL = 50;
-  const lastPhysicsUpdateTimeRef = useRef(0);
-  const lastMouseUpdateTimeRef = useRef(0);
+  const lastPhysicsUpdateTimeRef = useRef(0); // Renamed from lastMouseUpdateTimeRef for clarity
   const spaceshipRef = useRef<THREE.Group>(null);
   const orbitControlsRef = useRef<ThreeOrbitControls>(null!);
+  const celestialBodyRefs = useRef<React.RefObject<THREE.Group>[]>([]);
 
   const currentUserSpaceship =
     currentSpaceshipId && gameState
       ? gameState.spaceships[currentSpaceshipId]
       : undefined;
 
-  // Effects (useEffect)
   useEffect(() => {
     canvasElementRef.current = gl.domElement;
   }, [gl]);
@@ -197,12 +103,7 @@ const SceneContent = ({
     if (gameError) {
       console.error("SolarSystem3D: Game Store Error:", gameError);
     }
-    if (isConnected) {
-      // console.log("SolarSystem3D: Connected to game events. SpaceshipID:", currentSpaceshipId);
-    } else {
-      // console.log("SolarSystem3D: Not connected to game events.");
-    }
-  }, [gameError, isConnected, currentSpaceshipId]);
+  }, [gameError]);
 
   useEffect(() => {
     if (
@@ -215,8 +116,19 @@ const SceneContent = ({
     }
   }, [currentUserIdFromHook, userLoadingFromHook, setCurrentUserId]);
 
-  // Camera control logic
   useEffect(() => {
+    const bodyCount = Object.keys(gameState.celestialBodies || {}).length;
+    celestialBodyRefs.current = Array(bodyCount)
+      .fill(null)
+      .map((_, i) => celestialBodyRefs.current[i] || createRef<THREE.Group>());
+  }, [gameState.celestialBodies]);
+
+  // Camera control and spaceship input handling logic
+  useEffect(() => {
+    // ... (existing camera control logic based on controlMode) ...
+    // This useEffect handles camera switches and updates based on controlMode
+    // and currentUserSpaceship.position for chase cam.
+    // It does NOT calculate physics.
     const controls = orbitControlsRef.current;
     if (controlMode === "mouseAimShipControl" && currentUserSpaceship) {
       if (controls && controls.enabled) {
@@ -224,17 +136,19 @@ const SceneContent = ({
       }
       const shipGroup = spaceshipRef.current;
       if (shipGroup) {
-        const offset = new THREE.Vector3(0, 1.5, 4);
+        const offset = new THREE.Vector3(0, 1.5, 4); // Camera offset from ship
         const shipWorldPosition = new THREE.Vector3();
         shipGroup.getWorldPosition(shipWorldPosition);
         const shipWorldQuaternion = new THREE.Quaternion();
         shipGroup.getWorldQuaternion(shipWorldQuaternion);
+
         const cameraPosition = offset
           .clone()
           .applyQuaternion(shipWorldQuaternion)
           .add(shipWorldPosition);
         camera.position.lerp(cameraPosition, 0.1);
-        const lookAtOffset = new THREE.Vector3(0, 0, -10);
+
+        const lookAtOffset = new THREE.Vector3(0, 0, -10); // Look ahead of the ship
         const lookAtPosition = lookAtOffset
           .clone()
           .applyQuaternion(shipWorldQuaternion)
@@ -244,462 +158,242 @@ const SceneContent = ({
     } else if (controlMode === "orbitCamera") {
       if (controls) {
         if (!controls.enabled) controls.enabled = true;
-        controls.target.set(0, 0, 0);
+        controls.target.set(0, 0, 0); // Default target for now
         controls.update();
       }
     }
-  }, [
-    controlMode,
-    camera,
-    currentUserSpaceship,
-    clock,
-    spaceshipRef,
-    orbitControlsRef,
-  ]);
+  }, [controlMode, currentUserSpaceship, camera, clock]);
 
-  // Callbacks (useCallback)
-  const handleKeyDown = useCallback(
-    (event: KeyboardEvent) => {
-      if (event.key === " ") {
-        event.preventDefault();
-        setControlMode((prev) => {
-          const newMode =
-            prev === "orbitCamera" ? "mouseAimShipControl" : "orbitCamera";
-          if (
-            newMode === "mouseAimShipControl" &&
-            canvasElementRef.current &&
-            !document.pointerLockElement
-          ) {
-            canvasElementRef.current
-              .requestPointerLock()
-              .catch((err) => console.warn("Pointer lock failed:", err));
-          } else if (newMode === "orbitCamera" && document.pointerLockElement) {
-            document.exitPointerLock();
-          }
-          return newMode;
-        });
-        return;
-      }
-
-      if (controlMode === "mouseAimShipControl") {
-        let changed = true;
-        setThrustInput((prev) => {
-          const newThrust = { ...prev };
-          switch (event.key.toLowerCase()) {
-            case "w":
-            case "arrowup":
-              newThrust.forward = 1;
-              break;
-            case "s":
-            case "arrowdown":
-              newThrust.forward = -1;
-              break;
-            case "a":
-            case "arrowleft":
-              newThrust.strafe = -1;
-              break;
-            case "d":
-            case "arrowright":
-              newThrust.strafe = 1;
-              break;
-            case "r":
-              newThrust.up = 1;
-              break;
-            case "f":
-              newThrust.up = -1;
-              break;
-            default:
-              changed = false;
-              break;
-          }
-          return newThrust;
-        });
-        if (changed) event.preventDefault();
-      }
-    },
-    [controlMode, setThrustInput, canvasElementRef]
-  );
-
-  const handleKeyUp = useCallback(
-    (event: KeyboardEvent) => {
-      if (controlMode === "mouseAimShipControl") {
-        let changed = true;
-        setThrustInput((prev) => {
-          const newThrust = { ...prev };
-          switch (event.key.toLowerCase()) {
-            case "w":
-            case "arrowup":
-            case "s":
-            case "arrowdown":
-              newThrust.forward = 0;
-              break;
-            case "a":
-            case "arrowleft":
-            case "d":
-            case "arrowright":
-              newThrust.strafe = 0;
-              break;
-            case "r":
-            case "f":
-              newThrust.up = 0;
-              break;
-            default:
-              changed = false;
-              break;
-          }
-          return newThrust;
-        });
-        if (changed) event.preventDefault();
-      }
-    },
-    [controlMode, setThrustInput]
-  );
-
-  // Mouse move for ship rotation (pointer lock)
-  const handleMouseMove = useCallback(
-    (event: MouseEvent) => {
-      if (
-        controlMode !== "mouseAimShipControl" ||
-        !currentSpaceshipId ||
-        !gameState ||
-        !document.pointerLockElement
-      ) {
-        return;
-      }
-      const currentShip = gameState.spaceships[currentSpaceshipId];
-      if (!currentShip) return;
-
-      const newRotation = { ...currentShip.rotation };
-      const mouseSensitivity = 0.002;
-
-      newRotation.y -= event.movementX * mouseSensitivity;
-      newRotation.x -= event.movementY * mouseSensitivity;
-      newRotation.x = Math.max(
-        -Math.PI / 2,
-        Math.min(Math.PI / 2, newRotation.x)
-      );
-
-      const now = performance.now();
-      if (now - lastMouseUpdateTimeRef.current > UPDATE_INTERVAL) {
-        moveMySpaceship(
-          currentShip.position,
-          newRotation,
-          currentShip.velocity
-        );
-        lastMouseUpdateTimeRef.current = now;
-      }
-    },
-    [
-      controlMode,
-      currentSpaceshipId,
-      gameState,
-      moveMySpaceship,
-      UPDATE_INTERVAL,
-      lastMouseUpdateTimeRef,
-    ]
-  );
-
-  // Event Listener Setup Effects (must also be before early returns)
+  // Keyboard input handling for spaceship thrust AND control mode toggle
   useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key.toLowerCase() === "c") {
+        setControlMode((prev) =>
+          prev === "orbitCamera" ? "mouseAimShipControl" : "orbitCamera",
+        );
+        // Pointer lock management could be re-added here if desired
+        return;
+      }
+
+      setThrustInput((prev) => {
+        switch (event.key.toLowerCase()) {
+          case "w":
+            return { ...prev, forward: 1 };
+          case "s":
+            return { ...prev, forward: -1 };
+          case "a":
+            return { ...prev, strafe: -1 };
+          case "d":
+            return { ...prev, strafe: 1 };
+          case " ":
+          case "spacebar":
+            return { ...prev, up: 1 };
+          case "shift":
+          case "x":
+            return { ...prev, up: -1 };
+          default:
+            return prev;
+        }
+      });
+    };
+    const handleKeyUp = (event: KeyboardEvent) => {
+      setThrustInput((prev) => {
+        switch (event.key.toLowerCase()) {
+          case "w":
+          case "s":
+            return { ...prev, forward: 0 };
+          case "a":
+          case "d":
+            return { ...prev, strafe: 0 };
+          case " ":
+          case "spacebar":
+          case "shift":
+          case "x":
+            return { ...prev, up: 0 };
+          default:
+            return prev;
+        }
+      });
+    };
     window.addEventListener("keydown", handleKeyDown);
     window.addEventListener("keyup", handleKeyUp);
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
     };
-  }, [handleKeyDown, handleKeyUp]);
+  }, [controlMode, setControlMode]);
 
-  useEffect(() => {
-    const canvasEl = canvasElementRef.current;
-    if (!canvasEl) return;
+  // Main game loop for client-side updates
+  useFrame((state, delta) => {
+    const now = clock.getElapsedTime();
 
-    const acquirePointerLock = () => {
-      if (
-        controlMode === "mouseAimShipControl" &&
-        !document.pointerLockElement
-      ) {
-        canvasEl
-          .requestPointerLock()
-          .catch((err) => console.warn("Pointer lock request failed:", err));
-      }
-    };
+    if (
+      currentUserSpaceship &&
+      spaceshipRef.current &&
+      controlMode === "mouseAimShipControl"
+    ) {
+      const ship = currentUserSpaceship;
+      const shipGroup = spaceshipRef.current;
 
-    const onPointerLockChange = () => {
-      if (document.pointerLockElement === canvasEl) {
-        document.addEventListener("mousemove", handleMouseMove, false);
-      } else {
-        document.removeEventListener("mousemove", handleMouseMove, false);
-        if (controlMode === "mouseAimShipControl") {
-          setControlMode("orbitCamera");
-        }
-      }
-    };
-
-    canvasEl.addEventListener("click", acquirePointerLock);
-    document.addEventListener("pointerlockchange", onPointerLockChange, false);
-
-    return () => {
-      canvasEl.removeEventListener("click", acquirePointerLock);
-      document.removeEventListener(
-        "pointerlockchange",
-        onPointerLockChange,
-        false
+      const { pointer } = state;
+      const targetRotation = new THREE.Euler(
+        -pointer.y * 0.5,
+        -pointer.x * 0.5,
+        shipGroup.rotation.z,
+        "YXZ",
       );
-      document.removeEventListener("mousemove", handleMouseMove, false);
-      if (document.pointerLockElement === canvasEl) {
-        document.exitPointerLock();
-      }
-    };
-  }, [controlMode, handleMouseMove, canvasElementRef]);
+      shipGroup.quaternion.setFromEuler(targetRotation);
 
-  // Frame Loop (useFrame)
-  useFrame((_, delta) => {
-    if (!currentSystem || !currentSystem.star || !gameState) return;
-    const { star } = currentSystem;
+      const thrustForceVec = new THREE.Vector3(
+        thrustInput.strafe,
+        thrustInput.up,
+        -thrustInput.forward,
+      )
+        .multiplyScalar(SPACESHIP_THRUST_FORCE)
+        .applyQuaternion(shipGroup.quaternion);
 
-    Object.values(gameState.spaceships).forEach((ship) => {
-      if (!ship || !ship.mass || ship.mass <= 0) return;
-
-      const shipPositionVec = toVec3(ship.position);
-      const shipVelocityVec = toVec3(ship.velocity);
-      const netForce = new THREE.Vector3(0, 0, 0);
-
-      if (star) {
-        const starPositionVec = new THREE.Vector3(0, 0, 0);
-        const vecToStar = new THREE.Vector3().subVectors(
-          starPositionVec,
-          shipPositionVec
-        );
-        const distToStarSq = vecToStar.lengthSq();
-        if (distToStarSq > 1e-4) {
-          const forceMagStar =
-            (GRAVITATIONAL_CONSTANT * star.mass * ship.mass) / distToStarSq;
-          netForce.add(vecToStar.normalize().multiplyScalar(forceMagStar));
-        }
-
-        if (star.planets) {
-          const CSEC_elapsedTime = clock.getElapsedTime();
-          star.planets.forEach((planet) => {
-            if (!planet.mass || planet.mass <= 0) return;
-
-            const planetPositionVec = new THREE.Vector3();
-            if (planet.orbitalPeriod > 0 && planet.orbitRadius > 0) {
-              const angle =
-                (CSEC_elapsedTime / (planet.orbitalPeriod * 5)) * 2 * Math.PI;
-              planetPositionVec.set(
-                planet.orbitRadius * Math.cos(angle),
-                0,
-                planet.orbitRadius * Math.sin(angle)
-              );
-            }
-
-            const vecToPlanet = new THREE.Vector3().subVectors(
-              planetPositionVec,
-              shipPositionVec
-            );
-            const distToPlanetSq = vecToPlanet.lengthSq();
-            if (distToPlanetSq > 1e-4) {
-              const forceMagPlanet =
-                (GRAVITATIONAL_CONSTANT * planet.mass * ship.mass) /
-                distToPlanetSq;
-              netForce.add(
-                vecToPlanet.normalize().multiplyScalar(forceMagPlanet)
-              );
-            }
-
-            if (planet.moons) {
-              planet.moons.forEach((moon: MoonData) => {
-                if (!moon.mass || moon.mass <= 0) return;
-                const moonBasePosition = planetPositionVec.clone();
-
-                const moonPositionVec = new THREE.Vector3();
-                if (moon.orbitalPeriod > 0 && moon.orbitRadius > 0) {
-                  const moonAngle =
-                    (CSEC_elapsedTime / (moon.orbitalPeriod * 2)) * 2 * Math.PI;
-                  moonPositionVec.set(
-                    moon.orbitRadius * Math.cos(moonAngle),
-                    0,
-                    moon.orbitRadius * Math.sin(moonAngle)
-                  );
-                  moonPositionVec.add(moonBasePosition);
-                } else {
-                  moonPositionVec.copy(moonBasePosition);
-                }
-
-                const vecToMoon = new THREE.Vector3().subVectors(
-                  moonPositionVec,
-                  shipPositionVec
-                );
-                const distToMoonSq = vecToMoon.lengthSq();
-                if (distToMoonSq > 1e-4) {
-                  const forceMagMoon =
-                    (GRAVITATIONAL_CONSTANT * moon.mass * ship.mass) /
-                    distToMoonSq;
-                  netForce.add(
-                    vecToMoon.normalize().multiplyScalar(forceMagMoon)
-                  );
-                }
-              });
-            }
-          });
-        }
-
-        const distToStar = shipPositionVec.distanceTo(starPositionVec);
-        if (distToStar > MAX_SOLAR_DISTANCE) {
-          const recoveryForceMag =
-            RECOVERY_FORCE_STRENGTH * (distToStar - MAX_SOLAR_DISTANCE);
-          const recoveryForceVec = vecToStar
-            .normalize()
-            .multiplyScalar(recoveryForceMag);
-          netForce.add(recoveryForceVec);
-        }
-      }
+      // The current `moveMySpaceship` action takes absolute new position, rotation, velocity.
+      // The logic below tries to send updates if thrust input changes or at a regular interval if moving.
+      // This is a simplified approach to client-side prediction and server updates.
+      // More robust handling would involve more complex state reconciliation.
+      const hasThrustInput =
+        thrustInput.forward !== 0 ||
+        thrustInput.up !== 0 ||
+        thrustInput.strafe !== 0;
 
       if (
-        ship.id === currentSpaceshipId &&
-        controlMode === "mouseAimShipControl"
+        now - lastPhysicsUpdateTimeRef.current > UPDATE_INTERVAL / 1000 ||
+        (hasThrustInput &&
+          (thrustInput.forward !== lastSentThrustInputRef.current.forward ||
+            thrustInput.up !== lastSentThrustInputRef.current.up ||
+            thrustInput.strafe !== lastSentThrustInputRef.current.strafe))
       ) {
-        const shipRotation = gameState.spaceships[currentSpaceshipId]
-          ?.rotation || { x: 0, y: 0, z: 0 };
-        const shipEuler = new THREE.Euler(
-          shipRotation.x,
-          shipRotation.y,
-          shipRotation.z,
-          "YXZ"
+        // Current ship state (position, velocity) is from the server.
+        // Calculate a target new state based on inputs to send to the server.
+        // This is an optimistic update for the client and a command for the server.
+
+        // This is not a persistent velocity, but an instantaneous change due to thrust for this tick.
+        const effectiveVelocityChange = thrustForceVec
+          .clone()
+          .multiplyScalar(delta);
+
+        // Note: This is a simplified approach. True client-side prediction is more complex.
+        const newPosition = toVec3(ship.position).add(effectiveVelocityChange);
+
+        // For velocity to send to server: current velocity + impulse from thrust.
+        // Server might recalculate or use this as a hint.
+        const newVelocity = toVec3(ship.velocity).add(
+          effectiveVelocityChange.clone().divideScalar(delta),
         );
 
-        const forwardDir = new THREE.Vector3(0, 0, -1).applyEuler(shipEuler);
-        const upDir = new THREE.Vector3(0, 1, 0).applyEuler(shipEuler);
-        const rightDir = new THREE.Vector3(1, 0, 0).applyEuler(shipEuler);
-
-        if (thrustInput.forward !== 0) {
-          netForce.add(
-            forwardDir.multiplyScalar(
-              thrustInput.forward * SPACESHIP_THRUST_FORCE
-            )
-          );
-        }
-        if (thrustInput.up !== 0) {
-          netForce.add(
-            upDir.multiplyScalar(thrustInput.up * SPACESHIP_THRUST_FORCE)
-          );
-        }
-        if (thrustInput.strafe !== 0) {
-          netForce.add(
-            rightDir.multiplyScalar(thrustInput.strafe * SPACESHIP_THRUST_FORCE)
-          );
-        }
+        moveMySpaceship(
+          fromVec3(newPosition),
+          {
+            x: shipGroup.rotation.x,
+            y: shipGroup.rotation.y,
+            z: shipGroup.rotation.z,
+          },
+          fromVec3(newVelocity),
+        );
+        lastPhysicsUpdateTimeRef.current = now;
+        lastSentThrustInputRef.current = { ...thrustInput };
       }
-
-      const acceleration = netForce.divideScalar(ship.mass);
-      const newVelocityVec = shipVelocityVec
-        .clone()
-        .add(acceleration.multiplyScalar(delta));
-      const newPositionVec = shipPositionVec
-        .clone()
-        .add(newVelocityVec.clone().multiplyScalar(delta));
-
-      if (ship.id === currentSpaceshipId) {
-        const currentShipData = gameState.spaceships[currentSpaceshipId];
-        if (currentShipData) {
-          const now = performance.now();
-          const currentCalculatedAcceleration = netForce
-            .clone()
-            .divideScalar(ship.mass);
-
-          let sendUpdateThisFrame = false;
-
-          if (
-            thrustInput.forward !== lastSentThrustInputRef.current.forward ||
-            thrustInput.up !== lastSentThrustInputRef.current.up ||
-            thrustInput.strafe !== lastSentThrustInputRef.current.strafe
-          ) {
-            sendUpdateThisFrame = true;
-          } else if (previousSentAccelerationRef.current) {
-            if (
-              previousSentAccelerationRef.current.distanceToSquared(
-                currentCalculatedAcceleration
-              ) > ACCELERATION_CHANGE_THRESHOLD_SQUARED
-            ) {
-              sendUpdateThisFrame = true;
-            }
-          } else if (!previousSentAccelerationRef.current) {
-            sendUpdateThisFrame = true;
-          }
-
-          if (sendUpdateThisFrame) {
-            if (now - lastPhysicsUpdateTimeRef.current > UPDATE_INTERVAL) {
-              moveMySpaceship(
-                fromVec3(newPositionVec),
-                currentShipData.rotation,
-                fromVec3(newVelocityVec)
-              );
-              lastPhysicsUpdateTimeRef.current = now;
-              previousSentAccelerationRef.current =
-                currentCalculatedAcceleration.clone();
-              lastSentThrustInputRef.current = { ...thrustInput };
-            }
-          }
-        }
-      }
-    });
+    }
+    // Removed spaceship physics calculations (gravity etc.) as server handles it.
   });
 
-  // Conditional Rendering / Early Returns (MUST BE AFTER ALL HOOKS)
-  if (userLoadingFromHook || !currentSystem || !currentUserIdFromHook) {
-    return <div className="text-white text-2xl">Loading Solar System...</div>;
-  }
-
-  if (!currentSystem.star) {
-    console.error(
-      "SceneContent: currentSystem.star is undefined. Cannot render scene."
-    );
+  if (userLoadingFromHook) {
     return (
-      <div className="text-white text-2xl">Error loading system data.</div>
+      <Html center>
+        <div className="text-white text-2xl bg-black/50 p-4 rounded">
+          Loading User Data...
+        </div>
+      </Html>
     );
   }
-  const { star } = currentSystem;
-  const validSpaceships = Object.values(gameState.spaceships).filter(
-    (ship): ship is SpaceshipState =>
-      Boolean(ship && ship.position && ship.rotation)
-  );
+  if (!isConnected && !connectionAttemptedRef.current) {
+    return (
+      <Html center>
+        <div className="text-white text-2xl bg-black/50 p-4 rounded">
+          Connecting to server...
+        </div>
+      </Html>
+    );
+  }
+  if (!currentUserSpaceship && isConnected) {
+    return (
+      <Html center>
+        <div className="text-white text-2xl bg-black/50 p-4 rounded">
+          Initializing spaceship...
+        </div>
+      </Html>
+    );
+  }
+  if (!currentSpaceshipId && isConnected) {
+    return (
+      <Html center>
+        <div className="text-white text-2xl bg-black/50 p-4 rounded">
+          Waiting for spaceship assignment...
+        </div>
+      </Html>
+    );
+  }
 
-  // JSX Return
+  const allSpaceships = Object.values(gameState.spaceships || {});
+  const allCelestialBodies = Object.values(gameState.celestialBodies || {});
+
   return (
     <>
-      <Starfield />
-      <Suspense fallback={null}>
-        <ambientLight intensity={0.2} />
-        <pointLight
-          position={[0, 0, 0]}
-          intensity={star.luminosity > 0 ? star.luminosity * 1.5 : 5}
-          distance={MAX_SOLAR_DISTANCE * 2}
-          color={
-            star.type.toLowerCase().includes("g-type") ? "#FFF8E7" : "#A4D8FF"
-          }
-          castShadow
-        />
-
-        <Star data={star} />
-        {star.planets &&
-          star.planets.map((planetData) => (
-            <Planet key={planetData.id} data={planetData} />
-          ))}
-        {validSpaceships.map((ship) => (
-          <Spaceship
-            key={ship.id}
-            ref={ship.id === currentSpaceshipId ? spaceshipRef : null}
-            id={ship.id as SpaceshipId}
-            initialPosition={ship.position}
-            initialRotation={ship.rotation}
-            isCurrentUser={ship.id === currentSpaceshipId}
-          />
-        ))}
-      </Suspense>
       <OrbitControls
         ref={orbitControlsRef}
         enabled={controlMode === "orbitCamera"}
       />
+      <ambientLight intensity={0.2} />
+      <directionalLight
+        position={[10, 10, 5]}
+        intensity={1.5}
+        castShadow
+        shadow-mapSize-width={2048}
+        shadow-mapSize-height={2048}
+        shadow-camera-far={50}
+        shadow-camera-left={-10}
+        shadow-camera-right={10}
+        shadow-camera-top={10}
+        shadow-camera-bottom={-10}
+      />
+      <Starfield />
+
+      {allSpaceships.map((ship) => {
+        if (!ship) return null;
+        const isCurrentUserShip = ship.id === currentSpaceshipId;
+        const spaceshipSpecificProps = isCurrentUserShip
+          ? {}
+          : { color: "#FFC0CB" };
+
+        return (
+          <Spaceship
+            key={ship.id}
+            ref={isCurrentUserShip ? spaceshipRef : null}
+            id={ship.id}
+            initialPosition={ship.position}
+            initialRotation={ship.rotation}
+            isCurrentUser={isCurrentUserShip}
+            {...spaceshipSpecificProps}
+          />
+        );
+      })}
+
+      {allCelestialBodies.map((body, index) => {
+        if (!body) return null;
+        const bodyRef = celestialBodyRefs.current[index];
+        if (body.type === "sun") {
+          return <Sun key={body.id} celestialBody={body} ref={bodyRef} />;
+        }
+        if (body.type === "planet") {
+          return <Planet key={body.id} celestialBody={body} ref={bodyRef} />;
+        }
+        return null;
+      })}
     </>
   );
 };
@@ -707,22 +401,28 @@ const SceneContent = ({
 const SolarSystem3DCanvas = () => {
   const { userId: currentUserIdFromHook, isLoading: userLoadingFromHook } =
     useCurrentUser();
-  const currentSystem = useSolarSystemStore((state) => state.currentSystem);
 
-  if (userLoadingFromHook || !currentSystem) {
+  // Loading state handled by SceneContent or the main return block below
+  if (userLoadingFromHook) {
     return (
-      <div className="w-full h-full flex items-center justify-center">
-        <p className="text-white">Loading system data or user...</p>
+      <div className="w-full h-full flex items-center justify-center bg-black">
+        <div className="text-white text-2xl">
+          Loading User Authentication...
+        </div>
       </div>
     );
   }
 
   return (
     <Canvas
-      camera={{ position: [0, 20, 70], fov: 60 }}
-      style={{ background: "#111119" }}
       shadows
-      gl={{ antialias: true }}
+      camera={{ position: [0, 20, 100], fov: 50 }}
+      style={{ background: "#000000" }}
+      onPointerDown={(e) => {
+        if (useGameStore.getState().currentSpaceshipId && e.button === 0) {
+          // Pointer lock logic can be re-enabled here if needed
+        }
+      }}
     >
       <SceneContent
         currentUserIdFromHook={currentUserIdFromHook}

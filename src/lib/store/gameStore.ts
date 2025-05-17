@@ -8,6 +8,8 @@ import {
   SpaceshipId,
   Position,
   Rotation,
+  // CelestialBodyState, // Not directly used here, but part of GameState
+  // CelestialBodyId,    // Not directly used here, but part of GameState
 } from "@/lib/domain/game.types";
 import { moveSpaceship as moveSpaceshipAction } from "@/app/actions/gameActions";
 
@@ -39,6 +41,7 @@ export const useGameStore = create<GameStoreState & GameStoreActions>()(
   immer((set, get) => ({
     gameState: {
       spaceships: {},
+      celestialBodies: {}, // Added celestialBodies to initial state
     },
     isConnected: false,
     error: null,
