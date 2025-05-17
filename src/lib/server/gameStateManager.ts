@@ -6,10 +6,11 @@ import {
   Position,
   Rotation,
   CelestialBodyId,
+  CelestialBodyState,
 } from "../domain/game.types";
 import { produce } from "immer";
 import { v4 as uuidv4 } from "uuid";
-import { updatePhysics } from "../physics";
+import { updatePhysics, SIMULATION_G } from "../physics";
 
 // Enhance for HMR stability in dev mode by using globalThis
 declare global {
@@ -26,52 +27,91 @@ declare global {
 const PHYSICS_TICK_RATE_MS = 50; // 20 ticks per second
 
 const initializeCelestialBodies = (gameState: GameState): GameState => {
-  if (Object.keys(gameState.celestialBodies || {}).length > 0) {
-    return gameState; // Already initialized
+  if (
+    gameState.celestialBodies &&
+    Object.keys(gameState.celestialBodies).length > 1 // Check if more than just the sun might exist
+  ) {
+    // If we have planets, assume it's initialized for now.
+    // A more robust check might be needed if we allow dynamic addition/removal of many bodies later.
+    const sunExists = Object.values(gameState.celestialBodies).some(
+      (body) => body?.type === "sun",
+    );
+    if (sunExists && Object.keys(gameState.celestialBodies).length > 1) {
+      // console.log("Celestial bodies (planets) seem to be already initialized.");
+      return gameState;
+    }
   }
 
-  const sunId = uuidv4() as CelestialBodyId;
-  const earthId = uuidv4() as CelestialBodyId;
-  const marsId = uuidv4() as CelestialBodyId;
+  const sunId =
+    (Object.values(gameState.celestialBodies || {}).find(
+      (body) => body?.type === "sun",
+    )?.id as CelestialBodyId) || (uuidv4() as CelestialBodyId);
+
+  const sunMass = 1.989e6; // Using the existing scaled mass for the Sun
+
+  const newCelestialBodies: Record<CelestialBodyId, CelestialBodyState> = {};
+
+  newCelestialBodies[sunId] = {
+    id: sunId,
+    type: "sun",
+    name: "Sol",
+    mass: sunMass,
+    radius: 35,
+    position: { x: 0, y: 0, z: 0 },
+    velocity: { x: 0, y: 0, z: 0 },
+    rotation: { x: 0, y: 0, z: 0 },
+    lastUpdated: new Date().toISOString(),
+  };
+
+  const numberOfPlanets = 20;
+  const baseOrbitRadius = 100;
+  const orbitRadiusIncrement = 50;
+  const maxOrbitRandomOffset = 50;
+
+  for (let i = 0; i < numberOfPlanets; i++) {
+    const planetId = uuidv4() as CelestialBodyId;
+    const planetName = `Planet-${i + 1}`;
+
+    const mass = Math.random() * (20 - 0.05) + 0.05;
+    const radius = Math.random() * (15 - 2) + 2;
+
+    const orbitalRadius =
+      baseOrbitRadius +
+      i * orbitRadiusIncrement +
+      (Math.random() - 0.5) * 2 * maxOrbitRandomOffset;
+
+    const angle =
+      (i / numberOfPlanets) * 2 * Math.PI + Math.random() * 0.2 - 0.1;
+
+    const positionX = orbitalRadius * Math.cos(angle);
+    const positionY = orbitalRadius * Math.sin(angle);
+    const positionZ = (Math.random() - 0.5) * 20;
+
+    const vMagnitude =
+      orbitalRadius > 0
+        ? Math.sqrt((SIMULATION_G * sunMass) / orbitalRadius)
+        : 0;
+
+    const velocityX = -vMagnitude * Math.sin(angle);
+    const velocityY = vMagnitude * Math.cos(angle);
+    const velocityZ = 0;
+
+    newCelestialBodies[planetId] = {
+      id: planetId,
+      type: "planet",
+      name: planetName,
+      mass: mass,
+      radius: radius,
+      position: { x: positionX, y: positionY, z: positionZ },
+      velocity: { x: velocityX, y: velocityY, z: velocityZ },
+      rotation: { x: 0, y: Math.random() * Math.PI, z: 0 },
+      orbitingBodyId: sunId,
+      lastUpdated: new Date().toISOString(),
+    };
+  }
 
   return produce(gameState, (draft) => {
-    draft.celestialBodies = {
-      [sunId]: {
-        id: sunId,
-        type: "sun",
-        name: "Sol",
-        mass: 1.989e6, // Scaled mass (e.g., 1.989e30 kg / 1e24)
-        radius: 6.957, // Scaled radius (e.g., 695,700 km / 1e5)
-        position: { x: 0, y: 0, z: 0 },
-        velocity: { x: 0, y: 0, z: 0 },
-        rotation: { x: 0, y: 0, z: 0 },
-        lastUpdated: new Date().toISOString(),
-      },
-      [earthId]: {
-        id: earthId,
-        type: "planet",
-        name: "Earth",
-        mass: 5.972, // Scaled mass (e.g., 5.972e24 kg / 1e24)
-        radius: 10.0, // Scaled radius
-        position: { x: 150, y: 0, z: 0 }, // Approx 1 AU (scaled)
-        velocity: { x: 0, y: 25.75, z: 0 }, // Initial velocity for orbit (tune this)
-        rotation: { x: 0, y: 0, z: 0 },
-        orbitingBodyId: sunId,
-        lastUpdated: new Date().toISOString(),
-      },
-      [marsId]: {
-        id: marsId,
-        type: "planet",
-        name: "Mars",
-        mass: 0.6417, // Scaled mass
-        radius: 7.0, // Scaled radius
-        position: { x: -220, y: 0, z: 0 }, // Approx 1.5 AU (scaled)
-        velocity: { x: 0, y: -21.26, z: 0 }, // Initial velocity for orbit (tune this)
-        rotation: { x: 0, y: 0, z: 0 },
-        orbitingBodyId: sunId,
-        lastUpdated: new Date().toISOString(),
-      },
-    };
+    draft.celestialBodies = newCelestialBodies;
   });
 };
 

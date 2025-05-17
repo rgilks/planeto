@@ -6,7 +6,7 @@ export const G = 6.6743e-11; // Gravitational constant (m^3 kg^-1 s^-2)
 // For simulation purposes, we might use a scaled G or scaled masses/distances
 // For now, let's assume units are somewhat abstract (e.g., astronomical units, years for time, solar masses)
 // And G will be tuned to look good.
-export const SIMULATION_G = 0.05; // Adjusted for simulation scale
+export const SIMULATION_G = 0.2; // Adjusted for simulation scale
 
 export const calculateGravitationalForce = (
   body1: CelestialBodyState,
