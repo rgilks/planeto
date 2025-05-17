@@ -5,6 +5,7 @@ import React, { useRef, forwardRef, useLayoutEffect, useMemo } from "react";
 import * as THREE from "three";
 import { createNoise2D } from "simplex-noise";
 import { CelestialBodyState } from "@/lib/domain/game.types";
+import { useFrame } from "@react-three/fiber";
 
 export interface PlanetProps {
   celestialBody: CelestialBodyState;
@@ -39,6 +40,7 @@ const Planet = forwardRef<THREE.Group, PlanetProps>(
     const { position, radius, name, id, atmosphere } = celestialBody;
     const meshRef = useRef<THREE.Mesh>(null!);
     const atmosphereRef = useRef<THREE.Mesh>(null!);
+    const groupRef = useRef<THREE.Group>(null!);
 
     const proceduralTexture = useMemo(() => {
       const seedValue = createSeedFromString(id);
@@ -153,10 +155,20 @@ const Planet = forwardRef<THREE.Group, PlanetProps>(
       return texture;
     }, [id]);
 
+    const randomizedRotationSpeed = useMemo(() => {
+      const seedValue = createSeedFromString(id);
+      const randomFn = createLcgRandom(seedValue);
+      return randomFn() * 4.0; // Average speed of 2.0 (range 0.0 to 4.0)
+    }, [id]);
+
     useLayoutEffect(() => {
       const currentRef = typeof ref === "function" ? null : ref?.current;
       if (currentRef) {
         currentRef.position.set(position.x, position.y, position.z);
+      }
+      // Initialize groupRef for useFrame if ref is a callback or not directly usable
+      if (groupRef.current && !currentRef) {
+        groupRef.current.position.set(position.x, position.y, position.z);
       }
     }, [position, ref]);
 
@@ -170,8 +182,21 @@ const Planet = forwardRef<THREE.Group, PlanetProps>(
       return atmosphere?.density !== undefined ? atmosphere.density * 0.7 : 0.7;
     }, [atmosphere?.density]);
 
+    useFrame((_, delta) => {
+      const actualRotationSpeed =
+        celestialBody.rotationSpeed ?? randomizedRotationSpeed;
+      const targetRef = typeof ref === "function" ? groupRef : ref;
+
+      if (targetRef && targetRef.current) {
+        targetRef.current.rotation.y += actualRotationSpeed * delta;
+      }
+    });
+
+    // Determine which ref to use for the main group
+    const effectiveRef = typeof ref === "function" ? groupRef : ref;
+
     return (
-      <group ref={ref} name={`planet-${name}`}>
+      <group ref={effectiveRef} name={`planet-${name}`}>
         <Sphere ref={meshRef} args={[radius, 64, 64]} castShadow receiveShadow>
           <meshStandardMaterial
             map={proceduralTexture}

@@ -4,11 +4,13 @@ const vertexShader = `
   varying vec2 vUv;
   varying vec3 vWorldPosition;
   varying vec3 vWorldNormal;
+  varying vec3 vObjectPosition;
 
   void main() {
     vUv = uv;
     vec4 worldPosition = modelMatrix * vec4(position, 1.0);
     vWorldPosition = worldPosition.xyz;
+    vObjectPosition = position;
     
     // Calculate world normal
     vWorldNormal = normalize(mat3(modelMatrix[0].xyz, modelMatrix[1].xyz, modelMatrix[2].xyz) * normal);
@@ -23,6 +25,7 @@ const fragmentShader = `
   varying vec3 vWorldPosition;
   varying vec3 vWorldNormal;
   varying vec2 vUv;
+  varying vec3 vObjectPosition;
 
   // 3D Simplex noise
   // from https://github.com/stegu/webgl-noise/blob/master/src/noise3D.glsl
@@ -97,7 +100,7 @@ const fragmentShader = `
     float frequency = 1.0; 
     int octaves = 6; // Increased octaves for more fine detail
     float lacunarity = 2.2; // How much detail is added or removed at each octave
-    float persistence = 0.45; // How much roughness is maintained through the octaves
+    float persistence = 0.5; // How much roughness is maintained through the octaves (was 0.45)
 
     for (int i = 0; i < octaves; i++) {
         // Modulate time influence per octave for more complex motion
@@ -111,11 +114,11 @@ const fragmentShader = `
   }
 
   void main() {
-    float surfaceNoiseVal = fbm(vWorldPosition * 0.7, time * 0.035);
+    float surfaceNoiseVal = fbm(vObjectPosition * 0.05, time * 0.035); // Changed scale from 0.02 to 0.05
     surfaceNoiseVal = (surfaceNoiseVal + 0.8) / 1.6;
     surfaceNoiseVal = clamp(surfaceNoiseVal, 0.0, 1.0);
 
-    float surfaceGlowFactor = pow(surfaceNoiseVal, 4.5);
+    float surfaceGlowFactor = pow(surfaceNoiseVal, 3.5); // Changed power from 4.5 to 3.5
     vec3 baseColorDark = vec3(0.8, 0.2, 0.0);
     vec3 baseColorBright = vec3(1.0, 0.5, 0.0);
     vec3 highlightColor = vec3(1.0, 0.95, 0.85);

@@ -23,12 +23,18 @@ const Sun = forwardRef<THREE.Group, SunProps>(({ celestialBody }, ref) => {
     }
   }, [position, ref]);
 
-  useFrame(({ clock }) => {
+  useFrame(({ clock }, delta) => {
     if (shaderMaterialRef.current) {
       shaderMaterialRef.current.time = clock.getElapsedTime();
       const worldCameraPosition = new THREE.Vector3();
       camera.getWorldPosition(worldCameraPosition);
       shaderMaterialRef.current.cameraPosition = worldCameraPosition;
+    }
+
+    const currentRef = typeof ref === "function" ? null : ref?.current;
+    if (currentRef) {
+      const speed = celestialBody.rotationSpeed ?? 0.001; // Use rotationSpeed from props, default to slow
+      currentRef.rotation.y += speed * delta;
     }
   });
 

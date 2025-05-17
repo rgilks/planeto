@@ -60,13 +60,14 @@ const initializeCelestialBodies = (gameState: GameState): GameState => {
     position: { x: 0, y: 0, z: 0 },
     velocity: { x: 0, y: 0, z: 0 },
     rotation: { x: 0, y: 0, z: 0 },
+    rotationSpeed: 0.8,
     lastUpdated: new Date().toISOString(),
   };
 
-  const numberOfPlanets = 20;
-  const baseOrbitRadius = 100;
-  const orbitRadiusIncrement = 50;
-  const maxOrbitRandomOffset = 50;
+  const numberOfPlanets = 80;
+  const baseOrbitRadius = 14;
+  const orbitRadiusIncrement = 6;
+  const maxOrbitRandomOffset = 8;
 
   for (let i = 0; i < numberOfPlanets; i++) {
     const planetId = uuidv4() as CelestialBodyId;
@@ -85,7 +86,7 @@ const initializeCelestialBodies = (gameState: GameState): GameState => {
 
     const positionX = orbitalRadius * Math.cos(angle);
     const positionY = orbitalRadius * Math.sin(angle);
-    const positionZ = (Math.random() - 0.5) * 20;
+    const positionZ = (Math.random() - 0.5) * 60;
 
     const vMagnitude =
       orbitalRadius > 0
@@ -94,7 +95,7 @@ const initializeCelestialBodies = (gameState: GameState): GameState => {
 
     const velocityX = -vMagnitude * Math.sin(angle);
     const velocityY = vMagnitude * Math.cos(angle);
-    const velocityZ = 0;
+    const velocityZ = (Math.random() - 0.5) * vMagnitude * 0.1;
 
     const textureUrl = undefined;
     const bumpMapUrl = undefined;
