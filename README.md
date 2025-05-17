@@ -116,3 +116,13 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## Rendering
+
+### Sun Rendering
+
+The sun's appearance is managed by `src/components/Sun.tsx`. It utilizes a custom shader material, `SunShaderMaterial` (defined in `src/components/SunSurfaceMaterial.tsx`), to create a dynamic and visually rich representation of a star. This includes features like procedural noise for surface detail and a corona effect.
+
+The shader's uniforms, such as `time` (for animation) and `u_cameraPosition` (for view-dependent effects like the corona), are updated in real-time within the `Sun` component using `useFrame` from `@react-three/fiber`.
+
+The `SunShaderMaterial` is made available to React Three Fiber components through an extension defined in `src/lib/r3f-extensions.ts`.

@@ -1,7 +1,9 @@
 import React, { forwardRef, useLayoutEffect, useRef } from "react";
 import { Sphere } from "@react-three/drei";
 import * as THREE from "three";
+import { useFrame, useThree } from "@react-three/fiber";
 import { CelestialBodyState } from "@/lib/domain/game.types";
+import { SunShaderMaterial } from "./SunSurfaceMaterial";
 
 export interface SunProps {
   celestialBody: CelestialBodyState;
@@ -9,7 +11,10 @@ export interface SunProps {
 
 const Sun = forwardRef<THREE.Group, SunProps>(({ celestialBody }, ref) => {
   const { position, radius, name } = celestialBody;
-  const meshRef = useRef<THREE.Mesh>(null!); // Ref for the sphere mesh itself
+  const meshRef = useRef<THREE.Mesh>(null!);
+  const shaderMaterialRef = useRef<SunShaderMaterial>(null!);
+
+  const { camera } = useThree();
 
   useLayoutEffect(() => {
     const currentRef = typeof ref === "function" ? null : ref?.current;
@@ -18,23 +23,26 @@ const Sun = forwardRef<THREE.Group, SunProps>(({ celestialBody }, ref) => {
     }
   }, [position, ref]);
 
-  // The sun itself should be bright and not cast shadows in a simple setup,
-  // but it can receive shadows if other objects cast them (though unlikely here).
+  useFrame(({ clock }) => {
+    if (shaderMaterialRef.current) {
+      shaderMaterialRef.current.time = clock.getElapsedTime();
+      const worldCameraPosition = new THREE.Vector3();
+      camera.getWorldPosition(worldCameraPosition);
+      shaderMaterialRef.current.cameraPosition = worldCameraPosition;
+    }
+  });
+
   return (
     <group ref={ref} name={`sun-${name}`}>
-      <Sphere
-        ref={meshRef}
-        args={[radius, 32, 32]}
-        castShadow={false}
-        receiveShadow
-      >
-        <meshStandardMaterial
-          color="#FFFF00" // Bright yellow
-          emissive="#FFFF00" // Make it glow
-          emissiveIntensity={1.5} // Adjust glow intensity
+      <Sphere ref={meshRef} args={[radius, 64, 64]} castShadow={false}>
+        {/* <meshStandardMaterial
+          color="#FFFF00"
+          emissive="#FFFF00"
+          emissiveIntensity={1.5}
           metalness={0.2}
           roughness={0.8}
-        />
+        /> */}
+        <sunShaderMaterial ref={shaderMaterialRef} />
       </Sphere>
       {/* Optional: Add a point light at the sun's position */}
       {/* <pointLight intensity={2} distance={radius * 50} decay={2} color="#FFFFFF" /> */}
