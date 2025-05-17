@@ -64,9 +64,9 @@ const initializeCelestialBodies = (gameState: GameState): GameState => {
     lastUpdated: new Date().toISOString(),
   };
 
-  const numberOfPlanets = 80;
+  const numberOfPlanets = 20;
   const baseOrbitRadius = 14;
-  const orbitRadiusIncrement = 6;
+  const orbitRadiusIncrement = 18;
   const maxOrbitRandomOffset = 8;
 
   for (let i = 0; i < numberOfPlanets; i++) {

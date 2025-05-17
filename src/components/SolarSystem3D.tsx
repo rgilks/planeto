@@ -317,19 +317,8 @@ const SceneContent = ({
         ref={orbitControlsRef}
         enabled={controlMode === "orbitCamera"}
       />
-      <ambientLight intensity={0.2} />
-      <directionalLight
-        position={[10, 10, 5]}
-        intensity={6.0}
-        castShadow
-        shadow-mapSize-width={2048}
-        shadow-mapSize-height={2048}
-        shadow-camera-far={50}
-        shadow-camera-left={-10}
-        shadow-camera-right={10}
-        shadow-camera-top={10}
-        shadow-camera-bottom={-10}
-      />
+      <ambientLight intensity={0.5} />
+
       <Starfield count={25000} radius={50000} />
 
       {allSpaceships.map((ship) => {

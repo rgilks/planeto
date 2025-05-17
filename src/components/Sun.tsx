@@ -41,17 +41,19 @@ const Sun = forwardRef<THREE.Group, SunProps>(({ celestialBody }, ref) => {
   return (
     <group ref={ref} name={`sun-${name}`}>
       <Sphere ref={meshRef} args={[radius, 64, 64]} castShadow={false}>
-        {/* <meshStandardMaterial
-          color="#FFFF00"
-          emissive="#FFFF00"
-          emissiveIntensity={1.5}
-          metalness={0.2}
-          roughness={0.8}
-        /> */}
         <sunShaderMaterial ref={shaderMaterialRef} />
       </Sphere>
-      {/* Optional: Add a point light at the sun's position */}
-      {/* <pointLight intensity={2} distance={radius * 50} decay={2} color="#FFFFFF" /> */}
+      <pointLight
+        intensity={500000}
+        distance={radius * 1000} // Affects a large area
+        decay={2}
+        color="#FFFFFF"
+        castShadow
+        shadow-mapSize-width={2048}
+        shadow-mapSize-height={2048}
+        shadow-camera-far={radius * 100} // Adjust far plane for shadows
+        shadow-camera-near={radius * 0.1} // Adjust near plane for shadows
+      />
     </group>
   );
 });
