@@ -26,7 +26,6 @@ Key principles guiding development:
     - `Planet`: Renders individual planets and their moons (recursively).
     - Utilizes `@react-three/drei` for helpers like `OrbitControls`, `Html` (for labels), and various geometry/material components.
   - `StoreInitializer.tsx`: A client component responsible for loading initial data into the Zustand store.
-- **Styling:** Tailwind CSS is configured for utility-first CSS, though current 3D scene styling is primarily managed via R3F materials.
 
 ## Data Flow
 

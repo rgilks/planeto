@@ -21,7 +21,6 @@ For a detailed technical overview of the project, its architecture, and design p
 - **Three.js**
 - **Zustand (with Immer)**
 - **Zod**
-- **Tailwind CSS** (primarily for page layout, 3D scene uses R3F materials)
 
 ## Getting Started
 
@@ -73,7 +72,7 @@ planeto/
 - `npm run lint`: Lints the codebase using ESLint.
 - `npm run test:e2e`: Runs Playwright end-to-end tests.
 - `npm run test:e2e:watch`: Runs Playwright end-to-end tests in watch mode.
-- `npm run check`: (If configured, typically runs linting and type checking e.g. `tsc --noEmit && eslint .`)
+- `npm run check`: Formats code with Prettier, lints with Next ESLint (autofixing), performs TypeScript type checking, and runs Playwright tests with a list reporter.
 
 ## End-to-End Testing with Playwright
 
