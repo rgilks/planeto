@@ -15,6 +15,17 @@ import { v4 as uuidv4 } from "uuid";
 import { Physics, RapierRigidBody } from "@react-three/rapier";
 import { SIMULATION_G } from "@/lib/physics";
 
+// Minimal hash function for cloud enabling logic
+const simpleHash = (str: string): number => {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = (hash << 5) - hash + char;
+    hash |= 0; // Convert to 32bit integer
+  }
+  return Math.abs(hash);
+};
+
 interface CelestialBodyUserData {
   mass: number;
   id: CelestialBodyId;
@@ -442,7 +453,15 @@ const SceneContent = ({
           return <Sun key={body.id} celestialBody={body} ref={bodyRef} />;
         }
         if (body.type === "planet") {
-          return <Planet key={body.id} celestialBody={body} ref={bodyRef} />;
+          const shouldHaveClouds = simpleHash(body.name) % 3 === 0; // Approx 1/3 of planets get clouds
+          return (
+            <Planet
+              key={body.id}
+              celestialBody={body}
+              ref={bodyRef}
+              enableClouds={shouldHaveClouds}
+            />
+          );
         }
         return null;
       })}

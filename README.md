@@ -9,7 +9,7 @@ For a detailed technical overview of the project, its architecture, and design p
 - **3D Solar System Visualization:** Renders a dynamic solar system with a star and numerous planets.
 - **Client-Side N-Body Gravity:** Planets interact gravitationally, calculated on the client using Rapier physics for rigid body dynamics.
 - **Procedural Solar System Layout:** Server-side generation of planetary positions, masses, and initial velocities with tunable parameters.
-- **Procedural Planet Textures:** Planets without pre-assigned textures now feature unique, procedurally generated surfaces using simplex noise, providing varied and visually distinct appearances. For more details, see [Procedural Textures Documentation](./docs/procedural-textures.md).
+- **Procedural Planet Textures:** Planets without pre-assigned textures now feature unique, procedurally generated surfaces using simplex noise. This includes color maps, bump maps for surface relief, and optional, independently rotating cloud layers for selected planets. For more details, see [Procedural Textures Documentation](./docs/procedural-textures.md).
 - **Tunable Physics Parameters:** Gravitational constant (`SIMULATION_G`), initial velocity scaling, and Rapier physics properties (e.g., restitution for bouncy collisions) can be adjusted to change simulation behavior.
 - **Orbital Mechanics:** Planets exhibit dynamic orbital motion based on gravitational interactions.
 - **Camera Controls:** Interactive camera using `OrbitControls` allowing users to zoom, pan, and rotate the view.
@@ -137,4 +137,8 @@ The `SunShaderMaterial` is made available to React Three Fiber components throug
 ### Planet Surface Rendering
 
 Planets are rendered by the `src/components/Planet.tsx` component.
-If a `textureUrl` is provided in the planet's data, that texture is used. Otherwise, a unique procedural texture is generated on the client-side by `src/lib/textureUtils.ts`. This system uses the `simplex-noise` library to create varied surface patterns and colors based on the planet's name, ensuring each procedurally textured planet has a distinct look. The generated textures are `THREE.DataTexture` objects applied to a `meshStandardMaterial`. Atmospheres, if defined, are rendered as a separate semi-transparent sphere with additive blending. For more detailed information, see [Procedural Textures Documentation](./docs/procedural-textures.md).
+If a `textureUrl` (and optionally `bumpMapUrl`) is provided in the planet's data, those textures are used. Otherwise, unique procedural textures (color map and bump map) are generated on the client-side by `src/lib/textureUtils.ts`. This system uses `simplex-noise` to create varied surface patterns, colors, and relief based on the planet's name.
+
+Selected planets can also display a procedurally generated, rotating cloud layer, also created by `src/lib/textureUtils.ts` and managed within `Planet.tsx`.
+
+The generated textures are `THREE.DataTexture` objects applied to a `meshStandardMaterial`. Atmospheres, if defined, are rendered as a separate semi-transparent sphere. For more detailed information on all procedural texture generation, see [Procedural Textures Documentation](./docs/procedural-textures.md).

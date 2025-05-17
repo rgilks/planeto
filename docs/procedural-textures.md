@@ -4,14 +4,22 @@ This document details the system used in Planeto to generate procedural textures
 
 ## Overview
 
-The goal is to provide visually distinct, varied, and interesting surfaces for planets without requiring a large number of static texture assets. This is achieved by generating textures on the client-side at runtime using multiple layers of simplex noise, simulated elevation, and dynamically generated color palettes.
+The goal is to provide visually distinct, varied, and interesting surfaces for planets. This includes color maps, bump maps for surface relief, and optional cloud layers. Textures are generated on the client-side at runtime using multiple layers of simplex noise, simulated elevation, and dynamically generated color palettes.
 
 ## Implementation Details
 
-- **Location:** The core logic resides in `src/lib/textureUtils.ts`, specifically within the `generatePlanetTexture` function.
-- **Trigger:** This function is called from the `src/components/Planet.tsx` component if a planet's data (`CelestialBodyState`) does not include a `textureUrl`.
+- **Location:** The core logic resides in `src/lib/textureUtils.ts`.
+  - `generatePlanetTexture`: Generates a color map and a bump map.
+  - `generateCloudTexture`: Generates a color/alpha map for cloud layers.
+- **Trigger:**
+  - `generatePlanetTexture` is called from `src/components/Planet.tsx` if a planet's `textureUrl` is not provided.
+  - `generateCloudTexture` is called if the `enableClouds` prop is true for a planet.
 
-### Key Steps in Texture Generation:
+### 1. Surface Texture Generation (`generatePlanetTexture`)
+
+This function now returns an object `{ map: THREE.DataTexture, bumpMap: THREE.DataTexture }`.
+
+#### Key Steps in Surface and Bump Map Generation:
 
 1.  **Seeding & Noise Initialization:**
 
@@ -34,7 +42,7 @@ The goal is to provide visually distinct, varied, and interesting surfaces for p
       - `noiseFine`: Operates at a small scale (`fineFeatureScale`, typically 15-29) for subtle surface texture and luminosity variations.
       - All scales are varied per-planet using hashed values from the planet's name.
 
-4.  **Pixel Generation Loop (Simulating Elevation & Applying Colors):**
+4.  **Pixel Generation Loop (Color Map & Bump Map Data):**
 
     - The function iterates over each pixel of the target texture (default size 256x256).
     - **Elevation Calculation:** The `noiseBase` (after UV distortion) and `noiseDetail` are combined to produce a final `elevation` value (normalized 0-1) for the current pixel. The base noise contributes more significantly to the overall elevation.
@@ -44,11 +52,37 @@ The goal is to provide visually distinct, varied, and interesting surfaces for p
       - Mid elevation: Blends from `sand` to `land`.
       - High elevation: Blends from `land` to `mountains`.
     - **Luminosity Variation:** The `noiseFine` layer is used to apply a subtle random offset to the luminosity of the final pixel color. This adds a bit more visual texture and breaks up uniform color areas.
+    - **Bump Map Data:** The calculated `elevation` value (scaled 0-255) is directly written into a single-channel `Uint8Array` for the bump map. Higher elevation values will correspond to bumps.
 
-5.  **Texture Creation:**
-    - A `THREE.DataTexture` is created from the generated `Uint8Array` of pixel data.
-    - `texture.needsUpdate = true;` is set to ensure Three.js uploads the texture data to the GPU.
-    - `texture.colorSpace = THREE.SRGBColorSpace;` is crucial for correct color interpretation in the rendering pipeline.
+5.  **Texture Creation (Surface Color Map & Bump Map):**
+    - `map`: A `THREE.DataTexture` (RGBAFormat, SRGBColorSpace) for the planet's surface color.
+    - `bumpMap`: A `THREE.DataTexture` (RedFormat) for the bump information. `RedFormat` is used as it's a single-channel grayscale map. No color space conversion is applied to data textures like bump maps.
+
+### 2. Cloud Texture Generation (`generateCloudTexture`)
+
+This function generates a separate RGBA texture for cloud layers.
+
+#### Key Steps in Cloud Texture Generation:
+
+1.  **Seeding & Noise Initialization:**
+
+    - Uses `createSeededNoise` with suffixes like `_clouds` and `_cloudDistort` based on the planet's name.
+
+2.  **Noise Parameters for Clouds:**
+
+    - `cloudScale` and `distortionScale` are varied per-planet to change cloud pattern size and swirl.
+
+3.  **Pixel Generation Loop (Cloud Color & Alpha):**
+
+    - **UV Distortion:** Applied to make cloud patterns more organic.
+    - **Base Cloud Noise:** A primary noise value is generated.
+    - **Noise Processing:** The noise is sharpened using `Math.pow` and thresholded using `THREE.MathUtils.smoothstep` to create more defined cloud patches and clearer areas.
+    - **Cloud Alpha:** The processed noise directly influences the alpha value, making denser parts of the noise more opaque.
+    - **Cloud Color:** A grayscale color (whiter for denser parts) is determined from the noise.
+    - RGBA values are written, with the alpha channel controlling cloud transparency.
+
+4.  **Texture Creation (Cloud Map):**
+    - A `THREE.DataTexture` (RGBAFormat) is created. SRGBColorSpace is generally not used for alpha maps or data-driven color intended for linear interpretation in shaders/blending.
 
 ## Libraries Used
 
@@ -57,9 +91,16 @@ The goal is to provide visually distinct, varied, and interesting surfaces for p
 
 ## Usage in `Planet.tsx`
 
-- The `Planet` component uses `React.useMemo` to call `generatePlanetTexture(planetName)` only when the `planetName` or `textureUrl` (if provided) changes.
-- If `textureUrl` is present, it's prioritized using `useTexture` from `@react-three/drei`.
-- If `textureUrl` is absent, the memoized `proceduralTexture` (the output of `generatePlanetTexture`) is used as the `map` for the planet's `meshStandardMaterial`.
+- **Surface Textures:**
+  - `proceduralTextures` (memoized) calls `generatePlanetTexture` if no `textureUrl` is given. It holds both `map` and `bumpMap`.
+  - The component logic correctly selects between URL-loaded textures (via `useTexture`) and these procedural textures for both `displayMap` and `displayBumpMap`.
+  - `bumpScale` is applied if a non-default bump map is in use.
+- **Cloud Layer:**
+  - If `enableClouds` prop is true, `cloudMap` (memoized) is generated by `generateCloudTexture`.
+  - A separate `<Sphere>` component, slightly larger than the planet, is rendered for the clouds.
+  - Its `meshStandardMaterial` uses `cloudMap` for both its `map` (for greyscale cloud color) and `alphaMap` (for transparency).
+  - `transparent: true`, `depthWrite: false`, and appropriate blending are used.
+  - A `useFrame` hook provides slow, independent rotation for the cloud layer.
 
 ## Potential Future Enhancements
 
@@ -69,3 +110,5 @@ The goal is to provide visually distinct, varied, and interesting surfaces for p
 - **Atmospheric Scattering Influence:** For planets with atmospheres, subtly tint surface colors based on atmospheric properties.
 - **Configurable Texture Parameters:** Allow certain texture generation parameters (e.g., dominant color, water level, feature scale) to be part of the `CelestialBodyState` for more fine-grained artistic control per planet.
 - **Performance Optimization:** For very large numbers of planets or very high-resolution textures, explore optimizations like offloading generation to a Web Worker.
+- **Animated Clouds:** Modulate cloud noise with a time component for dynamic, evolving cloud patterns.
+- **Planet-Specific Cloud Coverage:** Control cloud density or presence based on planet type or other characteristics (e.g., watery planets more likely to have clouds).

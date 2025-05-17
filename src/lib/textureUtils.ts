@@ -60,11 +60,17 @@ const generatePlanetColors = (planetName: string): PlanetColors => {
   };
 };
 
+export interface GeneratedPlanetTextures {
+  map: THREE.DataTexture;
+  bumpMap: THREE.DataTexture;
+}
+
 export const generatePlanetTexture = (
   planetName: string,
   size = 256,
-): THREE.DataTexture => {
-  const data = new Uint8Array(size * size * 4);
+): GeneratedPlanetTextures => {
+  const colorData = new Uint8Array(size * size * 4); // RGBA for color map
+  const bumpData = new Uint8Array(size * size * 1); // R channel for bump map (height)
   const colors = generatePlanetColors(planetName);
 
   const noiseBase = createSeededNoise(planetName + "_base");
@@ -143,15 +149,89 @@ export const generatePlanetTexture = (
       );
 
       const idx = (y * size + x) * 4;
-      data[idx + 0] = finalColor.r * 255;
-      data[idx + 1] = finalColor.g * 255;
-      data[idx + 2] = finalColor.b * 255;
-      data[idx + 3] = 255;
+      colorData[idx + 0] = finalColor.r * 255;
+      colorData[idx + 1] = finalColor.g * 255;
+      colorData[idx + 2] = finalColor.b * 255;
+      colorData[idx + 3] = 255;
+
+      // Use combined elevation for bump map. Higher values = bumps.
+      // We can scale this or use a different noise for more control if needed.
+      bumpData[idx] = elevation * 255;
+    }
+  }
+
+  const mapTexture = new THREE.DataTexture(
+    colorData,
+    size,
+    size,
+    THREE.RGBAFormat,
+  );
+  mapTexture.needsUpdate = true;
+  mapTexture.colorSpace = THREE.SRGBColorSpace;
+
+  const bumpMapTexture = new THREE.DataTexture(
+    bumpData,
+    size,
+    size,
+    THREE.RedFormat,
+  ); // Use RedFormat for single channel
+  bumpMapTexture.needsUpdate = true;
+  // No color space conversion needed for data textures like bump maps
+
+  return { map: mapTexture, bumpMap: bumpMapTexture };
+};
+
+export const generateCloudTexture = (
+  planetName: string, // For seeding, to make clouds unique per planet
+  size = 256,
+): THREE.DataTexture => {
+  const data = new Uint8Array(size * size * 4); // RGBA
+  const cloudNoise = createSeededNoise(planetName + "_clouds");
+  const cloudDistortion = createSeededNoise(planetName + "_cloudDistort");
+
+  const cloudScale = 4 + (simpleHash(planetName + "_cloudScale") % 4); // 4-7
+  const distortionScale =
+    0.3 + (simpleHash(planetName + "_cdScale") % 40) / 100; // 0.3 to 0.7
+
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const u = x / size;
+      const v = y / size;
+
+      // Distort UVs for more natural cloud patterns
+      const du =
+        cloudDistortion(u * cloudScale * 0.5, v * cloudScale * 0.5) *
+        distortionScale;
+      const dv =
+        cloudDistortion(u * cloudScale * 0.5 + 10, v * cloudScale * 0.5 + 10) *
+        distortionScale;
+      const u1 = u + du;
+      const v1 = v + dv;
+
+      // Base cloud noise
+      let noiseVal = (cloudNoise(u1 * cloudScale, v1 * cloudScale) + 1) / 2; // 0-1
+
+      // Sharpen the noise to create more defined cloud edges
+      noiseVal = Math.pow(
+        noiseVal,
+        0.8 + (simpleHash(planetName + "_cloudSharp") % 5) / 10,
+      ); // 0.8 to 1.2
+      noiseVal = THREE.MathUtils.smoothstep(noiseVal, 0.4, 0.7); // Thresholding for clearer patches
+
+      const cloudAlpha =
+        noiseVal * (0.8 + (simpleHash(planetName + "_cloudAlpha") % 20) / 100); // Base alpha, slightly varied
+      const cloudColor = 200 + noiseVal * 55; // Whiter for denser parts
+
+      const idx = (y * size + x) * 4;
+      data[idx + 0] = cloudColor; // R
+      data[idx + 1] = cloudColor; // G
+      data[idx + 2] = cloudColor; // B
+      data[idx + 3] = cloudAlpha * 255; // Alpha
     }
   }
 
   const texture = new THREE.DataTexture(data, size, size, THREE.RGBAFormat);
   texture.needsUpdate = true;
-  texture.colorSpace = THREE.SRGBColorSpace;
+  // No sRGB for alpha maps or purely data-driven cloud color if interpreted linearly
   return texture;
 };

@@ -3,14 +3,20 @@
 import { Sphere } from "@react-three/drei";
 import React, { useRef, forwardRef, useMemo, useEffect } from "react";
 import * as THREE from "three";
+import { useFrame } from "@react-three/fiber";
 // import { createNoise2D } from "simplex-noise"; // Unused
 import { CelestialBodyState } from "@/lib/domain/game.types";
 import { RigidBody, RapierRigidBody } from "@react-three/rapier";
 import { useTexture } from "@react-three/drei";
-import { generatePlanetTexture } from "@/lib/textureUtils";
+import {
+  generatePlanetTexture,
+  type GeneratedPlanetTextures,
+  generateCloudTexture,
+} from "@/lib/textureUtils";
 
 export interface PlanetProps {
   celestialBody: CelestialBodyState;
+  enableClouds?: boolean; // Added for future cloud implementation
 }
 
 // 1x1 pixel data URLs for placeholder textures
@@ -20,17 +26,19 @@ const defaultBumpImageDataUrl =
   "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYPhfDwAChwGA60eADgAAAABJRU5ErkJggg=="; // RGB(128,128,255) -> Flat normal
 
 const Planet = forwardRef<RapierRigidBody, PlanetProps>(
-  ({ celestialBody }, ref) => {
+  ({ celestialBody, enableClouds = false }, ref) => {
     const {
       position: posObj,
       radius,
       name,
       mass,
       textureUrl,
+      bumpMapUrl,
       atmosphere,
     } = celestialBody;
     const meshRef = useRef<THREE.Mesh>(null!);
     const atmosphereRef = useRef<THREE.Mesh>(null!);
+    const cloudRef = useRef<THREE.Mesh>(null!);
     const isInitializedRef = useRef(false);
 
     useEffect(() => {
@@ -64,17 +72,65 @@ const Planet = forwardRef<RapierRigidBody, PlanetProps>(
       ref,
     ]);
 
-    const proceduralTexture = useMemo(() => {
+    const proceduralTextures = useMemo<
+      GeneratedPlanetTextures | undefined
+    >(() => {
       if (textureUrl) return undefined;
       return generatePlanetTexture(name);
     }, [textureUrl, name]);
 
-    const [loadedMap, bumpMap] = useTexture([
-      textureUrl || placeholderImageDataUrl,
-      celestialBody.bumpMapUrl || defaultBumpImageDataUrl,
-    ]);
+    const cloudMap = useMemo<THREE.DataTexture | undefined>(() => {
+      if (!enableClouds) return undefined;
+      return generateCloudTexture(name);
+    }, [name, enableClouds]);
 
-    const displayMap = proceduralTexture || loadedMap;
+    // Prepare texture URLs for useTexture, ensuring they are strings
+    const urlsToLoad: string[] = [];
+    if (textureUrl) urlsToLoad.push(textureUrl);
+    else if (!proceduralTextures) urlsToLoad.push(placeholderImageDataUrl); // Fallback if no procedural either
+
+    if (bumpMapUrl) urlsToLoad.push(bumpMapUrl);
+    else if (!proceduralTextures) urlsToLoad.push(defaultBumpImageDataUrl); // Fallback if no procedural either
+
+    const loadedTextures = useTexture(urlsToLoad);
+
+    let displayMap: THREE.Texture | undefined;
+    let displayBumpMap: THREE.Texture | undefined;
+    let textureIndex = 0;
+
+    if (textureUrl) {
+      displayMap = loadedTextures[textureIndex++];
+    } else if (proceduralTextures) {
+      displayMap = proceduralTextures.map;
+    } else {
+      displayMap = loadedTextures[textureIndex++]; // Placeholder
+    }
+
+    if (bumpMapUrl) {
+      displayBumpMap = loadedTextures[textureIndex++];
+    } else if (proceduralTextures) {
+      displayBumpMap = proceduralTextures.bumpMap;
+    } else {
+      displayBumpMap = loadedTextures[textureIndex++]; // Default bump placeholder
+    }
+
+    // Ensure placeholders are correctly assigned if procedural textures didn't cover them
+    if (!displayMap && !textureUrl && !proceduralTextures)
+      displayMap = loadedTextures[0];
+    if (
+      !displayBumpMap &&
+      !bumpMapUrl &&
+      !proceduralTextures &&
+      loadedTextures.length > (textureUrl ? 1 : 0)
+    ) {
+      displayBumpMap = loadedTextures[textureUrl ? 1 : 0];
+    }
+
+    const bumpScale =
+      displayBumpMap &&
+      displayBumpMap.source.data.src !== defaultBumpImageDataUrl
+        ? 0.05
+        : 0;
 
     const atmosphereRadius = useMemo(() => {
       return atmosphere?.thickness
@@ -85,6 +141,18 @@ const Planet = forwardRef<RapierRigidBody, PlanetProps>(
     const atmosphereOpacity = useMemo(() => {
       return atmosphere?.density !== undefined ? atmosphere.density * 0.7 : 0.7;
     }, [atmosphere?.density]);
+
+    // Cloud layer rotation
+    useFrame(({ clock }) => {
+      if (cloudRef.current && enableClouds) {
+        cloudRef.current.rotation.y = clock.getElapsedTime() * 0.05; // Slow rotation
+        cloudRef.current.rotation.x = clock.getElapsedTime() * 0.02;
+      }
+    });
+
+    if (enableClouds) {
+      console.log(`Clouds enabled for ${name} - implementation pending.`);
+    }
 
     return (
       <RigidBody
@@ -104,8 +172,8 @@ const Planet = forwardRef<RapierRigidBody, PlanetProps>(
         <Sphere ref={meshRef} args={[radius, 32, 32]} castShadow receiveShadow>
           <meshStandardMaterial
             map={displayMap}
-            bumpMap={bumpMap}
-            bumpScale={0.02}
+            bumpMap={displayBumpMap}
+            bumpScale={bumpScale}
             metalness={0.3}
             roughness={0.7}
           />
@@ -122,6 +190,22 @@ const Planet = forwardRef<RapierRigidBody, PlanetProps>(
               opacity={atmosphereOpacity}
               blending={THREE.AdditiveBlending}
               side={THREE.BackSide}
+            />
+          </Sphere>
+        )}
+        {enableClouds && cloudMap && (
+          <Sphere
+            ref={cloudRef}
+            args={[radius * 1.03, 32, 32]}
+            position={[0, 0, 0]}
+          >
+            <meshStandardMaterial
+              map={cloudMap}
+              alphaMap={cloudMap}
+              transparent={true}
+              depthWrite={false}
+              blending={THREE.NormalBlending}
+              opacity={0.7}
             />
           </Sphere>
         )}
