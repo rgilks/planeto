@@ -61,3 +61,6 @@ export const SolarSystemDataSchema: any = z.lazy(() =>
     star: StarDataSchema,
   }),
 );
+
+export * from "./solar-system.types";
+export * from "./game.types";

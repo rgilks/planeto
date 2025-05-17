@@ -7,7 +7,7 @@ test.describe("Visual Snapshots", () => {
     // Ensure the page is loaded, perhaps wait for a specific element
     // that indicates the 3D scene is ready if you have one.
     // For now, we'll just wait for a small fixed amount of time.
-    await page.waitForTimeout(2000); // Wait 2 seconds for rendering
+    await page.waitForTimeout(5000); // Wait 5 seconds for rendering
 
     await page.screenshot({
       path: "screenshots/solarsystem-snapshot.png",
