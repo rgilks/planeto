@@ -48,22 +48,48 @@ const Planet = forwardRef<THREE.Group, PlanetProps>(
       const height = 128;
       const data = new Uint8Array(width * height * 4); // RGBA
 
+      // Generate base colors for the planet using the seeded random function
+      const baseR = Math.floor(randomFn() * 256);
+      const baseG = Math.floor(randomFn() * 256);
+      const baseB = Math.floor(randomFn() * 256);
+
+      // Determine a secondary color with some contrast
+      const secondaryR = (baseR + 128 + Math.floor(randomFn() * 50 - 25)) % 256;
+      const secondaryG = (baseG + 128 + Math.floor(randomFn() * 50 - 25)) % 256;
+      const secondaryB = (baseB + 128 + Math.floor(randomFn() * 50 - 25)) % 256;
+
+      const waterR = Math.floor(randomFn() * 50); // Darker, bluish for water
+      const waterG = Math.floor(randomFn() * 80 + 20);
+      const waterB = Math.floor(randomFn() * 100 + 100);
+
+      const landR = baseR;
+      const landG = baseG;
+      const landB = baseB;
+
+      const mountainR = secondaryR;
+      const mountainG = secondaryG;
+      const mountainB = secondaryB;
+
+      const snowR = 200 + Math.floor(randomFn() * 55);
+      const snowG = 200 + Math.floor(randomFn() * 55);
+      const snowB = 200 + Math.floor(randomFn() * 55);
+
       for (let y = 0; y < height; y++) {
         for (let x = 0; x < width; x++) {
           const u = x / width;
           const v = y / height;
 
           let noiseValue = 0;
-          let frequency = 2;
+          let frequency = 1 + randomFn() * 3; // Randomize initial frequency
           let amplitude = 1;
           let maxAmplitude = 0;
+          const octaves = 3 + Math.floor(randomFn() * 3); // Randomize number of octaves
 
-          for (let i = 0; i < 4; i++) {
-            // 4 octaves
+          for (let i = 0; i < octaves; i++) {
             noiseValue += noise2D(u * frequency, v * frequency) * amplitude;
             maxAmplitude += amplitude;
-            amplitude *= 0.5;
-            frequency *= 2;
+            amplitude *= 0.4 + randomFn() * 0.2; // Randomize amplitude falloff
+            frequency *= 1.8 + randomFn() * 0.4; // Randomize frequency increase
           }
           noiseValue /= maxAmplitude;
           noiseValue = (noiseValue + 1) / 2;
@@ -71,32 +97,48 @@ const Planet = forwardRef<THREE.Group, PlanetProps>(
           const ptr = (y * width + x) * 4;
           let r, g, b;
 
-          if (noiseValue < 0.4) {
-            r = 20;
-            g = 50;
-            b = 120;
-          } else if (noiseValue < 0.5) {
-            r = 50;
-            g = 100;
-            b = 180;
-          } else if (noiseValue < 0.7) {
-            r = 70;
-            g = 140;
-            b = 70;
-          } else if (noiseValue < 0.85) {
-            r = 130;
-            g = 100;
-            b = 60;
+          // Adjust color based on noise, using the planet's unique base colors
+          const noiseFactor = 0.3 + randomFn() * 0.4; // How much noise influences color variation
+
+          if (noiseValue < 0.35 + (randomFn() * 0.1 - 0.05)) {
+            // Water
+            r = waterR + Math.floor((noiseValue / 0.35) * 30 * noiseFactor);
+            g = waterG + Math.floor((noiseValue / 0.35) * 40 * noiseFactor);
+            b = waterB + Math.floor((noiseValue / 0.35) * 50 * noiseFactor);
+          } else if (noiseValue < 0.5 + (randomFn() * 0.1 - 0.05)) {
+            // Shallower water / beach
+            const t = (noiseValue - 0.35) / 0.15;
+            r = Math.floor(
+              waterR * (1 - t) + landR * t * 0.8 + (randomFn() * 20 - 10),
+            );
+            g = Math.floor(
+              waterG * (1 - t) + landG * t * 0.8 + (randomFn() * 20 - 10),
+            );
+            b = Math.floor(
+              waterB * (1 - t) + landB * t * 0.8 + (randomFn() * 20 - 10),
+            );
+          } else if (noiseValue < 0.75 + (randomFn() * 0.1 - 0.05)) {
+            // Land
+            r = landR + Math.floor(noiseValue * 50 * noiseFactor - 25);
+            g = landG + Math.floor(noiseValue * 50 * noiseFactor - 25);
+            b = landB + Math.floor(noiseValue * 50 * noiseFactor - 25);
+          } else if (noiseValue < 0.9 + (randomFn() * 0.1 - 0.05)) {
+            // Mountains
+            r = mountainR - Math.floor(noiseValue * 30 * noiseFactor);
+            g = mountainG - Math.floor(noiseValue * 30 * noiseFactor);
+            b = mountainB - Math.floor(noiseValue * 30 * noiseFactor);
           } else {
-            r = 220;
-            g = 220;
-            b = 230;
+            // Snow caps / very high altitude
+            r = snowR - Math.floor((1 - noiseValue) * 20 * noiseFactor);
+            g = snowG - Math.floor((1 - noiseValue) * 20 * noiseFactor);
+            b = snowB - Math.floor((1 - noiseValue) * 20 * noiseFactor);
           }
 
-          data[ptr] = r;
-          data[ptr + 1] = g;
-          data[ptr + 2] = b;
-          data[ptr + 3] = 255;
+          // Clamp colors to 0-255 range
+          data[ptr] = Math.max(0, Math.min(255, Math.floor(r)));
+          data[ptr + 1] = Math.max(0, Math.min(255, Math.floor(g)));
+          data[ptr + 2] = Math.max(0, Math.min(255, Math.floor(b)));
+          data[ptr + 3] = 255; // Alpha
         }
       }
       const texture = new THREE.DataTexture(
