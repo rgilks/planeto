@@ -38,7 +38,12 @@ export const moveSpaceship = async (formData: FormData) => {
   const spaceshipIdParseResult = SpaceshipIdSchema.safeParse(rawSpaceshipId);
 
   if (!spaceshipIdParseResult.success) {
-    console.error("moveSpaceship: spaceshipId is required or invalid.");
+    console.error(
+      "[gameActions.moveSpaceship] spaceshipId is required or invalid. Raw:",
+      rawSpaceshipId,
+      "Error:",
+      spaceshipIdParseResult.error,
+    );
     return {
       success: false,
       error: "Spaceship ID is required and must be a valid UUID.",
@@ -46,17 +51,14 @@ export const moveSpaceship = async (formData: FormData) => {
   }
   const spaceshipId = spaceshipIdParseResult.data;
 
-  const currentSpaceships = getGameState().spaceships;
+  const currentGameState = getGameState();
+  const currentSpaceships = currentGameState.spaceships;
+
   const spaceshipToMove = currentSpaceships[spaceshipId];
 
   if (!spaceshipToMove) {
     return { success: false, error: "Spaceship not found." };
   }
-
-  // If using session-based userId, perform an ownership check:
-  // if (userId && spaceshipToMove.owner !== userId) {
-  //   return { success: false, error: 'Forbidden: You do not own this spaceship.' };
-  // }
 
   const positionData = {
     x: parseFloat(formData.get("position.x") as string),
@@ -86,7 +88,6 @@ export const moveSpaceship = async (formData: FormData) => {
   const { position, rotation } = parsedPayload.data;
 
   try {
-    // The updateSpaceship function in gameStateManager already handles notifying listeners (SSE)
     const updated = updateSpaceship(
       spaceshipId,
       position,
@@ -95,6 +96,9 @@ export const moveSpaceship = async (formData: FormData) => {
     if (updated) {
       return { success: true, data: updated };
     } else {
+      console.error(
+        `[gameActions.moveSpaceship] updateSpaceship returned null for spaceshipId: ${spaceshipId}. Spaceship might have been removed or ownership check failed.`,
+      );
       return {
         success: false,
         error:

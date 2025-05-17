@@ -147,7 +147,17 @@ export const useGameStore = create<GameStoreState & GameStoreActions>()(
       set((state) => {
         const spaceship = state.gameState.spaceships[spaceshipId];
         if (spaceship) {
-          Object.assign(spaceship, update);
+          Object.assign(spaceship, update); // Apply partial update
+          // Ensure position and rotation are fully present if partially updated
+          if (update.position && !spaceship.position)
+            spaceship.position = { x: 0, y: 0, z: 0 };
+          if (update.rotation && !spaceship.rotation)
+            spaceship.rotation = { x: 0, y: 0, z: 0 };
+          if (update.position)
+            spaceship.position = { ...spaceship.position, ...update.position };
+          if (update.rotation)
+            spaceship.rotation = { ...spaceship.rotation, ...update.rotation };
+
           spaceship.lastUpdated = new Date().toISOString();
         }
       });
@@ -155,7 +165,7 @@ export const useGameStore = create<GameStoreState & GameStoreActions>()(
 
     moveMySpaceship: async (position, rotation) => {
       const spaceshipId = get().currentSpaceshipId;
-      const userId = get().currentUserId; // Get current user ID for the action
+      const userId = get().currentUserId;
 
       if (!spaceshipId || !userId) {
         console.error(
@@ -166,6 +176,9 @@ export const useGameStore = create<GameStoreState & GameStoreActions>()(
         });
         return;
       }
+
+      // Optimistic update
+      get().updatePlayerSpaceship({ position, rotation });
 
       const formData = new FormData();
       formData.append("spaceshipId", spaceshipId);
@@ -178,19 +191,18 @@ export const useGameStore = create<GameStoreState & GameStoreActions>()(
       formData.append("rotation.z", rotation.z.toString());
 
       try {
-        // Optimistic update (optional)
-        // get().updatePlayerSpaceship({ position, rotation });
-
         const result = await moveSpaceshipAction(formData);
         if (!result.success) {
           console.error("Failed to move spaceship:", result.error);
           set({ error: result.error || "Failed to move spaceship on server." });
-          // TODO: Revert optimistic update if implemented
+          // TODO: Revert optimistic update if the server call definitively failed
+          // For now, if the server fails, the client will be out of sync until the next gameStateUpdate.
+          // A proper revert would involve storing the pre-optimistic state and restoring it.
         }
       } catch (error) {
         console.error("Error calling moveSpaceship action:", error);
         set({ error: "Network error while moving spaceship." });
-        // TODO: Revert optimistic update if implemented
+        // TODO: Revert optimistic update here as well
       }
     },
   })),

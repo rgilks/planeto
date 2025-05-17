@@ -9,6 +9,10 @@ For a detailed technical overview of the project, its architecture, and design p
 - **3D Solar System Visualization:** Renders a sample solar system (Sol system) with a star, planets, and moons.
 - **Orbital Mechanics:** Planets and moons exhibit basic orbital motion around their parent bodies.
 - **Camera Controls:** Interactive camera using `OrbitControls` allowing users to zoom, pan, and rotate the view.
+- **Player Spaceship Controls:**
+  - Toggle between free-orbit camera and mouse-aimed spaceship control using the `Space` key.
+  - In mouse-aim mode, use mouse to orient the ship and `ArrowUp`/`ArrowDown` for thrust.
+  - For detailed information, see [Player Controls Documentation](./docs/player-controls.md).
 - **Celestial Body Labels:** Displays names for the star, planets, and moons.
 - **Domain Modeling:** Uses Zod schemas for defining `PlanetData`, `StarData`, and `SolarSystemData`.
 - **State Management:** Utilizes Zustand with Immer for managing the current solar system data.
@@ -45,6 +49,7 @@ For a detailed technical overview of the project, its architecture, and design p
 planeto/
 ├── docs/
 │   └── technical-overview.md  # Detailed technical documentation
+│   └── player-controls.md     # Documentation for player spaceship and camera controls
 ├── public/                    # Static assets
 ├── src/
 │   ├── app/                   # Next.js App Router pages (e.g., page.tsx)
