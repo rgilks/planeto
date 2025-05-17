@@ -46,6 +46,14 @@ export const SpaceshipStateSchema = z.object({
 });
 export type SpaceshipState = z.infer<typeof SpaceshipStateSchema>;
 
+export const AtmospherePropertiesSchema = z.object({
+  textureUrl: z.string().url().optional(),
+  color: z.string().optional(), // e.g., '#FFFFFF' or 'rgba(255,255,255,0.5)'
+  thickness: z.number().positive().optional(), // Multiplier for radius to determine atmosphere size
+  density: z.number().min(0).max(1).optional(), // For shader effects or opacity
+});
+export type AtmosphereProperties = z.infer<typeof AtmospherePropertiesSchema>;
+
 export const CelestialBodyStateSchema = z.object({
   id: CelestialBodyIdSchema,
   type: CelestialTypeSchema,
@@ -56,6 +64,10 @@ export const CelestialBodyStateSchema = z.object({
   velocity: PositionSchema, // Represents dx, dy, dz per second or physics tick
   rotation: RotationSchema, // For visual representation (e.g., axial tilt, rotation period)
   orbitingBodyId: CelestialBodyIdSchema.optional(), // For initial setup, physics will take over
+  textureUrl: z.string().url().optional(),
+  bumpMapUrl: z.string().url().optional(),
+  specularMapUrl: z.string().url().optional(),
+  atmosphere: AtmospherePropertiesSchema.optional(),
   lastUpdated: z.string().datetime(),
 });
 export type CelestialBodyState = z.infer<typeof CelestialBodyStateSchema>;
@@ -81,10 +93,3 @@ export interface ServerToClientEvents {
   userLeft(payload: { userId: UserId; spaceshipId: SpaceshipId }): void;
   error(payload: { message: string }): void;
 }
-
-// Example of how to validate:
-// const validPosition = PositionSchema.parse({ x: 1, y: 2, z: 3 });
-// const invalidPosition = PositionSchema.safeParse({ x: 1, y: '2', z: 3 });
-// if (!invalidPosition.success) {
-//   console.error(invalidPosition.error.issues);
-// }

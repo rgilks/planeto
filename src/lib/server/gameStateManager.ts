@@ -96,6 +96,20 @@ const initializeCelestialBodies = (gameState: GameState): GameState => {
     const velocityY = vMagnitude * Math.cos(angle);
     const velocityZ = 0;
 
+    const textureUrl = undefined;
+    const bumpMapUrl = undefined;
+    const specularMapUrl = undefined;
+
+    let atmosphereProps;
+    if (i % 5 === 0) {
+      // Add atmosphere to every 5th planet for variety
+      atmosphereProps = {
+        color: `rgba(${Math.floor(Math.random() * 155) + 100}, ${Math.floor(Math.random() * 155) + 100}, ${Math.floor(Math.random() * 155) + 100}, 0.7)`,
+        thickness: Math.random() * 0.1 + 0.05, // 5% to 15% of planet radius
+        density: Math.random() * 0.5 + 0.3, // 0.3 to 0.8
+      };
+    }
+
     newCelestialBodies[planetId] = {
       id: planetId,
       type: "planet",
@@ -106,6 +120,10 @@ const initializeCelestialBodies = (gameState: GameState): GameState => {
       velocity: { x: velocityX, y: velocityY, z: velocityZ },
       rotation: { x: 0, y: Math.random() * Math.PI, z: 0 },
       orbitingBodyId: sunId,
+      textureUrl,
+      bumpMapUrl,
+      specularMapUrl,
+      atmosphere: atmosphereProps,
       lastUpdated: new Date().toISOString(),
     };
   }
