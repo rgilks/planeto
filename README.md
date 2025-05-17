@@ -9,6 +9,7 @@ For a detailed technical overview of the project, its architecture, and design p
 - **3D Solar System Visualization:** Renders a dynamic solar system with a star and numerous planets.
 - **Client-Side N-Body Gravity:** Planets interact gravitationally, calculated on the client using Rapier physics for rigid body dynamics.
 - **Procedural Solar System Layout:** Server-side generation of planetary positions, masses, and initial velocities with tunable parameters.
+- **Procedural Planet Textures:** Planets without pre-assigned textures now feature unique, procedurally generated surfaces using simplex noise, providing varied and visually distinct appearances. For more details, see [Procedural Textures Documentation](./docs/procedural-textures.md).
 - **Tunable Physics Parameters:** Gravitational constant (`SIMULATION_G`), initial velocity scaling, and Rapier physics properties (e.g., restitution for bouncy collisions) can be adjusted to change simulation behavior.
 - **Orbital Mechanics:** Planets exhibit dynamic orbital motion based on gravitational interactions.
 - **Camera Controls:** Interactive camera using `OrbitControls` allowing users to zoom, pan, and rotate the view.
@@ -58,11 +59,14 @@ planeto/
 │   ├── app/                   # Next.js App Router pages (e.g., page.tsx)
 │   ├── components/            # React components (including R3F components)
 │   │   ├── SolarSystem3D.tsx  # Core 3D rendering logic
+│   │   ├── Planet.tsx         # Component responsible for rendering individual planets
 │   │   └── StoreInitializer.tsx # Loads initial state for Zustand
 │   ├── lib/
 │   │   ├── domain/            # Zod schemas and type definitions
 │   │   │   ├── index.ts
 │   │   │   └── sample-data.ts
+│   │   ├── textureUtils.ts    # Utilities for generating procedural textures
+│   │   │   ├── index.ts
 │   │   └── store/             # Zustand store configuration
 │   │       └── useSolarSystemStore.ts
 ├── .gitignore
@@ -129,3 +133,8 @@ The sun's appearance is managed by `src/components/Sun.tsx`. It utilizes a custo
 The shader's uniforms, such as `time` (for animation) and `u_cameraPosition` (for view-dependent effects like the corona), are updated in real-time within the `Sun` component using `useFrame` from `@react-three/fiber`.
 
 The `SunShaderMaterial` is made available to React Three Fiber components through an extension defined in `src/lib/r3f-extensions.ts`.
+
+### Planet Surface Rendering
+
+Planets are rendered by the `src/components/Planet.tsx` component.
+If a `textureUrl` is provided in the planet's data, that texture is used. Otherwise, a unique procedural texture is generated on the client-side by `src/lib/textureUtils.ts`. This system uses the `simplex-noise` library to create varied surface patterns and colors based on the planet's name, ensuring each procedurally textured planet has a distinct look. The generated textures are `THREE.DataTexture` objects applied to a `meshStandardMaterial`. Atmospheres, if defined, are rendered as a separate semi-transparent sphere with additive blending. For more detailed information, see [Procedural Textures Documentation](./docs/procedural-textures.md).
