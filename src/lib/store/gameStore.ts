@@ -24,7 +24,11 @@ interface GameStoreActions {
   disconnect: () => void;
   setGameState: (gameState: GameState) => void;
   updatePlayerSpaceship: (update: Partial<SpaceshipState>) => void;
-  moveMySpaceship: (position: Position, rotation: Rotation) => Promise<void>;
+  moveMySpaceship: (
+    position: Position,
+    rotation: Rotation,
+    velocity: Position,
+  ) => Promise<void>;
   setCurrentUserId: (userId: UserId) => void;
   // No direct setCurrentSpaceshipId, it is derived when user joins
 }
@@ -147,23 +151,49 @@ export const useGameStore = create<GameStoreState & GameStoreActions>()(
       set((state) => {
         const spaceship = state.gameState.spaceships[spaceshipId];
         if (spaceship) {
+          // Preserve existing velocity and mass if not part of the partial update
+          const currentVelocity = spaceship.velocity;
+          const currentMass = spaceship.mass;
+
           Object.assign(spaceship, update); // Apply partial update
-          // Ensure position and rotation are fully present if partially updated
-          if (update.position && !spaceship.position)
-            spaceship.position = { x: 0, y: 0, z: 0 };
-          if (update.rotation && !spaceship.rotation)
-            spaceship.rotation = { x: 0, y: 0, z: 0 };
+
+          // Ensure position, rotation, velocity, and mass are correctly handled
           if (update.position)
-            spaceship.position = { ...spaceship.position, ...update.position };
+            spaceship.position = {
+              ...{ x: 0, y: 0, z: 0 },
+              ...spaceship.position,
+              ...update.position,
+            };
           if (update.rotation)
-            spaceship.rotation = { ...spaceship.rotation, ...update.rotation };
+            spaceship.rotation = {
+              ...{ x: 0, y: 0, z: 0 },
+              ...spaceship.rotation,
+              ...update.rotation,
+            };
+
+          // If velocity or mass is not in update, retain the existing one.
+          if (update.velocity) {
+            spaceship.velocity = {
+              ...{ x: 0, y: 0, z: 0 },
+              ...spaceship.velocity,
+              ...update.velocity,
+            };
+          } else if (currentVelocity) {
+            spaceship.velocity = currentVelocity;
+          }
+
+          if (update.mass) {
+            spaceship.mass = update.mass;
+          } else if (currentMass) {
+            spaceship.mass = currentMass;
+          }
 
           spaceship.lastUpdated = new Date().toISOString();
         }
       });
     },
 
-    moveMySpaceship: async (position, rotation) => {
+    moveMySpaceship: async (position, rotation, velocity) => {
       const spaceshipId = get().currentSpaceshipId;
       const userId = get().currentUserId;
 
@@ -178,17 +208,20 @@ export const useGameStore = create<GameStoreState & GameStoreActions>()(
       }
 
       // Optimistic update
-      get().updatePlayerSpaceship({ position, rotation });
+      get().updatePlayerSpaceship({ position, rotation, velocity });
 
       const formData = new FormData();
       formData.append("spaceshipId", spaceshipId);
-      formData.append("userId", userId); // Send userId with the action
+      formData.append("userId", userId);
       formData.append("position.x", position.x.toString());
       formData.append("position.y", position.y.toString());
       formData.append("position.z", position.z.toString());
       formData.append("rotation.x", rotation.x.toString());
       formData.append("rotation.y", rotation.y.toString());
       formData.append("rotation.z", rotation.z.toString());
+      formData.append("velocity.x", velocity.x.toString());
+      formData.append("velocity.y", velocity.y.toString());
+      formData.append("velocity.z", velocity.z.toString());
 
       try {
         const result = await moveSpaceshipAction(formData);

@@ -15,6 +15,7 @@ import { updateSpaceship, getGameState } from "@/lib/server/gameStateManager";
 const MoveSpaceshipPayloadSchema = z.object({
   position: PositionSchema,
   rotation: RotationSchema,
+  velocity: PositionSchema,
 });
 
 export const moveSpaceship = async (formData: FormData) => {
@@ -72,9 +73,16 @@ export const moveSpaceship = async (formData: FormData) => {
     z: parseFloat(formData.get("rotation.z") as string),
   };
 
+  const velocityData = {
+    x: parseFloat(formData.get("velocity.x") as string),
+    y: parseFloat(formData.get("velocity.y") as string),
+    z: parseFloat(formData.get("velocity.z") as string),
+  };
+
   const parsedPayload = MoveSpaceshipPayloadSchema.safeParse({
     position: positionData,
     rotation: rotationData,
+    velocity: velocityData,
   });
 
   if (!parsedPayload.success) {
@@ -85,14 +93,21 @@ export const moveSpaceship = async (formData: FormData) => {
     };
   }
 
-  const { position, rotation } = parsedPayload.data;
+  const { position, rotation, velocity } = parsedPayload.data;
+
+  // The userId should ideally be from the session, not directly from formData for security.
+  const validatedUserId = userIdParseResult.success
+    ? userIdParseResult.data
+    : undefined;
 
   try {
     const updated = updateSpaceship(
       spaceshipId,
       position,
-      rotation /*, userId */,
-    ); // Pass userId for ownership check if implemented
+      rotation,
+      velocity,
+      validatedUserId,
+    );
     if (updated) {
       return { success: true, data: updated };
     } else {

@@ -82,6 +82,8 @@ export const addPlayerSpaceship = (userId: UserId): SpaceshipState => {
     owner: userId,
     position: { x: randomX, y: randomY, z: initialZ },
     rotation: { x: 0, y: 0, z: 0 },
+    velocity: { x: 0, y: 0, z: 0 },
+    mass: 1,
     lastUpdated: new Date().toISOString(),
   };
 
@@ -126,6 +128,7 @@ export const updateSpaceship = (
   spaceshipId: SpaceshipId,
   newPosition: Position,
   newRotation: Rotation,
+  newVelocity: Position,
   userId?: UserId,
 ): SpaceshipState | null => {
   const store = getGlobalStore();
@@ -142,6 +145,7 @@ export const updateSpaceship = (
       }
       spaceship.position = newPosition;
       spaceship.rotation = newRotation;
+      spaceship.velocity = newVelocity;
       spaceship.lastUpdated = new Date().toISOString();
       wasUpdated = true; // Mark that an update occurred
     }

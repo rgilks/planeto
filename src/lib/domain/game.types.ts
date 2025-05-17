@@ -26,6 +26,8 @@ export const SpaceshipStateSchema = z.object({
   owner: UserIdSchema,
   position: PositionSchema,
   rotation: RotationSchema,
+  velocity: PositionSchema,
+  mass: z.number().positive(),
   lastUpdated: z.string().datetime(),
 });
 export type SpaceshipState = z.infer<typeof SpaceshipStateSchema>;
@@ -37,7 +39,11 @@ export type GameState = z.infer<typeof GameStateSchema>;
 
 // Define event contracts as interfaces
 export interface ClientToServerEvents {
-  moveSpaceship(payload: { position: Position; rotation: Rotation }): void;
+  moveSpaceship(payload: {
+    position: Position;
+    rotation: Rotation;
+    velocity: Position;
+  }): void;
 }
 
 export interface ServerToClientEvents {
