@@ -5,7 +5,7 @@ import React, { useRef, forwardRef, useLayoutEffect, useMemo } from "react";
 import * as THREE from "three";
 import { createNoise2D } from "simplex-noise";
 import { CelestialBodyState } from "@/lib/domain/game.types";
-import { useFrame } from "@react-three/fiber";
+import { RigidBody, RapierRigidBody } from "@react-three/rapier";
 
 export interface PlanetProps {
   celestialBody: CelestialBodyState;
@@ -35,12 +35,11 @@ const createLcgRandom = (seed: number): (() => number) => {
   };
 };
 
-const Planet = forwardRef<THREE.Group, PlanetProps>(
+const Planet = forwardRef<RapierRigidBody, PlanetProps>(
   ({ celestialBody }, ref) => {
     const { position, radius, name, id, atmosphere } = celestialBody;
     const meshRef = useRef<THREE.Mesh>(null!);
     const atmosphereRef = useRef<THREE.Mesh>(null!);
-    const groupRef = useRef<THREE.Group>(null!);
 
     const proceduralTexture = useMemo(() => {
       const seedValue = createSeedFromString(id);
@@ -155,20 +154,13 @@ const Planet = forwardRef<THREE.Group, PlanetProps>(
       return texture;
     }, [id]);
 
-    const randomizedRotationSpeed = useMemo(() => {
-      const seedValue = createSeedFromString(id);
-      const randomFn = createLcgRandom(seedValue);
-      return randomFn() * 4.0; // Average speed of 2.0 (range 0.0 to 4.0)
-    }, [id]);
-
     useLayoutEffect(() => {
       const currentRef = typeof ref === "function" ? null : ref?.current;
-      if (currentRef) {
-        currentRef.position.set(position.x, position.y, position.z);
-      }
-      // Initialize groupRef for useFrame if ref is a callback or not directly usable
-      if (groupRef.current && !currentRef) {
-        groupRef.current.position.set(position.x, position.y, position.z);
+      if (currentRef && position) {
+        currentRef.setTranslation(
+          { x: position.x, y: position.y, z: position.z },
+          true,
+        );
       }
     }, [position, ref]);
 
@@ -182,21 +174,16 @@ const Planet = forwardRef<THREE.Group, PlanetProps>(
       return atmosphere?.density !== undefined ? atmosphere.density * 0.7 : 0.7;
     }, [atmosphere?.density]);
 
-    useFrame((_, delta) => {
-      const actualRotationSpeed =
-        celestialBody.rotationSpeed ?? randomizedRotationSpeed;
-      const targetRef = typeof ref === "function" ? groupRef : ref;
-
-      if (targetRef && targetRef.current) {
-        targetRef.current.rotation.y += actualRotationSpeed * delta;
-      }
-    });
-
-    // Determine which ref to use for the main group
-    const effectiveRef = typeof ref === "function" ? groupRef : ref;
-
     return (
-      <group ref={effectiveRef} name={`planet-${name}`}>
+      <RigidBody
+        ref={ref}
+        colliders="ball"
+        type="dynamic"
+        restitution={0.7}
+        friction={0.5}
+        name={`planet-${name}-${id}`}
+        position={[position.x, position.y, position.z]}
+      >
         <Sphere ref={meshRef} args={[radius, 64, 64]} castShadow receiveShadow>
           <meshStandardMaterial
             map={proceduralTexture}
@@ -210,6 +197,7 @@ const Planet = forwardRef<THREE.Group, PlanetProps>(
             args={[atmosphereRadius, 64, 64]}
             receiveShadow={false}
             castShadow={false}
+            position={[0, 0, 0]}
           >
             <meshStandardMaterial
               color={atmosphere.color || "#4A90E2"}
@@ -221,7 +209,7 @@ const Planet = forwardRef<THREE.Group, PlanetProps>(
             />
           </Sphere>
         )}
-      </group>
+      </RigidBody>
     );
   },
 );

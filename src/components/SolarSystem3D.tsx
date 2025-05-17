@@ -4,7 +4,7 @@ import { OrbitControls, Html } from "@react-three/drei";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import type { OrbitControls as ThreeOrbitControls } from "three-stdlib";
 import type { UserId } from "@/lib/domain/game.types";
-import React, { useRef, useEffect, useState, createRef } from "react";
+import React, { useRef, useEffect, useState, createRef, Suspense } from "react";
 import * as THREE from "three";
 import Starfield from "@/components/Starfield";
 import { useGameStore } from "@/lib/store/gameStore";
@@ -12,6 +12,7 @@ import Spaceship from "./Spaceship";
 import Sun from "./Sun";
 import Planet from "./Planet";
 import { v4 as uuidv4 } from "uuid";
+import { Physics, RapierRigidBody } from "@react-three/rapier";
 
 // Physics Constants for spaceship client-side thrust application
 const SPACESHIP_THRUST_FORCE = 0.1;
@@ -75,7 +76,7 @@ const SceneContent = ({
   const lastPhysicsUpdateTimeRef = useRef(0);
   const spaceshipRef = useRef<THREE.Group>(null);
   const orbitControlsRef = useRef<ThreeOrbitControls>(null!);
-  const celestialBodyRefs = useRef<React.RefObject<THREE.Group>[]>([]);
+  const celestialBodyRefs = useRef<React.RefObject<RapierRigidBody>[]>([]);
 
   const currentUserSpaceship =
     currentSpaceshipId && gameState
@@ -107,7 +108,9 @@ const SceneContent = ({
     const bodyCount = Object.keys(gameState.celestialBodies || {}).length;
     celestialBodyRefs.current = Array(bodyCount)
       .fill(null)
-      .map((_, i) => celestialBodyRefs.current[i] || createRef<THREE.Group>());
+      .map(
+        (_, i) => celestialBodyRefs.current[i] || createRef<RapierRigidBody>(),
+      );
   }, [gameState.celestialBodies]);
 
   // Camera control and spaceship input handling logic
@@ -357,34 +360,36 @@ const SceneContent = ({
 };
 
 const SolarSystem3DCanvas = () => {
-  const { userId: currentUserIdFromHook, isLoading: userLoadingFromHook } =
-    useCurrentUser();
-
-  if (userLoadingFromHook) {
-    return (
-      <div className="w-full h-full flex items-center justify-center bg-black">
-        <div className="text-white text-2xl">
-          Loading User Authentication...
-        </div>
-      </div>
-    );
-  }
+  const { userId, isLoading } = useCurrentUser();
 
   return (
     <Canvas
       shadows
-      camera={{ position: [0, 20, 100], fov: 50, near: 0.1, far: 100000 }}
-      style={{ background: "#000000" }}
-      onPointerDown={(e) => {
-        if (useGameStore.getState().currentSpaceshipId && e.button === 0) {
-          // Pointer lock logic can be re-enabled here if needed
-        }
+      camera={{
+        position: [0, 20, 50],
+        fov: 50,
+        near: 0.1,
+        far: 200000,
+      }}
+      gl={{ antialias: true }}
+      onCreated={({ gl }) => {
+        gl.setPixelRatio(window.devicePixelRatio);
       }}
     >
-      <SceneContent
-        currentUserIdFromHook={currentUserIdFromHook}
-        userLoadingFromHook={userLoadingFromHook}
-      />
+      <Suspense
+        fallback={
+          <Html center>
+            <div className="text-white">Loading Physics...</div>
+          </Html>
+        }
+      >
+        <Physics debug={false} gravity={[0, 0, 0]}>
+          <SceneContent
+            currentUserIdFromHook={userId}
+            userLoadingFromHook={isLoading}
+          />
+        </Physics>
+      </Suspense>
     </Canvas>
   );
 };
