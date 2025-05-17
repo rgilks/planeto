@@ -61,13 +61,14 @@ const initializeCelestialBodies = (gameState: GameState): GameState => {
     velocity: { x: 0, y: 0, z: 0 },
     rotation: { x: 0, y: 0, z: 0 },
     rotationSpeed: 0.8,
+    initialAngularVelocity: { x: 0, y: 0.05, z: 0 },
     lastUpdated: new Date().toISOString(),
   };
 
-  const numberOfPlanets = 20;
-  const baseOrbitRadius = 14;
-  const orbitRadiusIncrement = 18;
-  const maxOrbitRandomOffset = 8;
+  const numberOfPlanets = 100;
+  const baseOrbitRadius = 40;
+  const orbitRadiusIncrement = 5;
+  const maxOrbitRandomOffset = 2;
 
   for (let i = 0; i < numberOfPlanets; i++) {
     const planetId = uuidv4() as CelestialBodyId;
@@ -86,16 +87,47 @@ const initializeCelestialBodies = (gameState: GameState): GameState => {
 
     const positionX = orbitalRadius * Math.cos(angle);
     const positionY = orbitalRadius * Math.sin(angle);
-    const positionZ = (Math.random() - 0.5) * 60;
+    const positionZ = (Math.random() - 0.5) * 10;
 
-    const vMagnitude =
+    const vMagnitude_ideal =
       orbitalRadius > 0
-        ? Math.sqrt((SIMULATION_G * sunMass) / orbitalRadius)
+        ? Math.sqrt((SIMULATION_G * sunMass) / orbitalRadius) // SIMULATION_G is currently 6.0
         : 0;
 
-    const velocityX = -vMagnitude * Math.sin(angle);
-    const velocityY = vMagnitude * Math.cos(angle);
-    const velocityZ = (Math.random() - 0.5) * vMagnitude * 0.1;
+    const velocityScalingFactor = 0.05; // Aim for 5% of ideal orbital velocity (was 0.1)
+    const vMagnitude = vMagnitude_ideal * velocityScalingFactor;
+
+    const velocityX_tangential = -vMagnitude * Math.sin(angle);
+    const velocityY_tangential = vMagnitude * Math.cos(angle);
+    const velocityZ_orbital_random = (Math.random() - 0.5) * vMagnitude * 0.05;
+
+    const inwardSpeedMagnitude = 0;
+
+    let normalizedToSunX = 0;
+    let normalizedToSunY = 0;
+    let normalizedToSunZ = 0;
+    const distanceToSun = Math.sqrt(
+      positionX * positionX + positionY * positionY + positionZ * positionZ,
+    );
+    if (distanceToSun > 0) {
+      normalizedToSunX = -positionX / distanceToSun;
+      normalizedToSunY = -positionY / distanceToSun;
+      normalizedToSunZ = -positionZ / distanceToSun;
+    }
+
+    const velocityX =
+      velocityX_tangential + normalizedToSunX * inwardSpeedMagnitude;
+    const velocityY =
+      velocityY_tangential + normalizedToSunY * inwardSpeedMagnitude;
+    const velocityZ =
+      velocityZ_orbital_random + normalizedToSunZ * inwardSpeedMagnitude;
+
+    const maxSpin = 0.5;
+    const initialAngularVelocity = {
+      x: (Math.random() - 0.5) * 2 * maxSpin,
+      y: (Math.random() - 0.5) * 2 * maxSpin,
+      z: (Math.random() - 0.5) * 2 * maxSpin,
+    };
 
     const textureUrl = undefined;
     const bumpMapUrl = undefined;
@@ -120,6 +152,7 @@ const initializeCelestialBodies = (gameState: GameState): GameState => {
       position: { x: positionX, y: positionY, z: positionZ },
       velocity: { x: velocityX, y: velocityY, z: velocityZ },
       rotation: { x: 0, y: Math.random() * Math.PI, z: 0 },
+      initialAngularVelocity,
       orbitingBodyId: sunId,
       textureUrl,
       bumpMapUrl,

@@ -1,4 +1,4 @@
-import React, { forwardRef, useLayoutEffect, useRef } from "react";
+import React, { forwardRef, useRef, useEffect } from "react";
 import { Sphere } from "@react-three/drei";
 import * as THREE from "three";
 import { useFrame, useThree } from "@react-three/fiber";
@@ -11,20 +11,42 @@ export interface SunProps {
 }
 
 const Sun = forwardRef<RapierRigidBody, SunProps>(({ celestialBody }, ref) => {
-  const { position, radius, name } = celestialBody;
+  const { position: posObj, radius, name } = celestialBody;
   const meshRef = useRef<THREE.Mesh>(null!);
   const shaderMaterialRef = useRef<SunShaderMaterial>(null!);
+  const isInitializedRef = useRef(false);
 
   const { camera } = useThree();
 
-  useLayoutEffect(() => {
-    const currentRef = typeof ref === "function" ? null : ref?.current;
-    if (currentRef) {
-      // If it's a fixed body, its position is usually set once.
-      // Programmatic translation of fixed bodies is not typical.
-      // currentRef.setTranslation({ x: position.x, y: position.y, z: position.z }, true);
+  useEffect(() => {
+    const body = typeof ref === "function" ? null : ref?.current;
+    if (body) {
+      const currentData =
+        typeof body.userData === "object" && body.userData !== null
+          ? body.userData
+          : {};
+      body.userData = {
+        ...currentData,
+        mass: celestialBody.mass,
+        id: celestialBody.id,
+      };
+
+      if (!isInitializedRef.current) {
+        body.setTranslation(celestialBody.position, true);
+        body.setLinvel({ x: 0, y: 0, z: 0 }, true);
+        if (celestialBody.initialAngularVelocity) {
+          body.setAngvel(celestialBody.initialAngularVelocity, true);
+        }
+        isInitializedRef.current = true;
+      }
     }
-  }, [position, ref]);
+  }, [
+    celestialBody.id,
+    celestialBody.position,
+    celestialBody.mass,
+    celestialBody.initialAngularVelocity,
+    ref,
+  ]);
 
   useFrame(({ clock }) => {
     if (shaderMaterialRef.current) {
@@ -33,19 +55,21 @@ const Sun = forwardRef<RapierRigidBody, SunProps>(({ celestialBody }, ref) => {
       camera.getWorldPosition(worldCameraPosition);
       shaderMaterialRef.current.cameraPosition = worldCameraPosition;
     }
-
-    // The <group> inside RigidBody can be rotated for visual effect if needed.
-    // Or, if the RigidBody itself should rotate (e.g. has angularDamping), that's an option.
-    // For now, assuming the shader handles visual changes and the body is fixed.
   });
 
   return (
     <RigidBody
       ref={ref}
-      type="fixed"
       colliders="ball"
+      type="fixed"
+      position={[posObj.x, posObj.y, posObj.z]}
+      mass={celestialBody.mass}
+      restitution={0.5}
       name={`sun-${name}`}
-      position={[position.x, position.y, position.z]}
+      userData={{
+        id: celestialBody.id,
+        mass: celestialBody.mass,
+      }}
     >
       <Sphere ref={meshRef} args={[radius, 64, 64]} castShadow={false}>
         <sunShaderMaterial ref={shaderMaterialRef} />

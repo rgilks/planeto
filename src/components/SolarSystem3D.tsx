@@ -3,7 +3,7 @@
 import { OrbitControls, Html } from "@react-three/drei";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import type { OrbitControls as ThreeOrbitControls } from "three-stdlib";
-import type { UserId } from "@/lib/domain/game.types";
+import type { UserId, CelestialBodyId } from "@/lib/domain/game.types";
 import React, { useRef, useEffect, useState, createRef, Suspense } from "react";
 import * as THREE from "three";
 import Starfield from "@/components/Starfield";
@@ -13,17 +13,24 @@ import Sun from "./Sun";
 import Planet from "./Planet";
 import { v4 as uuidv4 } from "uuid";
 import { Physics, RapierRigidBody } from "@react-three/rapier";
+import { SIMULATION_G } from "@/lib/physics";
+
+interface CelestialBodyUserData {
+  mass: number;
+  id: CelestialBodyId;
+  // Potentially other data if needed later
+}
 
 // Physics Constants for spaceship client-side thrust application
-const SPACESHIP_THRUST_FORCE = 0.1;
+// const SPACESHIP_THRUST_FORCE = 0.1;
 
-const toVec3 = (p: { x: number; y: number; z: number }) =>
-  new THREE.Vector3(p.x, p.y, p.z);
-const fromVec3 = (v: THREE.Vector3): { x: number; y: number; z: number } => ({
-  x: v.x,
-  y: v.y,
-  z: v.z,
-});
+// const toVec3 = (p: { x: number; y: number; z: number }) =>
+//   new THREE.Vector3(p.x, p.y, p.z);
+// const fromVec3 = (v: THREE.Vector3): { x: number; y: number; z: number } => ({
+//   x: v.x,
+//   y: v.y,
+//   z: v.z,
+// });
 
 const useCurrentUser = (): { userId: UserId | null; isLoading: boolean } => {
   const [userId, setUserId] = useState<UserId | null>(null);
@@ -57,11 +64,23 @@ const SceneContent = ({
   >("orbitCamera");
 
   const gameState = useGameStore((state) => state.gameState);
+  const sunIdRef = useRef<CelestialBodyId | null>(null);
+  useEffect(() => {
+    if (gameState.celestialBodies) {
+      const sunEntry = Object.values(gameState.celestialBodies).find(
+        (body) => body?.type === "sun",
+      );
+      if (sunEntry) {
+        sunIdRef.current = sunEntry.id;
+      }
+    }
+  }, [gameState.celestialBodies]);
+
   const currentSpaceshipId = useGameStore((state) => state.currentSpaceshipId);
   const isConnected = useGameStore((state) => state.isConnected);
   const gameError = useGameStore((state) => state.error);
   const setCurrentUserId = useGameStore((state) => state.setCurrentUserId);
-  const moveMySpaceship = useGameStore((state) => state.moveMySpaceship);
+  // const moveMySpaceship = useGameStore((state) => state.moveMySpaceship);
 
   const connectionAttemptedRef = useRef(false);
   const lastSentThrustInputRef = useRef({ forward: 0, up: 0, strafe: 0 });
@@ -77,11 +96,17 @@ const SceneContent = ({
   const spaceshipRef = useRef<THREE.Group>(null);
   const orbitControlsRef = useRef<ThreeOrbitControls>(null!);
   const celestialBodyRefs = useRef<React.RefObject<RapierRigidBody>[]>([]);
+  const logCounterRef = useRef(0);
 
   const currentUserSpaceship =
     currentSpaceshipId && gameState
       ? gameState.spaceships[currentSpaceshipId]
       : undefined;
+
+  const rigidBodiesApi = useRef<RapierRigidBody[]>([]);
+  // const vec3 = new THREE.Vector3(); // Reusable vector for position
+  const force = new THREE.Vector3(); // Reusable vector for force calculations
+  const direction = new THREE.Vector3(); // Reusable vector for direction
 
   useEffect(() => {
     canvasElementRef.current = gl.domElement;
@@ -209,7 +234,7 @@ const SceneContent = ({
   }, [controlMode, setControlMode]);
 
   // Main game loop for client-side updates
-  useFrame((state, delta) => {
+  useFrame((state) => {
     const now = clock.getElapsedTime();
 
     if (
@@ -217,25 +242,14 @@ const SceneContent = ({
       spaceshipRef.current &&
       controlMode === "mouseAimShipControl"
     ) {
-      const ship = currentUserSpaceship;
-      const shipGroup = spaceshipRef.current;
-
       const { pointer } = state;
       const targetRotation = new THREE.Euler(
         -pointer.y * 0.5,
         -pointer.x * 0.5,
-        shipGroup.rotation.z,
+        spaceshipRef.current.rotation.z,
         "YXZ",
       );
-      shipGroup.quaternion.setFromEuler(targetRotation);
-
-      const thrustForceVec = new THREE.Vector3(
-        thrustInput.strafe,
-        thrustInput.up,
-        -thrustInput.forward,
-      )
-        .multiplyScalar(SPACESHIP_THRUST_FORCE)
-        .applyQuaternion(shipGroup.quaternion);
+      spaceshipRef.current.quaternion.setFromEuler(targetRotation);
 
       const hasThrustInput =
         thrustInput.forward !== 0 ||
@@ -249,27 +263,104 @@ const SceneContent = ({
             thrustInput.up !== lastSentThrustInputRef.current.up ||
             thrustInput.strafe !== lastSentThrustInputRef.current.strafe))
       ) {
-        const effectiveVelocityChange = thrustForceVec
-          .clone()
-          .multiplyScalar(delta);
+        // Spaceship movement logic is client-driven.
+        // Server reconciliation or server-side Rapier for spaceships could be future enhancements.
+      }
+    }
 
-        const newPosition = toVec3(ship.position).add(effectiveVelocityChange);
+    // Update rigid bodies from API
+    rigidBodiesApi.current = celestialBodyRefs.current
+      .map((ref) => ref.current)
+      .filter((body): body is RapierRigidBody => body !== null);
 
-        const newVelocity = toVec3(ship.velocity).add(
-          effectiveVelocityChange.clone().divideScalar(delta),
-        );
+    const bodies = rigidBodiesApi.current;
 
-        moveMySpaceship(
-          fromVec3(newPosition),
-          {
-            x: shipGroup.rotation.x,
-            y: shipGroup.rotation.y,
-            z: shipGroup.rotation.z,
-          },
-          fromVec3(newVelocity),
-        );
-        lastPhysicsUpdateTimeRef.current = now;
-        lastSentThrustInputRef.current = { ...thrustInput };
+    // Reset forces for all celestial bodies before recalculating gravity
+    for (const body of bodies) {
+      if (body) {
+        body.resetForces(true); // Pass true to also wake the body if it's sleeping
+      }
+    }
+
+    // Client-side gravity calculation
+    const numBodies = bodies.length;
+    const minEffectiveDistanceSq = 0.25; // To prevent extreme forces at very close distances
+
+    for (let i = 0; i < numBodies; i++) {
+      const body1 = bodies[i];
+      if (!body1) continue;
+      const userData1 = body1.userData as CelestialBodyUserData;
+      if (!userData1 || typeof userData1.mass !== "number") continue;
+
+      const position1 = new THREE.Vector3(
+        body1.translation().x,
+        body1.translation().y,
+        body1.translation().z,
+      ); // Fresh vector for safety
+
+      for (let j = i + 1; j < numBodies; j++) {
+        const body2 = bodies[j];
+        if (!body2) continue;
+        const userData2 = body2.userData as CelestialBodyUserData;
+        if (!userData2 || typeof userData2.mass !== "number") continue;
+
+        const position2 = new THREE.Vector3(
+          body2.translation().x,
+          body2.translation().y,
+          body2.translation().z,
+        ); // Fresh vector
+
+        direction.subVectors(position1, position2); // direction = position1 - position2
+        const distanceSq = direction.lengthSq();
+
+        if (distanceSq === 0) continue; // Avoid division by zero
+
+        const mass1 = userData1.mass;
+        const mass2 = userData2.mass;
+
+        const forceMagnitude =
+          (SIMULATION_G * mass1 * mass2) /
+          Math.max(distanceSq, minEffectiveDistanceSq);
+
+        // Log Sun-Planet interactions before force application
+        const isP1Sun = userData1.id === sunIdRef.current;
+        const isP2Sun = userData2.id === sunIdRef.current;
+
+        if ((isP1Sun && !isP2Sun) || (!isP1Sun && isP2Sun)) {
+          const sunData = isP1Sun ? userData1 : userData2;
+          const planetData = isP1Sun ? userData2 : userData1;
+          const sunPosVec = isP1Sun ? position1 : position2;
+          const planetPosVec = isP1Sun ? position2 : position1;
+
+          const vecPlanetToSun = new THREE.Vector3().subVectors(
+            sunPosVec,
+            planetPosVec,
+          );
+          const forceOnPlanetIdeal = vecPlanetToSun
+            .clone()
+            .normalize()
+            .multiplyScalar(forceMagnitude);
+
+          logCounterRef.current += 1;
+          if (logCounterRef.current % 100 === 0) {
+            console.log(
+              `NEWLOG T:${clock.getElapsedTime().toFixed(1)} ` +
+                `Sun(${sunData.id.substring(0, 2)}):${sunPosVec.x.toFixed(0)},${sunPosVec.y.toFixed(0)},${sunPosVec.z.toFixed(0)} ` +
+                `Planet(${planetData.id.substring(0, 2)}):${planetPosVec.x.toFixed(0)},${planetPosVec.y.toFixed(0)},${planetPosVec.z.toFixed(0)} ` +
+                `VecPlanetToSun:(${vecPlanetToSun.x.toFixed(1)},${vecPlanetToSun.y.toFixed(1)},${vecPlanetToSun.z.toFixed(1)}) ` +
+                `ForceMag:${forceMagnitude.toPrecision(2)} ` +
+                `FORCE_ON_PLANET:(${forceOnPlanetIdeal.x.toFixed(1)},${forceOnPlanetIdeal.y.toFixed(1)},${forceOnPlanetIdeal.z.toFixed(1)})`,
+            );
+          }
+        }
+
+        // Force on body2 due to body1: F_21 = G * m1 * m2 / r^2 * (r1-r2)/|r1-r2|
+        // direction is (position1 - position2), so it's already pointing from body2 to body1
+        force.copy(direction).normalize().multiplyScalar(forceMagnitude);
+        body2.addForce(force, true);
+
+        // Force on body1 due to body2: F_12 = -F_21
+        body1.addForce(force.clone().multiplyScalar(-1), true);
       }
     }
   });
@@ -366,7 +457,7 @@ const SolarSystem3DCanvas = () => {
     <Canvas
       shadows
       camera={{
-        position: [0, 20, 50],
+        position: [0, 100, 500],
         fov: 50,
         near: 0.1,
         far: 200000,

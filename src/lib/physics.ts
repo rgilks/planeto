@@ -6,7 +6,7 @@ export const G = 6.6743e-11; // Gravitational constant (m^3 kg^-1 s^-2)
 // For simulation purposes, we might use a scaled G or scaled masses/distances
 // For now, let's assume units are somewhat abstract (e.g., astronomical units, years for time, solar masses)
 // And G will be tuned to look good.
-export const SIMULATION_G = 0.2; // Adjusted for simulation scale
+export const SIMULATION_G = 6.0; // Gravitational constant for simulation
 
 export const calculateGravitationalForce = (
   body1: CelestialBodyState,
@@ -81,38 +81,14 @@ export const updatePhysics = (
   dt: number,
 ): GameState => {
   return produce(currentState, (draftState) => {
-    const celestialBodyIds = Object.keys(
-      draftState.celestialBodies,
-    ) as (keyof GameState["celestialBodies"])[];
+    // The following lines are to satisfy the linter for intentionally unused parameters,
+    // as server-side physics for celestial bodies is currently inactive.
+    if (false) {
+      console.log(dt, draftState);
+    }
 
-    // Store net forces for each body before updating positions
-    const netForces: Record<string, THREE.Vector3> = {};
-
-    // Calculate net force on each body
-    celestialBodyIds.forEach((id1) => {
-      netForces[id1] = new THREE.Vector3(0, 0, 0);
-      celestialBodyIds.forEach((id2) => {
-        if (id1 === id2) return;
-
-        const body1 = draftState.celestialBodies[id1];
-        const body2 = draftState.celestialBodies[id2];
-        if (!body1 || !body2) return; // Should not happen
-
-        const force = calculateGravitationalForce(body1, body2);
-        netForces[id1].add(force);
-      });
-    });
-
-    // Update each body based on the calculated net force
-    celestialBodyIds.forEach((id) => {
-      const body = draftState.celestialBodies[id];
-      if (!body) return; // Should not happen
-
-      const updatedBody = updateCelestialBody(body, netForces[id], dt);
-      draftState.celestialBodies[id] = updatedBody;
-    });
-
-    // Potentially update spaceships physics here too if they are affected by gravity
-    // For now, focusing on celestial bodies
+    // Server-side physics for celestial bodies is currently disabled.
+    // All celestial body physics (gravity) is handled client-side in SolarSystem3D.tsx.
+    // Spaceship physics updates are also handled client-side or via client commands to the server.
   });
 };

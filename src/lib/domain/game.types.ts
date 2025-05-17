@@ -64,6 +64,7 @@ export const CelestialBodyStateSchema = z.object({
   velocity: PositionSchema, // Represents dx, dy, dz per second or physics tick
   rotation: RotationSchema, // For visual representation (e.g., axial tilt, rotation period)
   rotationSpeed: z.number().optional(), // Radians per frame delta, for visual rotation
+  initialAngularVelocity: PositionSchema.optional(), // For initial Rapier spin setup
   orbitingBodyId: CelestialBodyIdSchema.optional(), // For initial setup, physics will take over
   textureUrl: z.string().url().optional(),
   bumpMapUrl: z.string().url().optional(),
