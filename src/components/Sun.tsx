@@ -4,7 +4,11 @@ import * as THREE from "three";
 import { useFrame, useThree } from "@react-three/fiber";
 import { CelestialBodyState } from "@/lib/domain/game.types";
 import { SunShaderMaterial } from "./SunSurfaceMaterial";
-import { RigidBody, RapierRigidBody } from "@react-three/rapier";
+import {
+  RigidBody,
+  RapierRigidBody,
+  type CollisionEnterPayload,
+} from "@react-three/rapier";
 
 export interface SunProps {
   celestialBody: CelestialBodyState;
@@ -57,6 +61,47 @@ const Sun = forwardRef<RapierRigidBody, SunProps>(({ celestialBody }, ref) => {
     }
   });
 
+  const handleSunCollision = (payload: CollisionEnterPayload) => {
+    const otherBody = payload.other.rigidBody;
+    const otherCollider = payload.other.collider;
+
+    const sunPosition = new THREE.Vector3(0, 0, 0); // Sun is at origin
+    const sunRadius = celestialBody.radius;
+
+    if (
+      otherBody &&
+      otherCollider &&
+      otherBody.bodyType() !== 0 /* RigidBodyType.Fixed */
+    ) {
+      const planetCurrentPosition = new THREE.Vector3().copy(
+        otherBody.translation() as THREE.Vector3,
+      );
+
+      const awayFromSun = planetCurrentPosition
+        .clone()
+        .sub(sunPosition)
+        .normalize();
+      const planetMass = otherBody.mass();
+
+      // Apply an impulse for ejection
+      const targetEjectionSpeed = 1200;
+      const impulseMagnitude = targetEjectionSpeed * planetMass;
+      const impulseVector = awayFromSun
+        .clone()
+        .multiplyScalar(impulseMagnitude);
+      otherBody.applyImpulse(impulseVector, true);
+
+      // Also displace the planet slightly to avoid immediate re-collision/sticking
+      const planetRadius = otherCollider.radius(); // Assumes planet collider is a Ball
+      const displacementDistance = sunRadius + planetRadius + 15;
+      const newPlanetPosition = awayFromSun
+        .clone()
+        .multiplyScalar(displacementDistance);
+
+      otherBody.setTranslation(newPlanetPosition, true);
+    }
+  };
+
   return (
     <RigidBody
       ref={ref}
@@ -64,12 +109,13 @@ const Sun = forwardRef<RapierRigidBody, SunProps>(({ celestialBody }, ref) => {
       type="fixed"
       position={[posObj.x, posObj.y, posObj.z]}
       mass={celestialBody.mass}
-      restitution={0.5}
+      restitution={0.0}
       name={`sun-${name}`}
       userData={{
         id: celestialBody.id,
         mass: celestialBody.mass,
       }}
+      onCollisionEnter={handleSunCollision}
     >
       <Sphere ref={meshRef} args={[radius, 64, 64]} castShadow={false}>
         <sunShaderMaterial ref={shaderMaterialRef} />

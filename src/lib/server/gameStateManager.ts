@@ -65,10 +65,10 @@ const initializeCelestialBodies = (gameState: GameState): GameState => {
     lastUpdated: new Date().toISOString(),
   };
 
-  const numberOfPlanets = 100;
-  const baseOrbitRadius = 40;
-  const orbitRadiusIncrement = 5;
-  const maxOrbitRandomOffset = 2;
+  const numberOfPlanets = 16;
+  const baseOrbitRadius = 70;
+  const orbitRadiusIncrement = 2;
+  const maxOrbitRandomOffset = 1;
 
   for (let i = 0; i < numberOfPlanets; i++) {
     const planetId = uuidv4() as CelestialBodyId;
@@ -87,21 +87,21 @@ const initializeCelestialBodies = (gameState: GameState): GameState => {
 
     const positionX = orbitalRadius * Math.cos(angle);
     const positionY = orbitalRadius * Math.sin(angle);
-    const positionZ = (Math.random() - 0.5) * 10;
+    const positionZ = 0; // For planar orbits.
 
     const vMagnitude_ideal =
       orbitalRadius > 0
         ? Math.sqrt((SIMULATION_G * sunMass) / orbitalRadius) // SIMULATION_G is currently 6.0
         : 0;
 
-    const velocityScalingFactor = 0.05; // Aim for 5% of ideal orbital velocity (was 0.1)
+    const velocityScalingFactor = 0.1;
     const vMagnitude = vMagnitude_ideal * velocityScalingFactor;
 
     const velocityX_tangential = -vMagnitude * Math.sin(angle);
     const velocityY_tangential = vMagnitude * Math.cos(angle);
-    const velocityZ_orbital_random = (Math.random() - 0.5) * vMagnitude * 0.05;
+    const velocityZ_orbital_random = 0; // For planar orbits.
 
-    const inwardSpeedMagnitude = 0;
+    const inwardSpeedMagnitude = 0; // For purely tangential initial velocity.
 
     let normalizedToSunX = 0;
     let normalizedToSunY = 0;

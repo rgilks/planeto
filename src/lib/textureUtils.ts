@@ -78,9 +78,12 @@ export const generatePlanetTexture = (
   const noiseFine = createSeededNoise(planetName + "_fine");
 
   // Vary scales based on planet name for more diversity
-  const baseFeatureScale = 2 + (simpleHash(planetName + "_baseScale") % 5); // 2-6
-  const detailFeatureScale = 5 + (simpleHash(planetName + "_detailScale") % 10); // 5-14
-  const fineFeatureScale = 15 + (simpleHash(planetName + "_fineScale") % 15); // 15-29
+  // Smaller scale values = larger features
+  const baseFeatureScale =
+    1.5 + (simpleHash(planetName + "_baseScale") % 16) / 10;
+  const detailFeatureScale =
+    3.0 + (simpleHash(planetName + "_detailScale") % 21) / 10;
+  const fineFeatureScale = 15 + (simpleHash(planetName + "_fineScale") % 25);
 
   const distortion1 = createSeededNoise(planetName + "_dist1");
   const distortionScale1 =
@@ -101,12 +104,19 @@ export const generatePlanetTexture = (
       let elevation =
         (noiseBase(u1 * baseFeatureScale, v1 * baseFeatureScale) + 1) / 2; // 0-1
 
-      // Detail noise (regional variations)
-      const detailNoise =
+      // Detail noise (regional variations for mountains)
+      const detailNoiseVal =
         (noiseDetail(u1 * detailFeatureScale, v1 * detailFeatureScale) + 1) / 2; // 0-1
-      elevation = elevation * 0.7 + detailNoise * 0.3; // Combine base and detail
 
-      // Fine noise (surface texture)
+      // Add mountains on top of land
+      const landThreshold = 0.45; // Defines where land starts
+      if (elevation > landThreshold) {
+        // Add scaled detail noise for mountain height. Max height of mountains about 0.15 above land.
+        elevation += detailNoiseVal * 0.15;
+      }
+      elevation = Math.max(0, Math.min(1, elevation)); // Clamp elevation to 0-1
+
+      // Fine noise (surface texture for color variation, not directly for major bumps anymore)
       const fineNoise =
         (noiseFine(u * fineFeatureScale, v * fineFeatureScale) + 1) / 2; // 0-1
 
@@ -155,8 +165,9 @@ export const generatePlanetTexture = (
       colorData[idx + 3] = 255;
 
       // Use combined elevation for bump map. Higher values = bumps.
-      // We can scale this or use a different noise for more control if needed.
-      bumpData[idx] = elevation * 255;
+      // Blend elevation with fineNoise for more detailed bump
+      const bumpValue = elevation;
+      bumpData[idx] = bumpValue * 255;
     }
   }
 
@@ -174,8 +185,10 @@ export const generatePlanetTexture = (
     size,
     size,
     THREE.RedFormat,
-  ); // Use RedFormat for single channel
+  );
   bumpMapTexture.needsUpdate = true;
+  bumpMapTexture.minFilter = THREE.LinearFilter;
+  bumpMapTexture.magFilter = THREE.LinearFilter;
   // No color space conversion needed for data textures like bump maps
 
   return { map: mapTexture, bumpMap: bumpMapTexture };

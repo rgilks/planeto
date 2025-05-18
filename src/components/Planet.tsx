@@ -25,6 +25,17 @@ const placeholderImageDataUrl =
 const defaultBumpImageDataUrl =
   "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYPhfDwAChwGA60eADgAAAABJRU5ErkJggg=="; // RGB(128,128,255) -> Flat normal
 
+// Simple hash function to get a number from a string (copied from textureUtils.ts)
+const simpleHash = (str: string): number => {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = (hash << 5) - hash + char;
+    hash |= 0; // Convert to 32bit integer
+  }
+  return Math.abs(hash);
+};
+
 const Planet = forwardRef<RapierRigidBody, PlanetProps>(
   ({ celestialBody, enableClouds = false }, ref) => {
     const {
@@ -126,11 +137,17 @@ const Planet = forwardRef<RapierRigidBody, PlanetProps>(
       displayBumpMap = loadedTextures[textureUrl ? 1 : 0];
     }
 
-    const bumpScale =
-      displayBumpMap &&
-      displayBumpMap.source.data.src !== defaultBumpImageDataUrl
-        ? 0.05
-        : 0;
+    const bumpScale = useMemo(() => {
+      if (
+        displayBumpMap &&
+        displayBumpMap.source.data.src !== defaultBumpImageDataUrl
+      ) {
+        // Vary bump scale per planet: 0.05 (min) to 0.20 (max)
+        const hashVal = simpleHash(name + "_bumpScale");
+        return 0.05 + (hashVal % 16) / 100; // (hash % 16) gives 0-15. /100 gives 0.0 to 0.15. Add 0.05.
+      }
+      return 0;
+    }, [displayBumpMap, name]);
 
     const atmosphereRadius = useMemo(() => {
       return atmosphere?.thickness
