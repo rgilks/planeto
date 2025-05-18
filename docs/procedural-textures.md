@@ -1,5 +1,7 @@
 # Procedural Planet Texture Generation
 
+> **Note:** Procedural planet textures are not currently used in the main scene. Planets are rendered as colored spheres. This document describes a system for future or optional enhancements.
+
 This document details the system used in Planeto to generate procedural textures for celestial bodies, primarily planets, when pre-defined textures are not available.
 
 ## Overview

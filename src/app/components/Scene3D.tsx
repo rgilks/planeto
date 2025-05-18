@@ -13,7 +13,7 @@ import {
 const generateStarField = (
   count: number,
   minRadius = 80,
-  maxRadius = 100,
+  maxRadius = 100
 ): z.infer<typeof StarFieldSchema> => ({
   stars: Array.from({ length: count }, () => {
     const u = Math.random();
@@ -115,11 +115,11 @@ const Gravity = ({
       const fz = (dz / dist) * forceMag;
       planetRef.current.applyImpulse(
         { x: fx * 0.016, y: fy * 0.016, z: fz * 0.016 },
-        true,
+        true
       );
       sunRef.current.applyImpulse(
         { x: -fx * 0.016, y: -fy * 0.016, z: -fz * 0.016 },
-        true,
+        true
       );
       frame = requestAnimationFrame(step);
     };
