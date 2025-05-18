@@ -13,7 +13,7 @@ import {
 const generateStarField = (
   count: number,
   minRadius = 80,
-  maxRadius = 100
+  maxRadius = 100,
 ): z.infer<typeof StarFieldSchema> => ({
   stars: Array.from({ length: count }, () => {
     const u = Math.random();
@@ -123,19 +123,34 @@ const Gravity = ({
       const fx = (dx / dist) * forceMag;
       const fy = (dy / dist) * forceMag;
       const fz = (dz / dist) * forceMag;
+      let rfx = 0,
+        rfy = 0,
+        rfz = 0;
+      const boundary = 30;
+      const k = 2;
+      if (dist > boundary) {
+        const restoreMag = k * (dist - boundary);
+        rfx = (dx / dist) * restoreMag;
+        rfy = (dy / dist) * restoreMag;
+        rfz = (dz / dist) * restoreMag;
+      }
       planetRef.current.applyImpulse(
-        { x: fx * 0.016, y: fy * 0.016, z: fz * 0.016 },
-        true
+        { x: (fx + rfx) * 0.016, y: (fy + rfy) * 0.016, z: (fz + rfz) * 0.016 },
+        true,
       );
       sunRef.current.applyImpulse(
-        { x: -fx * 0.016, y: -fy * 0.016, z: -fz * 0.016 },
-        true
+        {
+          x: -(fx + rfx) * 0.016,
+          y: -(fy + rfy) * 0.016,
+          z: -(fz + rfz) * 0.016,
+        },
+        true,
       );
       frame = requestAnimationFrame(step);
     };
     frame = requestAnimationFrame(step);
     return () => cancelAnimationFrame(frame);
-  }, [sunRef, planetRef]);
+  }, [sunRef, planetRef, planetMass, planetRadius]);
   return null;
 };
 
