@@ -83,6 +83,18 @@ const seededRandom = (seed: number) => {
   };
 };
 
+const randomRadius = () => {
+  // More extreme power-law: most small, a few huge
+  const min = 0.3,
+    max = 8,
+    alpha = 3.2;
+  return Math.pow(
+    Math.random() * (Math.pow(max, 1 - alpha) - Math.pow(min, 1 - alpha)) +
+      Math.pow(min, 1 - alpha),
+    1 / (1 - alpha),
+  );
+};
+
 const generateBumpMap = (seed: number) => {
   const size = 128;
   const noise2D = createNoise2D(seededRandom(seed));
@@ -220,10 +232,17 @@ const Scene3D = () => {
 
   useEffect(() => {
     if (!bumpMaps) return;
+    const N = 400;
+    const supergiantRadii = [
+      7.5 + Math.random() * 0.5,
+      6.5 + Math.random() * 0.5,
+    ];
     setPlanets(
-      Array.from({ length: 400 }, () => {
-        const mass = Math.random() * 8 + 8;
-        const radius = Math.random() * 0.7 + 0.7;
+      Array.from({ length: N }, (_, idx) => {
+        let radius = randomRadius();
+        if (idx === 0) radius = supergiantRadii[0];
+        if (idx === 1) radius = supergiantRadii[1];
+        const mass = Math.pow(radius, 3) * (6 + Math.random() * 2);
         const angle = Math.random() * 2 * Math.PI;
         const r = Math.random() * 60 + 20;
         const x = r * Math.cos(angle);
