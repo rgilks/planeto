@@ -512,7 +512,6 @@ const Scene3D = () => {
         />
       </EffectComposer>
       <CameraAnimator trigger={cameraTrigger} target={center} />
-      <ambientLight intensity={0.15} />
       <pointLight
         position={[0, 0, 0]}
         intensity={8}
