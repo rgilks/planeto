@@ -334,7 +334,9 @@ const Scene3D = () => {
             : Math.random() < 0.3
               ? "oblate"
               : "sphere";
-        const spinMag = 0.1 + Math.random() * (0.7 / radius);
+        let spinMag = 0.1 + Math.random() * (0.7 / radius);
+        spinMag *= 20;
+        if (radius > 5) spinMag = Math.min(spinMag, 1.2);
         const spinAxis = new THREE.Vector3(
           Math.random(),
           Math.random(),
@@ -439,7 +441,9 @@ const Scene3D = () => {
             : Math.random() < 0.18
               ? "oblate"
               : "sphere";
-        const spinMag = 0.1 + Math.random() * (0.7 / radius);
+        let spinMag = 0.1 + Math.random() * (0.7 / radius);
+        spinMag *= 20;
+        if (radius > 5) spinMag = Math.min(spinMag, 1.2);
         const spinAxis = new THREE.Vector3(
           Math.random(),
           Math.random(),
