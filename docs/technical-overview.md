@@ -41,3 +41,14 @@ Key principles guiding development:
 - Develop UI elements for system selection, time controls, and information display.
 - Expand the domain model to include other celestial features (asteroid belts, gas giants with ring systems, space stations).
 - Implement backend integration for persistent storage and retrieval of solar system data.
+
+## 3D Scene on Homepage
+
+The homepage features a 3D scene implemented with @react-three/fiber and @react-three/drei's OrbitControls. The scene currently displays a yellow sphere in the center. Users can zoom and rotate the camera using the mouse.
+
+- The 3D scene is encapsulated in `src/app/components/Scene3D.tsx`.
+- The component uses React Three Fiber's <Canvas> for rendering.
+- OrbitControls from Drei enables intuitive camera controls.
+- The scene is rendered full-screen within the main layout.
+
+This setup provides a foundation for future 3D features and interactive content.

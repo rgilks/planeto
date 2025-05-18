@@ -134,3 +134,24 @@ If a `textureUrl` (and optionally `bumpMapUrl`) is provided in the planet's data
 Selected planets can also display a procedurally generated, rotating cloud layer, also created by `src/lib/textureUtils.ts` and managed within `Planet.tsx`.
 
 The generated textures are `THREE.DataTexture` objects applied to a `meshStandardMaterial`. Atmospheres, if defined, are rendered as a separate semi-transparent sphere. For more detailed information on all procedural texture generation, see [Procedural Textures Documentation](./docs/procedural-textures.md).
+
+# Planeto
+
+The homepage now features a 3D scene rendered with [@react-three/fiber](https://docs.pmnd.rs/react-three-fiber) and [@react-three/drei](https://docs.pmnd.rs/drei) OrbitControls. A yellow sphere appears in the center, and users can zoom and rotate the view with the mouse.
+
+The 3D scene is implemented in `src/app/components/Scene3D.tsx` and used in `src/app/page.tsx`.
+
+- Uses React Three Fiber for declarative 3D rendering
+- Uses Drei's OrbitControls for mouse interaction
+- Scene3D is the entry point for 3D content
+
+## Getting Started
+
+Install dependencies and run the development server:
+
+```sh
+npm install
+npm run dev
+```
+
+Visit [http://localhost:3000](http://localhost:3000) to view the 3D scene.
