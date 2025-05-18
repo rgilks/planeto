@@ -67,22 +67,29 @@ const randomColor = () => {
   return colors[Math.floor(Math.random() * colors.length)];
 };
 
-const generateRandomPlanets = (count: number) =>
-  Array.from({ length: count }, () => ({
-    mass: Math.random() * 1.5 + 0.3,
-    radius: Math.random() * 0.2 + 0.15,
-    position: [
-      (Math.random() - 0.5) * 24,
-      (Math.random() - 0.5) * 24,
-      (Math.random() - 0.5) * 24,
-    ] as [number, number, number],
-    velocity: [
-      (Math.random() - 0.5) * 3,
-      (Math.random() - 0.5) * 3,
-      (Math.random() - 0.5) * 3,
-    ] as [number, number, number],
-    color: randomColor(),
-  }));
+const generateRandomPlanets = (count: number) => {
+  const G = 1;
+  return Array.from({ length: count }, () => {
+    const mass = Math.random() * 1.5 + 0.3;
+    const radius = Math.random() * 0.2 + 0.15;
+    const angle = Math.random() * 2 * Math.PI;
+    const r = Math.random() * 10 + 8;
+    const x = r * Math.cos(angle);
+    const y = r * Math.sin(angle);
+    const z = (Math.random() - 0.5) * 2;
+    const vMag = Math.sqrt((G * sunMass) / r);
+    const vx = -vMag * Math.sin(angle);
+    const vy = vMag * Math.cos(angle);
+    const vz = 0;
+    return {
+      mass,
+      radius,
+      position: [x, y, z] as [number, number, number],
+      velocity: [vx, vy, vz] as [number, number, number],
+      color: randomColor(),
+    };
+  });
+};
 
 type RigidBodyRef = React.RefObject<RapierRigidBody | null>;
 
