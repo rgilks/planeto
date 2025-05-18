@@ -52,3 +52,35 @@ The homepage features a 3D scene implemented with @react-three/fiber and @react-
 - The scene is rendered full-screen within the main layout.
 
 This setup provides a foundation for future 3D features and interactive content.
+
+## Star Field Implementation
+
+The distant star field is rendered in the 3D scene using react-three-fiber. Stars are generated procedurally and rendered as small spheres distributed in a large cube around the origin.
+
+### Domain Model
+
+- All star and star field types are defined in `src/lib/domain/starField.ts` using Zod schemas.
+- The `StarSchema` defines a star's position, color, and size.
+- The `StarFieldSchema` defines an array of stars.
+- Types are exported for use throughout the app.
+
+### Generation
+
+- The star field is generated with a helper that creates random positions, sizes, and colors for each star.
+- The generator is pure and validated by Zod.
+
+### Rendering
+
+- The `StarField` component renders each star as a mesh with a small sphere geometry and a basic material.
+- The star field is rendered behind the main scene objects.
+
+### Extending
+
+- To add new properties to stars, update the Zod schema and the generator.
+- To change the distribution, update the generator logic.
+
+### Libraries
+
+- Zod is used for schema validation and type inference.
+- immer is available for immutable state updates.
+- Zustand is available for state management if the star field needs to be dynamic.

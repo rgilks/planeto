@@ -137,21 +137,39 @@ The generated textures are `THREE.DataTexture` objects applied to a `meshStandar
 
 # Planeto
 
-The homepage now features a 3D scene rendered with [@react-three/fiber](https://docs.pmnd.rs/react-three-fiber) and [@react-three/drei](https://docs.pmnd.rs/drei) OrbitControls. A yellow sphere appears in the center, and users can zoom and rotate the view with the mouse.
+## Features
 
-The 3D scene is implemented in `src/app/components/Scene3D.tsx` and used in `src/app/page.tsx`.
+- 3D scene rendered with react-three-fiber and drei
+- Distant star field procedurally generated and rendered in the background
+- Domain model for stars and star fields defined with Zod in `src/lib/domain/starField.ts`
+- Uses immer for immutability and Zustand for state management (ready for future extensions)
 
-- Uses React Three Fiber for declarative 3D rendering
-- Uses Drei's OrbitControls for mouse interaction
-- Scene3D is the entry point for 3D content
+## Star Field
 
-## Getting Started
+The star field is generated procedurally using a helper and rendered as small spheres in the 3D scene. The domain model is defined with Zod schemas for strong type safety and easy extension.
 
-Install dependencies and run the development server:
+### Domain Model
 
-```sh
-npm install
-npm run dev
-```
+- All star and star field types are defined in `src/lib/domain/starField.ts`
+- To extend the star field, update the Zod schemas and the generator in the same file
 
-Visit [http://localhost:3000](http://localhost:3000) to view the 3D scene.
+## Tech Stack
+
+- [react-three-fiber](https://docs.pmnd.rs/react-three-fiber)
+- [@react-three/drei](https://docs.pmnd.rs/drei)
+- [Zod](https://zod.dev/)
+- [immer](https://immerjs.github.io/immer/)
+- [Zustand](https://docs.pmnd.rs/zustand/getting-started/introduction)
+
+## Development
+
+    npm install
+    npm run dev
+
+## Linting & Type Checking
+
+    npm run check
+
+## Testing
+
+    npm run test
