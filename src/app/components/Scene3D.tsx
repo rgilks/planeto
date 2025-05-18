@@ -13,7 +13,7 @@ import {
 const generateStarField = (
   count: number,
   minRadius = 80,
-  maxRadius = 100
+  maxRadius = 100,
 ): z.infer<typeof StarFieldSchema> => ({
   stars: Array.from({ length: count }, () => {
     const u = Math.random();
@@ -52,36 +52,37 @@ const G = 1;
 const sunMass = 10;
 const sunRadius = 1;
 
-const planetConfigs = [
-  {
-    mass: 1,
-    radius: 0.3,
-    position: [10, 0, 0] as [number, number, number],
-    velocity: [0, 1.8, 0] as [number, number, number],
-    color: "deepskyblue",
-  },
-  {
-    mass: 0.8,
-    radius: 0.25,
-    position: [0, 12, 0] as [number, number, number],
-    velocity: [-1.7, 0, 1.7] as [number, number, number],
-    color: "limegreen",
-  },
-  {
-    mass: 0.6,
-    radius: 0.22,
-    position: [-14, 0, 0] as [number, number, number],
-    velocity: [0, -1.6, 1.6] as [number, number, number],
-    color: "orange",
-  },
-  {
-    mass: 0.5,
-    radius: 0.18,
-    position: [0, -16, 0] as [number, number, number],
-    velocity: [1.5, 0, -1.5] as [number, number, number],
-    color: "violet",
-  },
-];
+const randomColor = () => {
+  const colors = [
+    "deepskyblue",
+    "limegreen",
+    "orange",
+    "violet",
+    "red",
+    "yellow",
+    "aqua",
+    "pink",
+    "white",
+  ];
+  return colors[Math.floor(Math.random() * colors.length)];
+};
+
+const generateRandomPlanets = (count: number) =>
+  Array.from({ length: count }, () => ({
+    mass: Math.random() * 1.5 + 0.3,
+    radius: Math.random() * 0.2 + 0.15,
+    position: [
+      (Math.random() - 0.5) * 24,
+      (Math.random() - 0.5) * 24,
+      (Math.random() - 0.5) * 24,
+    ] as [number, number, number],
+    velocity: [
+      (Math.random() - 0.5) * 3,
+      (Math.random() - 0.5) * 3,
+      (Math.random() - 0.5) * 3,
+    ] as [number, number, number],
+    color: randomColor(),
+  }));
 
 type RigidBodyRef = React.RefObject<RapierRigidBody | null>;
 
@@ -115,11 +116,11 @@ const Gravity = ({
       const fz = (dz / dist) * forceMag;
       planetRef.current.applyImpulse(
         { x: fx * 0.016, y: fy * 0.016, z: fz * 0.016 },
-        true
+        true,
       );
       sunRef.current.applyImpulse(
         { x: -fx * 0.016, y: -fy * 0.016, z: -fz * 0.016 },
-        true
+        true,
       );
       frame = requestAnimationFrame(step);
     };
@@ -131,6 +132,7 @@ const Gravity = ({
 
 const Scene3D = () => {
   const sunRef: RigidBodyRef = useRef(null);
+  const planets = useMemo(() => generateRandomPlanets(20), []);
   const planetRefs = useRef<RigidBodyRef[]>([]);
 
   return (
@@ -154,7 +156,7 @@ const Scene3D = () => {
             <meshStandardMaterial color="yellow" />
           </mesh>
         </RigidBody>
-        {planetConfigs.map((planet, i) => {
+        {planets.map((planet, i) => {
           if (!planetRefs.current[i]) planetRefs.current[i] = createRef();
           return (
             <RigidBody
@@ -173,7 +175,7 @@ const Scene3D = () => {
             </RigidBody>
           );
         })}
-        {planetConfigs.map((planet, i) => (
+        {planets.map((planet, i) => (
           <Gravity
             key={i}
             sunRef={sunRef}
