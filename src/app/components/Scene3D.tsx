@@ -71,9 +71,11 @@ const velocityMultiplier = 2.8;
 
 const generateRandomPlanets = (count: number) => {
   const G = 1;
-  return Array.from({ length: count }, () => {
-    const mass = Math.random() * 1.5 + 0.3;
-    const radius = Math.random() * 0.2 + 0.15;
+  const numLarge = 10;
+  const numSmall = count - numLarge;
+  const largePlanets = Array.from({ length: numLarge }, () => {
+    const mass = Math.random() * 8 + 8;
+    const radius = Math.random() * 0.7 + 0.7;
     const angle = Math.random() * 2 * Math.PI;
     const r = Math.random() * 10 + 8;
     const x = r * Math.cos(angle);
@@ -91,6 +93,32 @@ const generateRandomPlanets = (count: number) => {
       color: randomColor(),
     };
   });
+  const smallPlanets = Array.from({ length: numSmall }, () => {
+    const mass = Math.random() * 0.7 + 0.1;
+    const radius = Math.random() * 0.12 + 0.08;
+    const angle = Math.random() * 2 * Math.PI;
+    const r = Math.random() * 10 + 8;
+    const x = r * Math.cos(angle);
+    const y = r * Math.sin(angle);
+    const z = (Math.random() - 0.5) * 2;
+    const vMag = velocityMultiplier * Math.sqrt((G * sunMass) / r);
+    const vx = -vMag * Math.sin(angle);
+    const vy = vMag * Math.cos(angle);
+    const vz = 0;
+    return {
+      mass,
+      radius,
+      position: [x, y, z] as [number, number, number],
+      velocity: [vx, vy, vz] as [number, number, number],
+      color: randomColor(),
+    };
+  });
+  const allPlanets = largePlanets.concat(smallPlanets);
+  for (let i = allPlanets.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [allPlanets[i], allPlanets[j]] = [allPlanets[j], allPlanets[i]];
+  }
+  return allPlanets;
 };
 
 type RigidBodyRef = React.RefObject<RapierRigidBody | null>;
@@ -100,11 +128,17 @@ const Gravity = ({
   planetRef,
   planetMass,
   planetRadius,
+  allPlanetRefs,
+  allPlanetMasses,
+  planetIndex,
 }: {
   sunRef: RigidBodyRef;
   planetRef: RigidBodyRef;
   planetMass: number;
   planetRadius: number;
+  allPlanetRefs: RigidBodyRef[];
+  allPlanetMasses: number[];
+  planetIndex: number;
 }) => {
   useRapier();
   useEffect(() => {
@@ -120,9 +154,9 @@ const Gravity = ({
       const dist = Math.sqrt(distSq);
       if (dist < sunRadius + planetRadius) return;
       const forceMag = (G * sunMass * planetMass) / distSq;
-      const fx = (dx / dist) * forceMag;
-      const fy = (dy / dist) * forceMag;
-      const fz = (dz / dist) * forceMag;
+      let fx = (dx / dist) * forceMag;
+      let fy = (dy / dist) * forceMag;
+      let fz = (dz / dist) * forceMag;
       let rfx = 0,
         rfy = 0,
         rfz = 0;
@@ -133,6 +167,24 @@ const Gravity = ({
         rfx = (dx / dist) * restoreMag;
         rfy = (dy / dist) * restoreMag;
         rfz = (dz / dist) * restoreMag;
+      }
+      // Planet-planet gravity
+      for (let j = 0; j < allPlanetRefs.length; j++) {
+        if (j === planetIndex) continue;
+        const otherRef = allPlanetRefs[j];
+        const otherMass = allPlanetMasses[j];
+        if (!otherRef.current) continue;
+        const otherPos = otherRef.current.translation();
+        const pdx = otherPos.x - planetPos.x;
+        const pdy = otherPos.y - planetPos.y;
+        const pdz = otherPos.z - planetPos.z;
+        const pdistSq = pdx * pdx + pdy * pdy + pdz * pdz;
+        const pdist = Math.sqrt(pdistSq);
+        if (pdist < planetRadius * 2) continue;
+        const pForceMag = (G * otherMass * planetMass) / pdistSq;
+        fx += (pdx / pdist) * pForceMag;
+        fy += (pdy / pdist) * pForceMag;
+        fz += (pdz / pdist) * pForceMag;
       }
       planetRef.current.applyImpulse(
         { x: (fx + rfx) * 0.016, y: (fy + rfy) * 0.016, z: (fz + rfz) * 0.016 },
@@ -150,14 +202,24 @@ const Gravity = ({
     };
     frame = requestAnimationFrame(step);
     return () => cancelAnimationFrame(frame);
-  }, [sunRef, planetRef, planetMass, planetRadius]);
+  }, [
+    sunRef,
+    planetRef,
+    planetMass,
+    planetRadius,
+    allPlanetRefs,
+    allPlanetMasses,
+    planetIndex,
+  ]);
   return null;
 };
 
 const Scene3D = () => {
   const sunRef: RigidBodyRef = useRef(null);
-  const planets = useMemo(() => generateRandomPlanets(20), []);
+  const planets = useMemo(() => generateRandomPlanets(100), []);
   const planetRefs = useRef<RigidBodyRef[]>([]);
+  const allPlanetRefs = useRef<RigidBodyRef[]>([]);
+  const allPlanetMasses = useRef<number[]>([]);
 
   return (
     <Canvas
@@ -182,6 +244,8 @@ const Scene3D = () => {
         </RigidBody>
         {planets.map((planet, i) => {
           if (!planetRefs.current[i]) planetRefs.current[i] = createRef();
+          if (!allPlanetRefs.current[i]) allPlanetRefs.current[i] = createRef();
+          allPlanetMasses.current.push(planet.mass);
           return (
             <RigidBody
               key={i}
@@ -206,6 +270,9 @@ const Scene3D = () => {
             planetRef={planetRefs.current[i]}
             planetMass={planet.mass}
             planetRadius={planet.radius}
+            allPlanetRefs={allPlanetRefs.current}
+            allPlanetMasses={allPlanetMasses.current}
+            planetIndex={i}
           />
         ))}
       </Physics>
