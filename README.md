@@ -13,13 +13,6 @@ For a detailed technical overview of the project, its architecture, and design p
 - **Tunable Physics Parameters:** Gravitational constant (`SIMULATION_G`), initial velocity scaling, and Rapier physics properties (e.g., restitution for bouncy collisions) can be adjusted to change simulation behavior.
 - **Orbital Mechanics:** Planets exhibit dynamic orbital motion based on gravitational interactions.
 - **Camera Controls:** Interactive camera using `OrbitControls` allowing users to zoom, pan, and rotate the view.
-- **Player Spaceship Controls:**
-  - Toggle between free-orbit camera and mouse-aimed spaceship control using the `Space` key.
-  - In mouse-aim mode, use mouse to orient the ship and `ArrowUp`/`ArrowDown` for thrust.
-  - For detailed information, see [Player Controls Documentation](./docs/player-controls.md).
-- **Celestial Body Labels:** Displays names for the star, planets, and moons.
-- **Domain Modeling:** Uses Zod schemas for defining `PlanetData`, `StarData`, and `SolarSystemData`.
-- **State Management:** Utilizes Zustand with Immer for managing the current solar system data.
 
 ## Tech Stack
 
@@ -53,7 +46,6 @@ For a detailed technical overview of the project, its architecture, and design p
 planeto/
 ├── docs/
 │   └── technical-overview.md  # Detailed technical documentation
-│   └── player-controls.md     # Documentation for player spaceship and camera controls
 ├── public/                    # Static assets
 ├── src/
 │   ├── app/                   # Next.js App Router pages (e.g., page.tsx)

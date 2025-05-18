@@ -86,9 +86,5 @@ export const updatePhysics = (
     if (false) {
       console.log(dt, draftState);
     }
-
-    // Server-side physics for celestial bodies is currently disabled.
-    // All celestial body physics (gravity) is handled client-side in SolarSystem3D.tsx.
-    // Spaceship physics updates are also handled client-side or via client commands to the server.
   });
 };

@@ -82,4 +82,3 @@ This approach simplifies the server's role but means that each client runs its o
 
 - **Server-Authoritative Physics:** For a shared, consistent simulation state across multiple clients, server-authoritative physics for celestial bodies would be necessary.
 - **Performance Optimization:** With many bodies, client-side N-body calculations can become performance-intensive.
-- **Spaceship Physics:** Integration of spaceship movement with the Rapier physics world (e.g., applying thrust as forces to a `RapierRigidBody` for the spaceship).
