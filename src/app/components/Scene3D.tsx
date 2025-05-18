@@ -67,6 +67,8 @@ const randomColor = () => {
   return colors[Math.floor(Math.random() * colors.length)];
 };
 
+const velocityMultiplier = 2.5;
+
 const generateRandomPlanets = (count: number) => {
   const G = 1;
   return Array.from({ length: count }, () => {
@@ -77,7 +79,7 @@ const generateRandomPlanets = (count: number) => {
     const x = r * Math.cos(angle);
     const y = r * Math.sin(angle);
     const z = (Math.random() - 0.5) * 2;
-    const vMag = Math.sqrt((G * sunMass) / r);
+    const vMag = velocityMultiplier * Math.sqrt((G * sunMass) / r);
     const vx = -vMag * Math.sin(angle);
     const vy = vMag * Math.cos(angle);
     const vz = 0;
