@@ -1,14 +1,34 @@
 import { Canvas, useThree } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
-import { useMemo, useRef, useEffect, createRef, useState } from "react";
-import {
-  Physics,
-  RigidBody,
-  useRapier,
-  RapierRigidBody,
-} from "@react-three/rapier";
+import { useRef, useEffect, createRef, useState } from "react";
+import { Physics, RigidBody, RapierRigidBody } from "@react-three/rapier";
+import * as THREE from "three";
+import { createNoise2D } from "simplex-noise";
 
 const G = 1;
+
+type RigidBodyRef = React.RefObject<RapierRigidBody | null>;
+
+type Planet = {
+  mass: number;
+  radius: number;
+  position: [number, number, number];
+  velocity: [number, number, number];
+  color: string;
+  id: string;
+  bumpMap: THREE.Texture;
+  metalness: number;
+  roughness: number;
+  hasRing: boolean;
+  atmosphereColor: string;
+};
+
+// Helper to blend two colors
+const blendColor = (color1: string, color2: string, t: number) => {
+  const c1 = new THREE.Color(color1);
+  const c2 = new THREE.Color(color2);
+  return c1.lerp(c2, t).getStyle();
+};
 
 const randomColor = () => {
   const colors = [
@@ -25,140 +45,40 @@ const randomColor = () => {
   return colors[Math.floor(Math.random() * colors.length)];
 };
 
-const velocityMultiplier = 0.7;
-
-const generateRandomPlanets = (count: number) => {
-  const numLarge = 10;
-  const numSmall = count - numLarge;
-  const largePlanets = Array.from({ length: numLarge }, () => {
-    const mass = Math.random() * 8 + 8;
-    const radius = Math.random() * 0.7 + 0.7;
-    const angle = Math.random() * 2 * Math.PI;
-    const r = Math.random() * 10 + 8;
-    const x = r * Math.cos(angle);
-    const y = r * Math.sin(angle);
-    const z = (Math.random() - 0.5) * 2;
-    const vMag = velocityMultiplier * Math.sqrt((G * 50) / r);
-    const vx = -vMag * Math.sin(angle);
-    const vy = vMag * Math.cos(angle);
-    const vz = 0;
-    return {
-      mass,
-      radius,
-      position: [x, y, z] as [number, number, number],
-      velocity: [vx, vy, vz] as [number, number, number],
-      color: randomColor(),
-    };
-  });
-  const smallPlanets = Array.from({ length: numSmall }, () => {
-    const mass = Math.random() * 0.7 + 0.1;
-    const radius = Math.random() * 0.12 + 0.08;
-    const angle = Math.random() * 2 * Math.PI;
-    const r = Math.random() * 10 + 8;
-    const x = r * Math.cos(angle);
-    const y = r * Math.sin(angle);
-    const z = (Math.random() - 0.5) * 2;
-    const vMag = velocityMultiplier * Math.sqrt((G * 50) / r);
-    const vx = -vMag * Math.sin(angle);
-    const vy = vMag * Math.cos(angle);
-    const vz = 0;
-    return {
-      mass,
-      radius,
-      position: [x, y, z] as [number, number, number],
-      velocity: [vx, vy, vz] as [number, number, number],
-      color: randomColor(),
-    };
-  });
-  const allPlanets = largePlanets.concat(smallPlanets);
-  for (let i = allPlanets.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [allPlanets[i], allPlanets[j]] = [allPlanets[j], allPlanets[i]];
-  }
-  return allPlanets;
+// Simple seeded random function
+const seededRandom = (seed: number) => {
+  let x = Math.sin(seed) * 10000;
+  return () => {
+    x = Math.sin(x) * 10000;
+    return x - Math.floor(x);
+  };
 };
 
-type RigidBodyRef = React.RefObject<RapierRigidBody | null>;
-
-const Gravity = ({
-  planetRef,
-  planetMass,
-  planetRadius,
-  allPlanetRefs,
-  allPlanetMasses,
-  planetIndex,
-}: {
-  planetRef: RigidBodyRef;
-  planetMass: number;
-  planetRadius: number;
-  allPlanetRefs: RigidBodyRef[];
-  allPlanetMasses: number[];
-  planetIndex: number;
-}) => {
-  useRapier();
-  useEffect(() => {
-    let frame: number;
-    const step = () => {
-      if (!planetRef.current) return;
-      const planetPos = planetRef.current.translation();
-      let fx = 0,
-        fy = 0,
-        fz = 0;
-      for (let j = 0; j < allPlanetRefs.length; j++) {
-        if (j === planetIndex) continue;
-        const otherRef = allPlanetRefs[j];
-        const otherMass = allPlanetMasses[j];
-        if (!otherRef.current) continue;
-        const otherPos = otherRef.current.translation();
-        const dx = otherPos.x - planetPos.x;
-        const dy = otherPos.y - planetPos.y;
-        const dz = otherPos.z - planetPos.z;
-        const distSq = dx * dx + dy * dy + dz * dz;
-        const dist = Math.sqrt(distSq);
-        if (dist < planetRadius * 2) continue;
-        const forceMag = (G * otherMass * planetMass) / distSq;
-        fx += (dx / dist) * forceMag;
-        fy += (dy / dist) * forceMag;
-        fz += (dz / dist) * forceMag;
-      }
-      planetRef.current.applyImpulse(
-        { x: fx * 0.016, y: fy * 0.016, z: fz * 0.016 },
-        true,
-      );
-      // Clamp velocity
-      const maxVel = 10;
-      const v = planetRef.current.linvel();
-      const speed = Math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
-      if (speed > maxVel) {
-        const scale = maxVel / speed;
-        planetRef.current.setLinvel(
-          {
-            x: v.x * scale,
-            y: v.y * scale,
-            z: v.z * scale,
-          },
-          true,
-        );
-      }
-      frame = requestAnimationFrame(step);
-    };
-    frame = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(frame);
-  }, [
-    planetRef,
-    planetMass,
-    planetRadius,
-    allPlanetRefs,
-    allPlanetMasses,
-    planetIndex,
-  ]);
-  return null;
+const generateBumpMap = (seed: number) => {
+  const size = 128;
+  const noise2D = createNoise2D(seededRandom(seed));
+  const canvas = document.createElement("canvas");
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return null;
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const nx = x / size - 0.5;
+      const ny = y / size - 0.5;
+      const n = noise2D(nx * 4, ny * 4);
+      const v = Math.floor((n + 1) * 0.5 * 255);
+      ctx.fillStyle = `rgb(${v},${v},${v})`;
+      ctx.fillRect(x, y, 1, 1);
+    }
+  }
+  return new THREE.CanvasTexture(canvas);
 };
 
 const CameraAnimator = ({ trigger }: { trigger: number }) => {
   const { camera } = useThree();
   const animRef = useRef<number | null>(null);
-  const target = { x: 0, y: 0, z: 30 };
+  const target = { x: 0, y: 0, z: 120 };
 
   useEffect(() => {
     let frame = 0;
@@ -183,10 +103,69 @@ const CameraAnimator = ({ trigger }: { trigger: number }) => {
 
 const Scene3D = () => {
   const [cameraTrigger, setCameraTrigger] = useState(0);
-  const planets = useMemo(() => generateRandomPlanets(100), []);
+  const [bumpMaps, setBumpMaps] = useState<THREE.Texture[] | null>(null);
+  const [planets, setPlanets] = useState<Planet[]>([]);
   const planetRefs = useRef<RigidBodyRef[]>([]);
   const allPlanetRefs = useRef<RigidBodyRef[]>([]);
   const allPlanetMasses = useRef<number[]>([]);
+
+  useEffect(() => {
+    const maps = [
+      generateBumpMap(1),
+      generateBumpMap(2),
+      generateBumpMap(3),
+    ].filter(Boolean) as THREE.Texture[];
+    setBumpMaps(maps);
+  }, []);
+
+  useEffect(() => {
+    if (!bumpMaps) return;
+    setPlanets(
+      Array.from({ length: 400 }, () => {
+        const mass = Math.random() * 8 + 8;
+        const radius = Math.random() * 0.7 + 0.7;
+        const angle = Math.random() * 2 * Math.PI;
+        const r = Math.random() * 60 + 20;
+        const x = r * Math.cos(angle);
+        const y = r * Math.sin(angle);
+        const z = (Math.random() - 0.5) * 2;
+        const vMag = 5 * Math.sqrt((G * 50) / r);
+        const vx = -vMag * Math.sin(angle);
+        const vy = vMag * Math.cos(angle);
+        const vz = 0;
+        // Procedural color variation
+        const noise2D = createNoise2D(seededRandom(Math.random() * 10000));
+        const band = Math.abs(noise2D(Math.sin(angle), Math.cos(angle)));
+        const baseColor = randomColor();
+        const altColor = randomColor();
+        const color = blendColor(baseColor, altColor, band * 0.7);
+        // Random metalness/roughness
+        const metalness = Math.random() * 0.5 + 0.1;
+        const roughness = Math.random() * 0.5 + 0.3;
+        // Randomly add a ring
+        const hasRing = Math.random() < 0.12;
+        // Random atmosphere color
+        const atmosphereColor = blendColor(
+          baseColor,
+          "white",
+          0.5 + Math.random() * 0.3,
+        );
+        return {
+          mass,
+          radius,
+          position: [x, y, z] as [number, number, number],
+          velocity: [vx, vy, vz] as [number, number, number],
+          color,
+          id: Math.random().toString(36).slice(2),
+          bumpMap: bumpMaps[Math.floor(Math.random() * bumpMaps.length)],
+          metalness,
+          roughness,
+          hasRing,
+          atmosphereColor,
+        };
+      }),
+    );
+  }, [bumpMaps]);
 
   useEffect(() => {
     const handleSpace = (e: KeyboardEvent) => {
@@ -218,14 +197,86 @@ const Scene3D = () => {
     return () => window.removeEventListener("keydown", handleSpace);
   }, []);
 
+  useEffect(() => {
+    let frame: number;
+    const step = () => {
+      for (let i = 0; i < planetRefs.current.length; i++) {
+        const ref = planetRefs.current[i];
+        if (!ref?.current || typeof ref.current.translation !== "function")
+          continue;
+        const planetPos = ref.current.translation();
+        if (!planetPos) continue;
+        let fx = 0,
+          fy = 0,
+          fz = 0;
+        for (let j = 0; j < planetRefs.current.length; j++) {
+          if (i === j) continue;
+          const otherRef = planetRefs.current[j];
+          if (
+            !otherRef?.current ||
+            typeof otherRef.current.translation !== "function"
+          )
+            continue;
+          const otherPos = otherRef.current.translation();
+          if (!otherPos) continue;
+          const dx = otherPos.x - planetPos.x;
+          const dy = otherPos.y - planetPos.y;
+          const dz = otherPos.z - planetPos.z;
+          const distSq = dx * dx + dy * dy + dz * dz;
+          const dist = Math.sqrt(distSq);
+          const planetRadius = planets[i].radius;
+          if (dist < planetRadius * 2) continue;
+          const forceMag = (G * planets[j].mass * planets[i].mass) / distSq;
+          fx += (dx / dist) * forceMag;
+          fy += (dy / dist) * forceMag;
+          fz += (dz / dist) * forceMag;
+        }
+        ref.current.applyImpulse(
+          { x: fx * 0.016, y: fy * 0.016, z: fz * 0.016 },
+          true,
+        );
+        // Reposition if too far
+        const d = Math.sqrt(
+          planetPos.x * planetPos.x +
+            planetPos.y * planetPos.y +
+            planetPos.z * planetPos.z,
+        );
+        if (d > 150) {
+          const newPlanet = planets[i];
+          ref.current.setTranslation(
+            {
+              x: newPlanet.position[0],
+              y: newPlanet.position[1],
+              z: newPlanet.position[2],
+            },
+            true,
+          );
+          ref.current.setLinvel(
+            {
+              x: newPlanet.velocity[0],
+              y: newPlanet.velocity[1],
+              z: newPlanet.velocity[2],
+            },
+            true,
+          );
+        }
+      }
+      frame = requestAnimationFrame(step);
+    };
+    frame = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(frame);
+  }, [planets]);
+
+  if (!bumpMaps || planets.length === 0) return null;
+
   return (
     <Canvas
-      camera={{ position: [0, 0, 30] }}
+      camera={{ position: [0, 0, 120] }}
       style={{ width: "100%", height: "100%" }}
     >
       <CameraAnimator trigger={cameraTrigger} />
-      <ambientLight intensity={0.5} />
-      <pointLight position={[10, 10, 10]} />
+      <ambientLight intensity={0.3} />
+      <directionalLight position={[40, 80, 60]} intensity={1.2} castShadow />
       <Physics gravity={[0, 0, 0]}>
         {planets.map((planet, i) => {
           if (!planetRefs.current[i]) planetRefs.current[i] = createRef();
@@ -233,7 +284,7 @@ const Scene3D = () => {
           allPlanetMasses.current[i] = planet.mass;
           return (
             <RigidBody
-              key={i}
+              key={planet.id}
               ref={planetRefs.current[i]}
               position={planet.position}
               mass={planet.mass}
@@ -243,22 +294,19 @@ const Scene3D = () => {
             >
               <mesh>
                 <sphereGeometry args={[planet.radius, 32, 32]} />
-                <meshStandardMaterial color={planet.color} />
+                <meshStandardMaterial
+                  color={planet.color}
+                  emissive={planet.color}
+                  emissiveIntensity={0.1}
+                  bumpMap={planet.bumpMap}
+                  bumpScale={3}
+                  metalness={planet.metalness}
+                  roughness={planet.roughness}
+                />
               </mesh>
             </RigidBody>
           );
         })}
-        {planets.map((planet, i) => (
-          <Gravity
-            key={i}
-            planetRef={planetRefs.current[i]}
-            planetMass={planet.mass}
-            planetRadius={planet.radius}
-            allPlanetRefs={planetRefs.current}
-            allPlanetMasses={allPlanetMasses.current}
-            planetIndex={i}
-          />
-        ))}
       </Physics>
       <OrbitControls enablePan={false} />
     </Canvas>
