@@ -668,7 +668,13 @@ const Scene3D = () => {
           );
         })}
       </Physics>
-      <OrbitControls enablePan={false} />
+      <OrbitControls
+        enablePan={false}
+        enableDamping
+        dampingFactor={0.05}
+        rotateSpeed={0.4}
+        zoomSpeed={0.4}
+      />
     </Canvas>
   );
 };
