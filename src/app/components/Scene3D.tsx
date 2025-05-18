@@ -1,6 +1,6 @@
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
-import { useMemo, useRef, useEffect } from "react";
+import { useMemo, useRef, useEffect, createRef } from "react";
 import { StarFieldSchema, Star } from "../../lib/domain/starField";
 import { z } from "zod";
 import {
@@ -48,22 +48,53 @@ const StarField = ({ count = 500 }: { count?: number }) => {
   );
 };
 
-const G = 10;
-const sunMass = 1000;
-const planetMass = 1;
+const G = 1;
+const sunMass = 10;
 const sunRadius = 1;
-const planetRadius = 0.3;
-const planetInitialPos: [number, number, number] = [4, 0, 0];
-const planetInitialVel: [number, number, number] = [0, 10, 0];
+
+const planetConfigs = [
+  {
+    mass: 1,
+    radius: 0.3,
+    position: [10, 0, 0] as [number, number, number],
+    velocity: [0, 1.8, 0] as [number, number, number],
+    color: "deepskyblue",
+  },
+  {
+    mass: 0.8,
+    radius: 0.25,
+    position: [0, 12, 0] as [number, number, number],
+    velocity: [-1.7, 0, 1.7] as [number, number, number],
+    color: "limegreen",
+  },
+  {
+    mass: 0.6,
+    radius: 0.22,
+    position: [-14, 0, 0] as [number, number, number],
+    velocity: [0, -1.6, 1.6] as [number, number, number],
+    color: "orange",
+  },
+  {
+    mass: 0.5,
+    radius: 0.18,
+    position: [0, -16, 0] as [number, number, number],
+    velocity: [1.5, 0, -1.5] as [number, number, number],
+    color: "violet",
+  },
+];
 
 type RigidBodyRef = React.RefObject<RapierRigidBody | null>;
 
 const Gravity = ({
   sunRef,
   planetRef,
+  planetMass,
+  planetRadius,
 }: {
   sunRef: RigidBodyRef;
   planetRef: RigidBodyRef;
+  planetMass: number;
+  planetRadius: number;
 }) => {
   useRapier();
   useEffect(() => {
@@ -100,11 +131,11 @@ const Gravity = ({
 
 const Scene3D = () => {
   const sunRef: RigidBodyRef = useRef(null);
-  const planetRef: RigidBodyRef = useRef(null);
+  const planetRefs = useRef<RigidBodyRef[]>([]);
 
   return (
     <Canvas
-      camera={{ position: [0, 0, 10] }}
+      camera={{ position: [0, 0, 30] }}
       style={{ width: "100%", height: "100%" }}
     >
       <ambientLight intensity={0.5} />
@@ -123,20 +154,34 @@ const Scene3D = () => {
             <meshStandardMaterial color="yellow" />
           </mesh>
         </RigidBody>
-        <RigidBody
-          ref={planetRef}
-          position={planetInitialPos}
-          mass={planetMass}
-          type="dynamic"
-          colliders="ball"
-          linearVelocity={planetInitialVel}
-        >
-          <mesh>
-            <sphereGeometry args={[planetRadius, 32, 32]} />
-            <meshStandardMaterial color="deepskyblue" />
-          </mesh>
-        </RigidBody>
-        <Gravity sunRef={sunRef} planetRef={planetRef} />
+        {planetConfigs.map((planet, i) => {
+          if (!planetRefs.current[i]) planetRefs.current[i] = createRef();
+          return (
+            <RigidBody
+              key={i}
+              ref={planetRefs.current[i]}
+              position={planet.position}
+              mass={planet.mass}
+              type="dynamic"
+              colliders="ball"
+              linearVelocity={planet.velocity}
+            >
+              <mesh>
+                <sphereGeometry args={[planet.radius, 32, 32]} />
+                <meshStandardMaterial color={planet.color} />
+              </mesh>
+            </RigidBody>
+          );
+        })}
+        {planetConfigs.map((planet, i) => (
+          <Gravity
+            key={i}
+            sunRef={sunRef}
+            planetRef={planetRefs.current[i]}
+            planetMass={planet.mass}
+            planetRadius={planet.radius}
+          />
+        ))}
       </Physics>
       <OrbitControls enablePan={false} />
     </Canvas>
