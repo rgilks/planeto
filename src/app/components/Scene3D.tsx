@@ -161,9 +161,9 @@ const Gravity = ({
         rfy = 0,
         rfz = 0;
       const boundary = 30;
-      const k = 2;
+      const k = 4;
       if (dist > boundary) {
-        const restoreMag = k * (dist - boundary);
+        const restoreMag = k * Math.pow(dist - boundary, 2);
         rfx = (dx / dist) * restoreMag;
         rfy = (dy / dist) * restoreMag;
         rfz = (dz / dist) * restoreMag;
