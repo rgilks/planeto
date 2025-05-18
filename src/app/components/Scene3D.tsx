@@ -1,4 +1,4 @@
-import { Canvas, useThree } from "@react-three/fiber";
+import { Canvas, useThree, useFrame } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import { EffectComposer, Bloom } from "@react-three/postprocessing";
 import { useRef, useEffect, createRef, useState } from "react";
@@ -172,37 +172,20 @@ const generateColorMap = (
   return new THREE.CanvasTexture(canvas);
 };
 
-const CameraAnimator = ({
-  trigger,
-  target,
+const CameraFollower = ({
+  getTarget,
 }: {
-  trigger: number;
-  target: [number, number, number];
+  getTarget: () => { pos: [number, number, number]; radius: number } | null;
 }) => {
   const { camera } = useThree();
-  const animRef = useRef<number | null>(null);
-
-  useEffect(() => {
-    let frame = 0;
-    const start = camera.position.clone();
-    const end = new THREE.Vector3(target[0], target[1], target[2] + 60);
-    const lookAtTarget = new THREE.Vector3(...target);
-    const animate = () => {
-      frame++;
-      camera.position.lerpVectors(start, end, Math.min(frame / 60, 1));
-      camera.lookAt(lookAtTarget);
-      if (frame < 60) {
-        animRef.current = requestAnimationFrame(animate);
-      } else {
-        camera.position.copy(end);
-        camera.lookAt(lookAtTarget);
-      }
-    };
-    animRef.current = requestAnimationFrame(animate);
-    return () => {
-      if (animRef.current) cancelAnimationFrame(animRef.current);
-    };
-  }, [trigger, target, camera]);
+  useFrame(() => {
+    const target = getTarget();
+    if (!target) return;
+    const { pos, radius } = target;
+    const camDist = radius * 8 + 60;
+    camera.position.set(pos[0], pos[1], pos[2] + camDist);
+    camera.lookAt(pos[0], pos[1], pos[2]);
+  });
   return null;
 };
 
@@ -213,10 +196,8 @@ const getGeometry = (type: "sphere" | "lowpoly" | "oblate", radius: number) => {
 };
 
 const Scene3D = () => {
-  const [cameraTrigger] = useState(0);
   const [bumpMaps, setBumpMaps] = useState<THREE.Texture[] | null>(null);
   const [planets, setPlanets] = useState<Planet[]>([]);
-  const [center, setCenter] = useState<[number, number, number]>([0, 0, 0]);
   const planetRefs = useRef<RigidBodyRef[]>([]);
   const allPlanetRefs = useRef<RigidBodyRef[]>([]);
   const allPlanetMasses = useRef<number[]>([]);
@@ -401,7 +382,6 @@ const Scene3D = () => {
   useEffect(() => {
     if (!ENABLE_RECENTER) {
       setCenteredIdx(0);
-      setCenter([0, 0, 0]);
       return;
     }
     const handleSpace = (e: KeyboardEvent) => {
@@ -416,20 +396,6 @@ const Scene3D = () => {
     window.addEventListener("keydown", handleSpace);
     return () => window.removeEventListener("keydown", handleSpace);
   }, []);
-
-  useEffect(() => {
-    let frame: number;
-    const updateCenter = () => {
-      const ref = planetRefs.current[centeredIdx];
-      if (ref?.current) {
-        const pos = ref.current.translation();
-        setCenter([-pos.x, -pos.y, -pos.z]);
-      }
-      frame = requestAnimationFrame(updateCenter);
-    };
-    updateCenter();
-    return () => cancelAnimationFrame(frame);
-  }, [centeredIdx, planets]);
 
   useEffect(() => {
     let frame: number;
@@ -469,31 +435,6 @@ const Scene3D = () => {
           { x: fx * 0.016, y: fy * 0.016, z: fz * 0.016 },
           true,
         );
-        // // Reposition if too far (disabled)
-        // const d = Math.sqrt(
-        //   planetPos.x * planetPos.x +
-        //     planetPos.y * planetPos.y +
-        //     planetPos.z * planetPos.z,
-        // );
-        // if (d > 150) {
-        //   const newPlanet = planets[i];
-        //   ref.current.setTranslation(
-        //     {
-        //       x: newPlanet.position[0],
-        //       y: newPlanet.position[1],
-        //       z: newPlanet.position[2],
-        //     },
-        //     true,
-        //   );
-        //   ref.current.setLinvel(
-        //     {
-        //       x: newPlanet.velocity[0],
-        //       y: newPlanet.velocity[1],
-        //       z: newPlanet.velocity[2],
-        //     },
-        //     true,
-        //   );
-        // }
       }
       frame = requestAnimationFrame(step);
     };
@@ -505,7 +446,7 @@ const Scene3D = () => {
 
   return (
     <Canvas
-      camera={{ position: [center[0], center[1], center[2] + 120] }}
+      camera={{ position: [0, 0, 120] }}
       style={{ width: "100%", height: "100%" }}
       shadows
     >
@@ -516,7 +457,17 @@ const Scene3D = () => {
           intensity={0.35}
         />
       </EffectComposer>
-      <CameraAnimator trigger={cameraTrigger} target={center} />
+      <CameraFollower
+        getTarget={() => {
+          const ref = planetRefs.current[centeredIdx];
+          if (ref?.current) {
+            const pos = ref.current.translation();
+            const planet = planets[centeredIdx];
+            return { pos: [pos.x, pos.y, pos.z], radius: planet.radius };
+          }
+          return null;
+        }}
+      />
       <directionalLight
         position={[100, 100, 100]}
         intensity={6}
