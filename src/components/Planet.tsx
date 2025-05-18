@@ -5,7 +5,7 @@ import React, { useRef, forwardRef, useMemo, useEffect } from "react";
 import * as THREE from "three";
 import { useFrame } from "@react-three/fiber";
 // import { createNoise2D } from "simplex-noise"; // Unused
-import { CelestialBodyState } from "@/lib/domain/game.types";
+import { CelestialBodyState } from "@/lib/domain/sim.types";
 import { RigidBody, RapierRigidBody } from "@react-three/rapier";
 import { useTexture } from "@react-three/drei";
 import {
@@ -38,15 +38,8 @@ const simpleHash = (str: string): number => {
 
 const Planet = forwardRef<RapierRigidBody, PlanetProps>(
   ({ celestialBody, enableClouds = false }, ref) => {
-    const {
-      position: posObj,
-      radius,
-      name,
-      mass,
-      textureUrl,
-      bumpMapUrl,
-      atmosphere,
-    } = celestialBody;
+    const { radius, name, mass, textureUrl, bumpMapUrl, atmosphere } =
+      celestialBody;
     const meshRef = useRef<THREE.Mesh>(null!);
     const atmosphereRef = useRef<THREE.Mesh>(null!);
     const cloudRef = useRef<THREE.Mesh>(null!);
@@ -82,6 +75,10 @@ const Planet = forwardRef<RapierRigidBody, PlanetProps>(
       celestialBody.initialAngularVelocity,
       ref,
     ]);
+
+    useEffect(() => {
+      console.log("Planet component mounted:", name);
+    }, [name]);
 
     const proceduralTextures = useMemo<
       GeneratedPlanetTextures | undefined
@@ -162,20 +159,15 @@ const Planet = forwardRef<RapierRigidBody, PlanetProps>(
     // Cloud layer rotation
     useFrame(({ clock }) => {
       if (cloudRef.current && enableClouds) {
-        cloudRef.current.rotation.y = clock.getElapsedTime() * 0.05; // Slow rotation
+        cloudRef.current.rotation.y = clock.getElapsedTime() * 0.05;
         cloudRef.current.rotation.x = clock.getElapsedTime() * 0.02;
       }
     });
-
-    if (enableClouds) {
-      console.log(`Clouds enabled for ${name} - implementation pending.`);
-    }
 
     return (
       <RigidBody
         ref={ref}
         colliders="ball"
-        position={[posObj.x, posObj.y, posObj.z]}
         mass={mass}
         restitution={0.5}
         linearDamping={0.1}

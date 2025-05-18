@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-// Position and Rotation schemas are in game.types.ts, re-export if needed or ensure they are imported where used.
+// Position and Rotation schemas are in sim.types.ts, re-export if needed or ensure they are imported where used.
 
 // Base for celestial bodies that have mass
 const CelestialBodySchema = z.object({
@@ -51,7 +51,7 @@ export const SolarSystemDataSchema = z.object({
 });
 export type SolarSystemData = z.infer<typeof SolarSystemDataSchema>;
 
-export * from "./game.types"; // This already exports PositionSchema, RotationSchema etc.
+export * from "./sim.types"; // This already exports PositionSchema, RotationSchema etc.
 // Do NOT re-export solar-system.types if it's becoming obsolete or only contains helpers
 
 // Note: The previous export * from "./solar-system.types" is removed

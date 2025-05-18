@@ -1,28 +1,26 @@
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
-import { GameState, GameStateSchema, UserId } from "@/lib/domain/game.types";
+import { SimState, SimStateSchema, UserId } from "@/lib/domain/sim.types";
 
-interface GameStoreState {
-  gameState: GameState;
+interface SimStoreState {
+  simState: SimState | null;
   isConnected: boolean;
   error: string | null;
   currentUserId: UserId | null;
 }
 
-interface GameStoreActions {
+interface SimStoreActions {
   connect: (userId: UserId) => void;
   disconnect: () => void;
-  setGameState: (gameState: GameState) => void;
+  setSimState: (simState: SimState) => void;
   setCurrentUserId: (userId: UserId) => void;
 }
 
 let eventSource: EventSource | null = null;
 
-export const useGameStore = create<GameStoreState & GameStoreActions>()(
+export const useSimStore = create<SimStoreState & SimStoreActions>()(
   immer((set, get) => ({
-    gameState: {
-      celestialBodies: {},
-    },
+    simState: null,
     isConnected: false,
     error: null,
     currentUserId: null,
@@ -43,7 +41,7 @@ export const useGameStore = create<GameStoreState & GameStoreActions>()(
       }
       set({ error: null });
       eventSource = new EventSource(
-        `/api/game-events?userId=${encodeURIComponent(userId)}`,
+        `/api/sim-events?userId=${encodeURIComponent(userId)}`,
       );
       eventSource.onopen = () => {
         set({ isConnected: true, error: null });
@@ -52,14 +50,14 @@ export const useGameStore = create<GameStoreState & GameStoreActions>()(
         try {
           const parsedData = JSON.parse(event.data);
           const { type, payload } = parsedData;
-          if (type === "gameStateUpdate") {
-            const validation = GameStateSchema.safeParse(payload);
+          if (type === "simStateUpdate") {
+            const validation = SimStateSchema.safeParse(payload);
             if (validation.success) {
               set((state) => {
-                state.gameState = validation.data;
+                state.simState = validation.data;
               });
             } else {
-              set({ error: "Invalid game state data from server." });
+              set({ error: "Invalid sim state data from server." });
             }
           } else if (type === "userJoined") {
           } else if (type === "userLeft") {
@@ -87,9 +85,9 @@ export const useGameStore = create<GameStoreState & GameStoreActions>()(
       set({ isConnected: false });
     },
 
-    setGameState: (newGameState) => {
+    setSimState: (newSimState) => {
       set((state) => {
-        state.gameState = newGameState;
+        state.simState = newSimState;
       });
     },
   })),
@@ -98,6 +96,6 @@ export const useGameStore = create<GameStoreState & GameStoreActions>()(
 // Ensure disconnection on page unload
 if (typeof window !== "undefined") {
   window.addEventListener("beforeunload", () => {
-    useGameStore.getState().disconnect();
+    useSimStore.getState().disconnect();
   });
 }

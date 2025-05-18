@@ -1,7 +1,6 @@
 import * as THREE from "three";
 import { createNoise2D, type NoiseFunction2D } from "simplex-noise";
 
-// Simple hash function to get a number from a string
 const simpleHash = (str: string): number => {
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
@@ -12,12 +11,10 @@ const simpleHash = (str: string): number => {
   return Math.abs(hash);
 };
 
-// Helper to create a seeded noise function
 const createSeededNoise = (seedStr: string): NoiseFunction2D => {
   return createNoise2D(() => simpleHash(seedStr) / 0xffffffff);
 };
 
-// Define color palettes based on a base hue
 interface PlanetColors {
   deepWater: THREE.Color;
   shallowWater: THREE.Color;
@@ -77,8 +74,6 @@ export const generatePlanetTexture = (
   const noiseDetail = createSeededNoise(planetName + "_detail");
   const noiseFine = createSeededNoise(planetName + "_fine");
 
-  // Vary scales based on planet name for more diversity
-  // Smaller scale values = larger features
   const baseFeatureScale =
     1.5 + (simpleHash(planetName + "_baseScale") % 16) / 10;
   const detailFeatureScale =

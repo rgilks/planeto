@@ -2,7 +2,7 @@ import React, { forwardRef, useRef, useEffect } from "react";
 import { Sphere } from "@react-three/drei";
 import * as THREE from "three";
 import { useFrame, useThree } from "@react-three/fiber";
-import { CelestialBodyState } from "@/lib/domain/game.types";
+import { CelestialBodyState } from "@/lib/domain/sim.types";
 import { SunShaderMaterial } from "./SunSurfaceMaterial";
 import {
   RigidBody,
@@ -15,7 +15,7 @@ export interface SunProps {
 }
 
 const Sun = forwardRef<RapierRigidBody, SunProps>(({ celestialBody }, ref) => {
-  const { position: posObj, radius, name } = celestialBody;
+  const { radius, name } = celestialBody;
   const meshRef = useRef<THREE.Mesh>(null!);
   const shaderMaterialRef = useRef<SunShaderMaterial>(null!);
   const isInitializedRef = useRef(false);
@@ -107,7 +107,6 @@ const Sun = forwardRef<RapierRigidBody, SunProps>(({ celestialBody }, ref) => {
       ref={ref}
       colliders="ball"
       type="fixed"
-      position={[posObj.x, posObj.y, posObj.z]}
       mass={celestialBody.mass}
       restitution={0.0}
       name={`sun-${name}`}

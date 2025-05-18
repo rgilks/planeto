@@ -1,12 +1,8 @@
 import { produce } from "immer";
-import { GameState, CelestialBodyState, Position } from "./domain/game.types";
+import { SimState, CelestialBodyState, Position } from "./domain/sim.types";
 import * as THREE from "three";
 
-export const G = 6.6743e-11; // Gravitational constant (m^3 kg^-1 s^-2)
-// For simulation purposes, we might use a scaled G or scaled masses/distances
-// For now, let's assume units are somewhat abstract (e.g., astronomical units, years for time, solar masses)
-// And G will be tuned to look good.
-export const SIMULATION_G = 6.0; // Gravitational constant for simulation
+export const SIMULATION_G = 6.0;
 
 export const calculateGravitationalForce = (
   body1: CelestialBodyState,
@@ -76,10 +72,7 @@ export const updateCelestialBody = (
   });
 };
 
-export const updatePhysics = (
-  currentState: GameState,
-  dt: number,
-): GameState => {
+export const updatePhysics = (currentState: SimState, dt: number): SimState => {
   return produce(currentState, (draftState) => {
     const bodyEntries = Object.entries(draftState.celestialBodies) as [
       string,

@@ -1,8 +1,8 @@
 import {
-  GameState,
+  SimState,
   CelestialBodyId,
   CelestialBodyState,
-} from "../domain/game.types";
+} from "../domain/sim.types";
 import { produce } from "immer";
 import { v4 as uuidv4 } from "uuid";
 import { updatePhysics, SIMULATION_G } from "../physics";
@@ -10,35 +10,35 @@ import { updatePhysics, SIMULATION_G } from "../physics";
 // Enhance for HMR stability in dev mode by using globalThis
 declare global {
   // eslint-disable-next-line no-var
-  var __planeto_gameStateManager_currentGameState: GameState | undefined;
+  var __planeto_simStateManager_currentSimState: SimState | undefined;
   // eslint-disable-next-line no-var
-  var __planeto_gameStateManager_listeners: Set<GameStateListener> | undefined;
+  var __planeto_simStateManager_listeners: Set<SimStateListener> | undefined;
   // eslint-disable-next-line no-var
-  var __planeto_gameStateManager_instanceId: string | undefined;
+  var __planeto_simStateManager_instanceId: string | undefined;
   // eslint-disable-next-line no-var
   var __planeto_physics_loop_intervalId: NodeJS.Timeout | undefined;
 }
 
 const PHYSICS_TICK_RATE_MS = 50; // 20 ticks per second
 
-const initializeCelestialBodies = (gameState: GameState): GameState => {
+const initializeCelestialBodies = (simState: SimState): SimState => {
   if (
-    gameState.celestialBodies &&
-    Object.keys(gameState.celestialBodies).length > 1 // Check if more than just the sun might exist
+    simState.celestialBodies &&
+    Object.keys(simState.celestialBodies).length > 1 // Check if more than just the sun might exist
   ) {
     // If we have planets, assume it's initialized for now.
     // A more robust check might be needed if we allow dynamic addition/removal of many bodies later.
-    const sunExists = Object.values(gameState.celestialBodies).some(
+    const sunExists = Object.values(simState.celestialBodies).some(
       (body) => body?.type === "sun",
     );
-    if (sunExists && Object.keys(gameState.celestialBodies).length > 1) {
+    if (sunExists && Object.keys(simState.celestialBodies).length > 1) {
       // console.log("Celestial bodies (planets) seem to be already initialized.");
-      return gameState;
+      return simState;
     }
   }
 
   const sunId =
-    (Object.values(gameState.celestialBodies || {}).find(
+    (Object.values(simState.celestialBodies || {}).find(
       (body) => body?.type === "sun",
     )?.id as CelestialBodyId) || (uuidv4() as CelestialBodyId);
 
@@ -163,47 +163,47 @@ const initializeCelestialBodies = (gameState: GameState): GameState => {
     };
   }
 
-  return produce(gameState, (draft) => {
+  return produce(simState, (draft) => {
     draft.celestialBodies = newCelestialBodies;
   });
 };
 
 const ensureGlobalStore = () => {
-  if (!globalThis.__planeto_gameStateManager_instanceId) {
-    globalThis.__planeto_gameStateManager_instanceId = uuidv4();
+  if (!globalThis.__planeto_simStateManager_instanceId) {
+    globalThis.__planeto_simStateManager_instanceId = uuidv4();
     console.log(
-      `gameStateManager initialized on globalThis: Instance ID ${globalThis.__planeto_gameStateManager_instanceId}`,
+      `simStateManager initialized on globalThis: Instance ID ${globalThis.__planeto_simStateManager_instanceId}`,
     );
   }
-  if (!globalThis.__planeto_gameStateManager_currentGameState) {
-    let initialState: GameState = {
+  if (!globalThis.__planeto_simStateManager_currentSimState) {
+    let initialState: SimState = {
       celestialBodies: {},
     };
     initialState = initializeCelestialBodies(initialState);
-    globalThis.__planeto_gameStateManager_currentGameState = initialState;
+    globalThis.__planeto_simStateManager_currentSimState = initialState;
   } else if (
-    !globalThis.__planeto_gameStateManager_currentGameState.celestialBodies
+    !globalThis.__planeto_simStateManager_currentSimState.celestialBodies
   ) {
-    globalThis.__planeto_gameStateManager_currentGameState = produce(
-      globalThis.__planeto_gameStateManager_currentGameState,
+    globalThis.__planeto_simStateManager_currentSimState = produce(
+      globalThis.__planeto_simStateManager_currentSimState,
       (draft) => {
         draft.celestialBodies = {};
       },
     );
-    globalThis.__planeto_gameStateManager_currentGameState =
+    globalThis.__planeto_simStateManager_currentSimState =
       initializeCelestialBodies(
-        globalThis.__planeto_gameStateManager_currentGameState,
+        globalThis.__planeto_simStateManager_currentSimState,
       );
   }
 
-  if (!globalThis.__planeto_gameStateManager_listeners) {
-    globalThis.__planeto_gameStateManager_listeners =
-      new Set<GameStateListener>();
+  if (!globalThis.__planeto_simStateManager_listeners) {
+    globalThis.__planeto_simStateManager_listeners =
+      new Set<SimStateListener>();
   }
   return {
-    instanceId: globalThis.__planeto_gameStateManager_instanceId,
-    currentGameState: globalThis.__planeto_gameStateManager_currentGameState,
-    listeners: globalThis.__planeto_gameStateManager_listeners,
+    instanceId: globalThis.__planeto_simStateManager_instanceId,
+    currentSimState: globalThis.__planeto_simStateManager_currentSimState,
+    listeners: globalThis.__planeto_simStateManager_listeners,
   };
 };
 
@@ -212,9 +212,9 @@ const getGlobalStore = () => {
   // This read ensures that if another part of the code initializes it, we use that.
   // The actual initialization logic is in ensureGlobalStore, typically called at module load.
   return {
-    instanceId: globalThis.__planeto_gameStateManager_instanceId!,
-    currentGameState: globalThis.__planeto_gameStateManager_currentGameState!,
-    listeners: globalThis.__planeto_gameStateManager_listeners!,
+    instanceId: globalThis.__planeto_simStateManager_instanceId!,
+    currentSimState: globalThis.__planeto_simStateManager_currentSimState!,
+    listeners: globalThis.__planeto_simStateManager_listeners!,
   };
 };
 
@@ -230,23 +230,23 @@ const startPhysicsLoop = () => {
   globalThis.__planeto_physics_loop_intervalId = setInterval(() => {
     const store = getGlobalStore();
     const dt = PHYSICS_TICK_RATE_MS / 1000;
-    const newState = updatePhysics(store.currentGameState, dt);
-    store.currentGameState = newState;
-    globalThis.__planeto_gameStateManager_currentGameState = newState;
+    const newState = updatePhysics(store.currentSimState, dt);
+    store.currentSimState = newState;
+    globalThis.__planeto_simStateManager_currentSimState = newState;
     notifyListeners();
   }, PHYSICS_TICK_RATE_MS);
 };
 
-type GameStateListener = (gameState: GameState) => void;
+type SimStateListener = (simState: SimState) => void;
 
 const notifyListeners = () => {
-  const { currentGameState, listeners } = getGlobalStore();
-  listeners.forEach((listener) => listener(currentGameState));
+  const { currentSimState, listeners } = getGlobalStore();
+  listeners.forEach((listener) => listener(currentSimState));
 };
 
-export const getGameState = (): GameState => {
-  const { currentGameState } = getGlobalStore();
-  return currentGameState;
+export const getSimState = (): SimState => {
+  const { currentSimState } = getGlobalStore();
+  return currentSimState;
 };
 
 // Start the physics loop if it hasn't been started
@@ -258,6 +258,6 @@ if (typeof window === "undefined") {
 }
 
 // For development/testing: Log state changes
-// subscribeToGameStateChanges(newState => {
-//   console.log('Game state updated:', JSON.stringify(newState, null, 2));
+// subscribeToSimStateChanges(newState => {
+//   console.log('Sim state updated:', JSON.stringify(newState, null, 2));
 // });

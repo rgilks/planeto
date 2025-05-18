@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getGameState } from "@/lib/server/gameStateManager";
-import { UserId } from "@/lib/domain/game.types";
+import { getSimState } from "@/lib/server/simStateManager";
+import { UserId } from "@/lib/domain/sim.types";
 import { v4 as uuidv4 } from "uuid"; // Import uuid
 
 // A Map to keep track of active streams for each user
@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
 
   if (!userId) {
     console.warn(
-      "game-events: userId not found in query params or session, using mock generated UUID. THIS IS FOR TESTING ONLY.",
+      "sim-events: userId not found in query params or session, using mock generated UUID. THIS IS FOR TESTING ONLY.",
     );
     userId = uuidv4() as UserId; // Generate a real UUID for fallback
   }
@@ -22,10 +22,10 @@ export async function GET(req: NextRequest) {
     start(controller) {
       activeStreams.set(finalUserId, controller);
 
-      // Send current game state immediately
-      const currentGameState = getGameState();
+      // Send current sim state immediately
+      const currentSimState = getSimState();
       controller.enqueue(
-        `data: ${JSON.stringify({ type: "gameStateUpdate", payload: currentGameState })}\n\n`,
+        `data: ${JSON.stringify({ type: "simStateUpdate", payload: currentSimState })}\n\n`,
       );
     },
     cancel() {

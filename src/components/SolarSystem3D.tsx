@@ -3,11 +3,11 @@
 import { OrbitControls, Html } from "@react-three/drei";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import type { OrbitControls as ThreeOrbitControls } from "three-stdlib";
-import type { UserId, CelestialBodyId } from "@/lib/domain/game.types";
+import type { UserId, CelestialBodyId } from "@/lib/domain/sim.types";
 import React, { useRef, useEffect, useState, createRef, Suspense } from "react";
 import * as THREE from "three";
 import Starfield from "@/components/Starfield";
-import { useGameStore } from "@/lib/store/gameStore";
+import { useSimStore } from "@/lib/store/simStore";
 import Sun from "./Sun";
 import Planet from "./Planet";
 import { v4 as uuidv4 } from "uuid";
@@ -58,22 +58,22 @@ const SceneContent = ({
   const { camera, gl, clock } = useThree();
   const canvasElementRef = useRef<HTMLCanvasElement | null>(null);
 
-  const gameState = useGameStore((state) => state.gameState);
+  const simState = useSimStore((state) => state.simState);
   const sunIdRef = useRef<CelestialBodyId | null>(null);
   useEffect(() => {
-    if (gameState.celestialBodies) {
-      const sunEntry = Object.values(gameState.celestialBodies).find(
-        (body) => body?.type === "sun",
+    if (simState && simState.celestialBodies) {
+      const sunEntry = Object.values(simState.celestialBodies).find(
+        (body) => body && body.type === "sun",
       );
       if (sunEntry) {
         sunIdRef.current = sunEntry.id;
       }
     }
-  }, [gameState.celestialBodies]);
+  }, [simState]);
 
-  const isConnected = useGameStore((state) => state.isConnected);
-  const gameError = useGameStore((state) => state.error);
-  const setCurrentUserId = useGameStore((state) => state.setCurrentUserId);
+  const isConnected = useSimStore((state) => state.isConnected);
+  const simError = useSimStore((state) => state.error);
+  const setCurrentUserId = useSimStore((state) => state.setCurrentUserId);
 
   const connectionAttemptedRef = useRef(false);
 
@@ -91,10 +91,10 @@ const SceneContent = ({
   }, [gl]);
 
   useEffect(() => {
-    if (gameError) {
-      console.error("SolarSystem3D: Game Store Error:", gameError);
+    if (simError) {
+      console.error("SolarSystem3D: Sim Store Error:", simError);
     }
-  }, [gameError]);
+  }, [simError]);
 
   useEffect(() => {
     if (
@@ -108,13 +108,16 @@ const SceneContent = ({
   }, [currentUserIdFromHook, userLoadingFromHook, setCurrentUserId]);
 
   useEffect(() => {
-    const bodyCount = Object.keys(gameState.celestialBodies || {}).length;
+    const bodyCount =
+      simState && simState.celestialBodies
+        ? Object.keys(simState.celestialBodies).length
+        : 0;
     celestialBodyRefs.current = Array(bodyCount)
       .fill(null)
       .map(
         (_, i) => celestialBodyRefs.current[i] || createRef<RapierRigidBody>(),
       );
-  }, [gameState.celestialBodies]);
+  }, [simState]);
 
   useEffect(() => {
     const controls = orbitControlsRef.current;
@@ -126,8 +129,9 @@ const SceneContent = ({
     }
   }, [camera, clock]);
 
-  // Main game loop for client-side updates
+  // Main sim loop for client-side updates
   useFrame(() => {
+    // Removed per-frame logging to prevent animation freeze
     // Update rigid bodies from API
     rigidBodiesApi.current = celestialBodyRefs.current
       .map((ref) => ref.current)
@@ -202,7 +206,7 @@ const SceneContent = ({
             .multiplyScalar(forceMagnitude);
 
           logCounterRef.current += 1;
-          if (logCounterRef.current % 100 === 0) {
+          if (logCounterRef.current % 1000 === 0) {
             console.log(
               `NEWLOG T:${clock.getElapsedTime().toFixed(1)} ` +
                 `Sun(${sunData.id.substring(0, 2)}):${sunPosVec.x.toFixed(0)},${sunPosVec.y.toFixed(0)},${sunPosVec.z.toFixed(0)} ` +
@@ -226,6 +230,7 @@ const SceneContent = ({
   });
 
   if (userLoadingFromHook) {
+    console.log("Suspense fallback: Loading User Data...");
     return (
       <Html center>
         <div className="text-white text-2xl bg-black/50 p-4 rounded">
@@ -235,6 +240,7 @@ const SceneContent = ({
     );
   }
   if (!isConnected && !connectionAttemptedRef.current) {
+    console.log("Suspense fallback: Connecting to server...");
     return (
       <Html center>
         <div className="text-white text-2xl bg-black/50 p-4 rounded">
@@ -244,7 +250,16 @@ const SceneContent = ({
     );
   }
 
-  const allCelestialBodies = Object.values(gameState.celestialBodies || {});
+  if (
+    !isConnected ||
+    !simState ||
+    !simState.celestialBodies ||
+    Object.keys(simState.celestialBodies).length === 0
+  ) {
+    return null;
+  }
+
+  const allCelestialBodies = Object.values(simState.celestialBodies);
 
   return (
     <>

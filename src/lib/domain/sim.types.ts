@@ -60,7 +60,7 @@ export const CelestialBodyStateSchema = z.object({
 });
 export type CelestialBodyState = z.infer<typeof CelestialBodyStateSchema>;
 
-export const GameStateSchema = z.object({
+export const SimStateSchema = z.object({
   celestialBodies: z.record(CelestialBodyIdSchema, CelestialBodyStateSchema),
 });
-export type GameState = z.infer<typeof GameStateSchema>;
+export type SimState = z.infer<typeof SimStateSchema>;
