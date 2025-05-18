@@ -4,16 +4,27 @@ import { useMemo } from "react";
 import { StarFieldSchema, Star } from "../../lib/domain/starField";
 import { z } from "zod";
 
-const generateStarField = (count: number): z.infer<typeof StarFieldSchema> => ({
-  stars: Array.from({ length: count }, () => ({
-    position: [
-      (Math.random() - 0.5) * 200,
-      (Math.random() - 0.5) * 200,
-      (Math.random() - 0.5) * 200,
-    ],
-    color: "#fff",
-    size: Math.random() * 0.3 + 0.05,
-  })),
+const generateStarField = (
+  count: number,
+  minRadius = 80,
+  maxRadius = 100,
+): z.infer<typeof StarFieldSchema> => ({
+  stars: Array.from({ length: count }, () => {
+    const u = Math.random();
+    const v = Math.random();
+    const theta = 2 * Math.PI * u;
+    const phi = Math.acos(2 * v - 1);
+    const r = Math.random() * (maxRadius - minRadius) + minRadius;
+    return {
+      position: [
+        r * Math.sin(phi) * Math.cos(theta),
+        r * Math.sin(phi) * Math.sin(theta),
+        r * Math.cos(phi),
+      ],
+      color: "#fff",
+      size: Math.random() * 0.3 + 0.05,
+    };
+  }),
 });
 
 const StarField = ({ count = 500 }: { count?: number }) => {
