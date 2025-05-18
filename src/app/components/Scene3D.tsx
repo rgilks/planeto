@@ -514,14 +514,14 @@ const Scene3D = () => {
       <CameraAnimator trigger={cameraTrigger} target={center} />
       <pointLight
         position={[0, 0, 0]}
-        intensity={8}
-        distance={400}
+        intensity={4}
+        distance={500}
         decay={2}
         color={"#fffbe6"}
         castShadow
-        shadow-mapSize-width={2048}
-        shadow-mapSize-height={2048}
-        shadow-bias={-0.0005}
+        shadow-mapSize-width={4096}
+        shadow-mapSize-height={4096}
+        shadow-bias={-0.001}
       />
       <Physics gravity={[0, 0, 0]}>
         {planets.map((planet, i) => {
@@ -548,20 +548,28 @@ const Scene3D = () => {
                   scale={isSun ? 1.1 : 1}
                 >
                   {getGeometry(planet.geometryType, planet.radius)}
-                  <meshStandardMaterial
-                    color={isSun ? "#fffbe6" : "white"}
-                    emissive={isSun ? "#fffbe6" : planet.color}
-                    emissiveIntensity={isSun ? 2.5 : 0.08}
-                    map={planet.colorMap}
-                    bumpMap={planet.bumpMap}
-                    bumpScale={isSun ? 0 : 3.5}
-                    metalness={planet.metalness}
-                    roughness={planet.roughness}
-                  />
+                  {isSun ? (
+                    <meshBasicMaterial
+                      color={"#fffbe6"}
+                      transparent
+                      opacity={0.95}
+                    />
+                  ) : (
+                    <meshStandardMaterial
+                      color={"white"}
+                      emissive={planet.color}
+                      emissiveIntensity={0.08}
+                      map={planet.colorMap}
+                      bumpMap={planet.bumpMap}
+                      bumpScale={3.5}
+                      metalness={planet.metalness}
+                      roughness={planet.roughness}
+                    />
+                  )}
                 </mesh>
                 {!isSun &&
                   planet.atmosphereLayers?.map((layer, idx) => (
-                    <mesh key={idx} receiveShadow castShadow>
+                    <mesh key={idx} castShadow receiveShadow>
                       <sphereGeometry
                         args={[planet.radius * layer.scale, 32, 32]}
                       />
@@ -583,7 +591,7 @@ const Scene3D = () => {
                     </mesh>
                   ))}
                 {!isSun && planet.hasRing && (
-                  <mesh rotation={[Math.PI / 2, 0, 0]} receiveShadow>
+                  <mesh rotation={[Math.PI / 2, 0, 0]} castShadow receiveShadow>
                     <ringGeometry
                       args={[planet.ringInner, planet.ringOuter, 64]}
                     />
