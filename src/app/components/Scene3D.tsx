@@ -183,7 +183,8 @@ const CameraFollower = ({
     if (!target) return;
     const { pos, radius } = target;
     const camDist = radius * 8 + 60;
-    camera.position.set(pos[0], pos[1], pos[2] + camDist);
+    const desired = new THREE.Vector3(pos[0], pos[1], pos[2] + camDist);
+    camera.position.lerp(desired, 0.08);
     camera.lookAt(pos[0], pos[1], pos[2]);
   });
   return null;
