@@ -1,4 +1,4 @@
-import { Canvas, useThree, useFrame } from "@react-three/fiber";
+import { Canvas, useThree } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import { EffectComposer, Bloom } from "@react-three/postprocessing";
 import { useRef, useEffect, createRef, useState } from "react";
@@ -211,50 +211,6 @@ const getGeometry = (type: "sphere" | "lowpoly" | "oblate", radius: number) => {
   return <sphereGeometry args={[radius, 32, 32]} />;
 };
 
-const SpinningPlanetMesh = ({
-  geometryType,
-  radius,
-  colorMap,
-  color,
-  bumpMap,
-  metalness,
-  roughness,
-  angularVelocity,
-}: {
-  geometryType: "sphere" | "lowpoly" | "oblate";
-  radius: number;
-  colorMap: THREE.Texture;
-  color: string;
-  bumpMap: THREE.Texture;
-  metalness: number;
-  roughness: number;
-  angularVelocity: [number, number, number];
-}) => {
-  const meshRef = useRef<THREE.Mesh>(null);
-  useFrame((_, delta) => {
-    if (meshRef.current) {
-      meshRef.current.rotation.x += angularVelocity[0] * delta;
-      meshRef.current.rotation.y += angularVelocity[1] * delta;
-      meshRef.current.rotation.z += angularVelocity[2] * delta;
-    }
-  });
-  return (
-    <mesh ref={meshRef}>
-      {getGeometry(geometryType, radius)}
-      <meshStandardMaterial
-        color={"white"}
-        map={colorMap}
-        emissive={color}
-        emissiveIntensity={0.08}
-        bumpMap={bumpMap}
-        bumpScale={3.5}
-        metalness={metalness}
-        roughness={roughness}
-      />
-    </mesh>
-  );
-};
-
 const Scene3D = () => {
   const [cameraTrigger, setCameraTrigger] = useState(0);
   const [bumpMaps, setBumpMaps] = useState<THREE.Texture[] | null>(null);
@@ -277,88 +233,46 @@ const Scene3D = () => {
 
   useEffect(() => {
     if (!bumpMaps) return;
-    const N = 400;
+    const N = 20;
     const centralRadius = 8.5 + Math.random() * 1.5;
     const planetsArr = [
       (() => {
         const radius = centralRadius;
         const mass = Math.pow(radius, 3) * (8 + Math.random() * 2);
-        const baseColor = randomColor();
-        const altColor = randomColor();
+        const baseColor = "gold";
+        const altColor = "white";
         const seed = Math.random() * 10000;
         const bumpMap = bumpMaps[Math.floor(Math.random() * bumpMaps.length)];
         const colorMap = generateColorMap(seed, baseColor, altColor);
-        const metalness = Math.random() * 0.5 + 0.1;
-        const roughness = Math.random() * 0.5 + 0.3;
-        const ringColor = blendColor(
-          baseColor,
-          altColor,
-          0.5 + Math.random() * 0.5,
-        );
-        const ringInner = radius * (1.2 + Math.random() * 0.2);
-        const ringOuter = ringInner + radius * (0.2 + Math.random() * 0.3);
-        const moonCount = Math.floor(Math.random() * 3);
-        const moons = Array.from({ length: moonCount }, (_, mi) => ({
-          radius: radius * (0.12 + Math.random() * 0.09),
-          color: randomColor(),
-          orbitRadius: radius * (2.2 + Math.random() * 1.5 + mi * 0.7),
-          orbitSpeed: 0.2 + Math.random() * 0.3,
-          phase: Math.random() * Math.PI * 2,
-        }));
-        const atmosphereColor = blendColor(
-          baseColor,
-          "white",
-          0.5 + Math.random() * 0.3,
-        );
+        const metalness = 0.7;
+        const roughness = 0.2;
+        const ringColor = blendColor(baseColor, altColor, 0.8);
+        const ringInner = radius * 1.3;
+        const ringOuter = ringInner + radius * 0.3;
+        const moons: Planet["moons"] = [];
+        const atmosphereColor = blendColor(baseColor, "white", 0.7);
         const atmosphereLayers = [
           {
             color: atmosphereColor,
-            opacity: 0.28 + Math.random() * 0.18,
-            scale: 1.12 + Math.random() * 0.08,
-          },
-          {
-            color: blendColor(atmosphereColor, "white", 0.5),
-            opacity: 0.13 + Math.random() * 0.09,
-            scale: 1.19 + Math.random() * 0.09,
-          },
-          {
-            color: blendColor(atmosphereColor, "aqua", 0.5),
-            opacity: 0.09 + Math.random() * 0.07,
-            scale: 1.25 + Math.random() * 0.12,
+            opacity: 0.5,
+            scale: 1.18,
             additive: true,
           },
         ];
-        const geometryType: "sphere" | "lowpoly" | "oblate" =
-          Math.random() < 0.2
-            ? "lowpoly"
-            : Math.random() < 0.3
-              ? "oblate"
-              : "sphere";
-        let spinMag = 0.1 + Math.random() * (0.7 / radius);
-        spinMag *= 20;
-        if (radius > 5) spinMag = Math.min(spinMag, 1.2);
-        const spinAxis = new THREE.Vector3(
-          Math.random(),
-          Math.random(),
-          Math.random(),
-        ).normalize();
-        const angularVelocity = [
-          spinAxis.x * spinMag,
-          spinAxis.y * spinMag,
-          spinAxis.z * spinMag,
-        ] as [number, number, number];
+        const geometryType = "sphere" as const;
+        const angularVelocity: [number, number, number] = [0, 0.1, 0];
         return {
           mass,
           radius,
           position: [0, 0, 0] as [number, number, number],
           velocity: [0, 0, 0] as [number, number, number],
-          color: blendColor(baseColor, altColor, 0.5),
-          id: Math.random().toString(36).slice(2),
+          color: blendColor(baseColor, altColor, 0.7),
+          id: "sun",
           bumpMap,
           colorMap,
           metalness,
           roughness,
-          hasRing: Math.random() < 0.7,
+          hasRing: false,
           ringColor,
           ringInner,
           ringOuter,
@@ -435,12 +349,13 @@ const Scene3D = () => {
             additive: true,
           },
         ];
-        const geometryType: "sphere" | "lowpoly" | "oblate" =
+        const geometryType = (
           Math.random() < 0.12
             ? "lowpoly"
             : Math.random() < 0.18
               ? "oblate"
-              : "sphere";
+              : "sphere"
+        ) as "sphere" | "lowpoly" | "oblate";
         let spinMag = 0.1 + Math.random() * (0.7 / radius);
         spinMag *= 20;
         if (radius > 5) spinMag = Math.min(spinMag, 1.2);
@@ -587,6 +502,7 @@ const Scene3D = () => {
     <Canvas
       camera={{ position: [center[0], center[1], center[2] + 120] }}
       style={{ width: "100%", height: "100%" }}
+      shadows
     >
       <EffectComposer>
         <Bloom
@@ -596,13 +512,24 @@ const Scene3D = () => {
         />
       </EffectComposer>
       <CameraAnimator trigger={cameraTrigger} target={center} />
-      <ambientLight intensity={0.3} />
-      <directionalLight position={[40, 80, 60]} intensity={1.2} castShadow />
+      <ambientLight intensity={0.15} />
+      <pointLight
+        position={[0, 0, 0]}
+        intensity={8}
+        distance={400}
+        decay={2}
+        color={"#fffbe6"}
+        castShadow
+        shadow-mapSize-width={2048}
+        shadow-mapSize-height={2048}
+        shadow-bias={-0.0005}
+      />
       <Physics gravity={[0, 0, 0]}>
         {planets.map((planet, i) => {
           if (!planetRefs.current[i]) planetRefs.current[i] = createRef();
           if (!allPlanetRefs.current[i]) allPlanetRefs.current[i] = createRef();
           allPlanetMasses.current[i] = planet.mass;
+          const isSun = planet.id === "sun";
           return (
             <RigidBody
               key={planet.id}
@@ -616,40 +543,48 @@ const Scene3D = () => {
               angularDamping={0}
             >
               <group>
-                <SpinningPlanetMesh
-                  geometryType={planet.geometryType}
-                  radius={planet.radius}
-                  colorMap={planet.colorMap}
-                  color={planet.color}
-                  bumpMap={planet.bumpMap}
-                  metalness={planet.metalness}
-                  roughness={planet.roughness}
-                  angularVelocity={planet.angularVelocity}
-                />
-                {planet.atmosphereLayers?.map((layer, idx) => (
-                  <mesh key={idx}>
-                    <sphereGeometry
-                      args={[planet.radius * layer.scale, 32, 32]}
-                    />
-                    <meshPhysicalMaterial
-                      color={layer.color}
-                      transparent
-                      opacity={layer.opacity * 0.5}
-                      transmission={0.7}
-                      thickness={0.4}
-                      roughness={0.7}
-                      metalness={0.08}
-                      depthWrite={false}
-                      blending={
-                        layer.additive
-                          ? THREE.AdditiveBlending
-                          : THREE.NormalBlending
-                      }
-                    />
-                  </mesh>
-                ))}
-                {planet.hasRing && (
-                  <mesh rotation={[Math.PI / 2, 0, 0]}>
+                <mesh
+                  castShadow={!isSun}
+                  receiveShadow={!isSun}
+                  scale={isSun ? 1.1 : 1}
+                >
+                  {getGeometry(planet.geometryType, planet.radius)}
+                  <meshStandardMaterial
+                    color={isSun ? "#fffbe6" : "white"}
+                    emissive={isSun ? "#fffbe6" : planet.color}
+                    emissiveIntensity={isSun ? 2.5 : 0.08}
+                    map={planet.colorMap}
+                    bumpMap={planet.bumpMap}
+                    bumpScale={isSun ? 0 : 3.5}
+                    metalness={planet.metalness}
+                    roughness={planet.roughness}
+                  />
+                </mesh>
+                {!isSun &&
+                  planet.atmosphereLayers?.map((layer, idx) => (
+                    <mesh key={idx} receiveShadow castShadow>
+                      <sphereGeometry
+                        args={[planet.radius * layer.scale, 32, 32]}
+                      />
+                      <meshPhysicalMaterial
+                        color={layer.color}
+                        transparent
+                        opacity={layer.opacity * 0.5}
+                        transmission={0.7}
+                        thickness={0.4}
+                        roughness={0.7}
+                        metalness={0.08}
+                        depthWrite={false}
+                        blending={
+                          layer.additive
+                            ? THREE.AdditiveBlending
+                            : THREE.NormalBlending
+                        }
+                      />
+                    </mesh>
+                  ))}
+                {!isSun && planet.hasRing && (
+                  <mesh rotation={[Math.PI / 2, 0, 0]} receiveShadow>
                     <ringGeometry
                       args={[planet.ringInner, planet.ringOuter, 64]}
                     />
@@ -662,7 +597,10 @@ const Scene3D = () => {
                     />
                   </mesh>
                 )}
-                {planet.moons?.map((moon, mi) => <Moon key={mi} moon={moon} />)}
+                {!isSun &&
+                  planet.moons?.map((moon, mi) => (
+                    <Moon key={mi} moon={moon} />
+                  ))}
               </group>
             </RigidBody>
           );
@@ -697,7 +635,7 @@ const Moon = ({ moon }: { moon: Planet["moons"][0] }) => {
     return () => cancelAnimationFrame(frame);
   }, [moon]);
   return (
-    <mesh ref={ref}>
+    <mesh ref={ref} castShadow receiveShadow>
       <sphereGeometry args={[moon.radius, 16, 16]} />
       <meshStandardMaterial
         color={moon.color}
