@@ -423,9 +423,9 @@ const Scene3D = () => {
     >
       <EffectComposer>
         <Bloom
-          luminanceThreshold={0.1}
-          luminanceSmoothing={0.7}
-          intensity={1.2}
+          luminanceThreshold={0.25}
+          luminanceSmoothing={0.8}
+          intensity={0.35}
         />
       </EffectComposer>
       <CameraAnimator trigger={cameraTrigger} target={center} />
@@ -450,10 +450,10 @@ const Scene3D = () => {
                 <mesh>
                   {getGeometry(planet.geometryType, planet.radius)}
                   <meshStandardMaterial
-                    color={planet.color}
+                    color={"white"}
                     map={planet.colorMap}
                     emissive={planet.color}
-                    emissiveIntensity={0.55}
+                    emissiveIntensity={0.08}
                     bumpMap={planet.bumpMap}
                     bumpScale={3.5}
                     metalness={planet.metalness}
@@ -468,11 +468,11 @@ const Scene3D = () => {
                     <meshPhysicalMaterial
                       color={layer.color}
                       transparent
-                      opacity={layer.opacity}
-                      transmission={0.9}
-                      thickness={0.7}
-                      roughness={0.6}
-                      metalness={0.1}
+                      opacity={layer.opacity * 0.5}
+                      transmission={0.7}
+                      thickness={0.4}
+                      roughness={0.7}
+                      metalness={0.08}
                       depthWrite={false}
                       blending={
                         layer.additive
