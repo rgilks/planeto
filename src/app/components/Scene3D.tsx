@@ -7,7 +7,7 @@ import * as THREE from "three";
 import { createNoise2D } from "simplex-noise";
 
 const G = 1;
-const ENABLE_RECENTER = false;
+const ENABLE_RECENTER = true;
 
 type RigidBodyRef = React.RefObject<RapierRigidBody | null>;
 
@@ -93,7 +93,7 @@ const randomRadius = () => {
   return Math.pow(
     Math.random() * (Math.pow(max, 1 - alpha) - Math.pow(min, 1 - alpha)) +
       Math.pow(min, 1 - alpha),
-    1 / (1 - alpha)
+    1 / (1 - alpha),
   );
 };
 
@@ -130,7 +130,7 @@ const generateBumpMap = (seed: number) => {
 const generateColorMap = (
   seed: number,
   baseColor: string,
-  altColor: string
+  altColor: string,
 ) => {
   const size = 128;
   const noise2D = createNoise2D(seededRandom(seed));
@@ -312,7 +312,7 @@ const Scene3D = () => {
         const ringColor = blendColor(
           baseColor,
           altColor,
-          0.5 + Math.random() * 0.5
+          0.5 + Math.random() * 0.5,
         );
         const ringInner = radius * (1.2 + Math.random() * 0.2);
         const ringOuter = ringInner + radius * (0.2 + Math.random() * 0.3);
@@ -331,7 +331,7 @@ const Scene3D = () => {
         const atmosphereColor = blendColor(
           baseColor,
           "white",
-          0.5 + Math.random() * 0.3
+          0.5 + Math.random() * 0.3,
         );
         const atmosphereLayers = [
           {
@@ -364,7 +364,7 @@ const Scene3D = () => {
         const spinAxis = new THREE.Vector3(
           Math.random(),
           Math.random(),
-          Math.random()
+          Math.random(),
         ).normalize();
         const angularVelocity = [
           spinAxis.x * spinMag,
@@ -398,12 +398,16 @@ const Scene3D = () => {
   }, [bumpMaps]);
 
   useEffect(() => {
-    if (!ENABLE_RECENTER) return;
+    if (!ENABLE_RECENTER) {
+      setCenter([0, 0, 0]);
+      return;
+    }
     const handleSpace = (e: KeyboardEvent) => {
       if (e.code === "Space") {
         const n = planetRefs.current.length;
-        if (n === 0) return;
-        const idx = Math.floor(Math.random() * n);
+        if (n <= 1) return;
+        // Pick a random planet (not the Sun)
+        const idx = 1 + Math.floor(Math.random() * (n - 1));
         const ref = planetRefs.current[idx];
         if (!ref?.current) return;
         const pos = ref.current.translation();
@@ -417,7 +421,7 @@ const Scene3D = () => {
                 y: cur.y - pos.y,
                 z: cur.z - pos.z,
               },
-              true
+              true,
             );
           }
         }
@@ -465,13 +469,13 @@ const Scene3D = () => {
         }
         ref.current.applyImpulse(
           { x: fx * 0.016, y: fy * 0.016, z: fz * 0.016 },
-          true
+          true,
         );
         // Reposition if too far
         const d = Math.sqrt(
           planetPos.x * planetPos.x +
             planetPos.y * planetPos.y +
-            planetPos.z * planetPos.z
+            planetPos.z * planetPos.z,
         );
         if (d > 150) {
           const newPlanet = planets[i];
@@ -481,7 +485,7 @@ const Scene3D = () => {
               y: newPlanet.position[1],
               z: newPlanet.position[2],
             },
-            true
+            true,
           );
           ref.current.setLinvel(
             {
@@ -489,7 +493,7 @@ const Scene3D = () => {
               y: newPlanet.velocity[1],
               z: newPlanet.velocity[2],
             },
-            true
+            true,
           );
         }
       }
@@ -498,6 +502,12 @@ const Scene3D = () => {
     frame = requestAnimationFrame(step);
     return () => cancelAnimationFrame(frame);
   }, [planets]);
+
+  useEffect(() => {
+    if (!ENABLE_RECENTER) {
+      setCenter([0, 0, 0]);
+    }
+  }, [ENABLE_RECENTER, planets.length]);
 
   if (!bumpMaps || planets.length === 0) return null;
 
