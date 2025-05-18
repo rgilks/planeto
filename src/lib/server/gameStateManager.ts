@@ -131,8 +131,14 @@ const initializeCelestialBodies = (gameState: GameState): GameState => {
     let atmosphereProps;
     if (i % 5 === 0) {
       // Add atmosphere to every 5th planet for variety
+      const r = Math.floor(Math.random() * 155) + 100;
+      const g = Math.floor(Math.random() * 155) + 100;
+      const b = Math.floor(Math.random() * 155) + 100;
+      const hexColor = `#${r.toString(16).padStart(2, "0")}${g
+        .toString(16)
+        .padStart(2, "0")}${b.toString(16).padStart(2, "0")}`;
       atmosphereProps = {
-        color: `rgba(${Math.floor(Math.random() * 155) + 100}, ${Math.floor(Math.random() * 155) + 100}, ${Math.floor(Math.random() * 155) + 100}, 0.7)`,
+        color: hexColor,
         thickness: Math.random() * 0.1 + 0.05, // 5% to 15% of planet radius
         density: Math.random() * 0.5 + 0.3, // 0.3 to 0.8
       };
