@@ -234,7 +234,8 @@ const Scene3D = () => {
   useEffect(() => {
     if (!bumpMaps) return;
     const N = 20;
-    const centralRadius = 8.5 + Math.random() * 1.5;
+    const sizeMultiplier = 7;
+    const centralRadius = (8.5 + Math.random() * 1.5) * sizeMultiplier;
     const planetsArr = [
       (() => {
         const radius = centralRadius;
@@ -284,7 +285,7 @@ const Scene3D = () => {
         };
       })(),
       ...Array.from({ length: N - 1 }).map(() => {
-        const radius = randomRadius();
+        const radius = randomRadius() * sizeMultiplier;
         const mass = Math.pow(radius, 3) * (6 + Math.random() * 2);
         const angle = Math.random() * 2 * Math.PI;
         const r = Math.random() * 60 + 20;
