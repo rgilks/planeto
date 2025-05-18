@@ -18,6 +18,7 @@ type Planet = {
   color: string;
   id: string;
   bumpMap: THREE.Texture;
+  colorMap: THREE.Texture;
   metalness: number;
   roughness: number;
   hasRing: boolean;
@@ -112,6 +113,51 @@ const generateBumpMap = (seed: number) => {
   return new THREE.CanvasTexture(canvas);
 };
 
+const generateColorMap = (
+  seed: number,
+  baseColor: string,
+  altColor: string,
+) => {
+  const size = 128;
+  const noise2D = createNoise2D(seededRandom(seed));
+  const canvas = document.createElement("canvas");
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) {
+    const white = document.createElement("canvas");
+    white.width = white.height = 1;
+    const wctx = white.getContext("2d");
+    if (wctx) {
+      wctx.fillStyle = "white";
+      wctx.fillRect(0, 0, 1, 1);
+    }
+    return new THREE.CanvasTexture(white);
+  }
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const nx = x / size - 0.5;
+      const ny = y / size - 0.5;
+      let n = 0;
+      let amp = 1;
+      let freq = 1;
+      for (let o = 0; o < 5; o++) {
+        n += amp * noise2D(nx * freq * 4, ny * freq * 4);
+        amp *= 0.5;
+        freq *= 2;
+      }
+      n = n / 2.5;
+      let t = (n + 1) * 0.5;
+      const band = Math.abs(Math.sin(ny * Math.PI * 6 + seed));
+      t = t * 0.7 + band * 0.3;
+      const color = blendColor(baseColor, altColor, t);
+      ctx.fillStyle = color;
+      ctx.fillRect(x, y, 1, 1);
+    }
+  }
+  return new THREE.CanvasTexture(canvas);
+};
+
 const CameraAnimator = ({
   trigger,
   target,
@@ -187,11 +233,14 @@ const Scene3D = () => {
         const vx = -vMag * Math.sin(angle);
         const vy = vMag * Math.cos(angle);
         const vz = 0;
-        const noise2D = createNoise2D(seededRandom(Math.random() * 10000));
+        const seed = Math.random() * 10000;
+        const noise2D = createNoise2D(seededRandom(seed));
         const band = Math.abs(noise2D(Math.sin(angle), Math.cos(angle)));
         const baseColor = randomColor();
         const altColor = randomColor();
         const color = blendColor(baseColor, altColor, band * 0.7);
+        const bumpMap = bumpMaps[Math.floor(Math.random() * bumpMaps.length)];
+        const colorMap = generateColorMap(seed, baseColor, altColor);
         const metalness = Math.random() * 0.5 + 0.1;
         const roughness = Math.random() * 0.5 + 0.3;
         const hasRing = Math.random() < 0.18;
@@ -247,7 +296,8 @@ const Scene3D = () => {
           velocity: [vx, vy, vz] as [number, number, number],
           color,
           id: Math.random().toString(36).slice(2),
-          bumpMap: bumpMaps[Math.floor(Math.random() * bumpMaps.length)],
+          bumpMap,
+          colorMap,
           metalness,
           roughness,
           hasRing,
@@ -401,6 +451,7 @@ const Scene3D = () => {
                   {getGeometry(planet.geometryType, planet.radius)}
                   <meshStandardMaterial
                     color={planet.color}
+                    map={planet.colorMap}
                     emissive={planet.color}
                     emissiveIntensity={0.55}
                     bumpMap={planet.bumpMap}
