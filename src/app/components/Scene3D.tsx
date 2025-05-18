@@ -93,7 +93,7 @@ const randomRadius = () => {
   return Math.pow(
     Math.random() * (Math.pow(max, 1 - alpha) - Math.pow(min, 1 - alpha)) +
       Math.pow(min, 1 - alpha),
-    1 / (1 - alpha)
+    1 / (1 - alpha),
   );
 };
 
@@ -130,7 +130,7 @@ const generateBumpMap = (seed: number) => {
 const generateColorMap = (
   seed: number,
   baseColor: string,
-  altColor: string
+  altColor: string,
 ) => {
   const size = 128;
   const noise2D = createNoise2D(seededRandom(seed));
@@ -240,8 +240,8 @@ const Scene3D = () => {
     const centralRadius = 8.5 + Math.random() * 1.5;
     const planetsArr = [
       (() => {
-        const radius = centralRadius;
-        const mass = Math.pow(radius, 3) * (8 + Math.random() * 2);
+        const radius = centralRadius * 2;
+        const mass = Math.pow(radius, 3) * (8 + Math.random() * 2) * 2;
         const baseColor = "gold";
         const altColor = "white";
         const seed = Math.random() * 10000;
@@ -313,7 +313,7 @@ const Scene3D = () => {
         const ringColor = blendColor(
           baseColor,
           altColor,
-          0.5 + Math.random() * 0.5
+          0.5 + Math.random() * 0.5,
         );
         const ringInner = radius * (1.2 + Math.random() * 0.2);
         const ringOuter = ringInner + radius * (0.2 + Math.random() * 0.3);
@@ -332,7 +332,7 @@ const Scene3D = () => {
         const atmosphereColor = blendColor(
           baseColor,
           "white",
-          0.5 + Math.random() * 0.3
+          0.5 + Math.random() * 0.3,
         );
         const atmosphereLayers = [
           {
@@ -365,7 +365,7 @@ const Scene3D = () => {
         const spinAxis = new THREE.Vector3(
           Math.random(),
           Math.random(),
-          Math.random()
+          Math.random(),
         ).normalize();
         const angularVelocity = [
           spinAxis.x * spinMag,
@@ -467,7 +467,7 @@ const Scene3D = () => {
         }
         ref.current.applyImpulse(
           { x: fx * 0.016, y: fy * 0.016, z: fz * 0.016 },
-          true
+          true,
         );
         // // Reposition if too far (disabled)
         // const d = Math.sqrt(
