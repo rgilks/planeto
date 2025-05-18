@@ -1,4 +1,4 @@
-import { Canvas, useThree } from "@react-three/fiber";
+import { Canvas, useThree, useFrame } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import { EffectComposer, Bloom } from "@react-three/postprocessing";
 import { useRef, useEffect, createRef, useState } from "react";
@@ -92,7 +92,7 @@ const randomRadius = () => {
   return Math.pow(
     Math.random() * (Math.pow(max, 1 - alpha) - Math.pow(min, 1 - alpha)) +
       Math.pow(min, 1 - alpha),
-    1 / (1 - alpha)
+    1 / (1 - alpha),
   );
 };
 
@@ -129,7 +129,7 @@ const generateBumpMap = (seed: number) => {
 const generateColorMap = (
   seed: number,
   baseColor: string,
-  altColor: string
+  altColor: string,
 ) => {
   const size = 128;
   const noise2D = createNoise2D(seededRandom(seed));
@@ -211,6 +211,50 @@ const getGeometry = (type: "sphere" | "lowpoly" | "oblate", radius: number) => {
   return <sphereGeometry args={[radius, 32, 32]} />;
 };
 
+const SpinningPlanetMesh = ({
+  geometryType,
+  radius,
+  colorMap,
+  color,
+  bumpMap,
+  metalness,
+  roughness,
+  angularVelocity,
+}: {
+  geometryType: "sphere" | "lowpoly" | "oblate";
+  radius: number;
+  colorMap: THREE.Texture;
+  color: string;
+  bumpMap: THREE.Texture;
+  metalness: number;
+  roughness: number;
+  angularVelocity: [number, number, number];
+}) => {
+  const meshRef = useRef<THREE.Mesh>(null);
+  useFrame((_, delta) => {
+    if (meshRef.current) {
+      meshRef.current.rotation.x += angularVelocity[0] * delta;
+      meshRef.current.rotation.y += angularVelocity[1] * delta;
+      meshRef.current.rotation.z += angularVelocity[2] * delta;
+    }
+  });
+  return (
+    <mesh ref={meshRef}>
+      {getGeometry(geometryType, radius)}
+      <meshStandardMaterial
+        color={"white"}
+        map={colorMap}
+        emissive={color}
+        emissiveIntensity={0.08}
+        bumpMap={bumpMap}
+        bumpScale={3.5}
+        metalness={metalness}
+        roughness={roughness}
+      />
+    </mesh>
+  );
+};
+
 const Scene3D = () => {
   const [cameraTrigger, setCameraTrigger] = useState(0);
   const [bumpMaps, setBumpMaps] = useState<THREE.Texture[] | null>(null);
@@ -249,7 +293,7 @@ const Scene3D = () => {
         const ringColor = blendColor(
           baseColor,
           altColor,
-          0.5 + Math.random() * 0.5
+          0.5 + Math.random() * 0.5,
         );
         const ringInner = radius * (1.2 + Math.random() * 0.2);
         const ringOuter = ringInner + radius * (0.2 + Math.random() * 0.3);
@@ -264,7 +308,7 @@ const Scene3D = () => {
         const atmosphereColor = blendColor(
           baseColor,
           "white",
-          0.5 + Math.random() * 0.3
+          0.5 + Math.random() * 0.3,
         );
         const atmosphereLayers = [
           {
@@ -294,7 +338,7 @@ const Scene3D = () => {
         const spinAxis = new THREE.Vector3(
           Math.random(),
           Math.random(),
-          Math.random()
+          Math.random(),
         ).normalize();
         const angularVelocity = [
           spinAxis.x * spinMag,
@@ -350,7 +394,7 @@ const Scene3D = () => {
         const ringColor = blendColor(
           baseColor,
           altColor,
-          0.5 + Math.random() * 0.5
+          0.5 + Math.random() * 0.5,
         );
         const ringInner = radius * (1.2 + Math.random() * 0.2);
         const ringOuter = ringInner + radius * (0.2 + Math.random() * 0.3);
@@ -369,7 +413,7 @@ const Scene3D = () => {
         const atmosphereColor = blendColor(
           baseColor,
           "white",
-          0.5 + Math.random() * 0.3
+          0.5 + Math.random() * 0.3,
         );
         const atmosphereLayers = [
           {
@@ -399,7 +443,7 @@ const Scene3D = () => {
         const spinAxis = new THREE.Vector3(
           Math.random(),
           Math.random(),
-          Math.random()
+          Math.random(),
         ).normalize();
         const angularVelocity = [
           spinAxis.x * spinMag,
@@ -451,7 +495,7 @@ const Scene3D = () => {
                 y: cur.y - pos.y,
                 z: cur.z - pos.z,
               },
-              true
+              true,
             );
           }
         }
@@ -499,13 +543,13 @@ const Scene3D = () => {
         }
         ref.current.applyImpulse(
           { x: fx * 0.016, y: fy * 0.016, z: fz * 0.016 },
-          true
+          true,
         );
         // Reposition if too far
         const d = Math.sqrt(
           planetPos.x * planetPos.x +
             planetPos.y * planetPos.y +
-            planetPos.z * planetPos.z
+            planetPos.z * planetPos.z,
         );
         if (d > 150) {
           const newPlanet = planets[i];
@@ -515,7 +559,7 @@ const Scene3D = () => {
               y: newPlanet.position[1],
               z: newPlanet.position[2],
             },
-            true
+            true,
           );
           ref.current.setLinvel(
             {
@@ -523,7 +567,7 @@ const Scene3D = () => {
               y: newPlanet.velocity[1],
               z: newPlanet.velocity[2],
             },
-            true
+            true,
           );
         }
       }
@@ -568,19 +612,16 @@ const Scene3D = () => {
               angularDamping={0}
             >
               <group>
-                <mesh>
-                  {getGeometry(planet.geometryType, planet.radius)}
-                  <meshStandardMaterial
-                    color={"white"}
-                    map={planet.colorMap}
-                    emissive={planet.color}
-                    emissiveIntensity={0.08}
-                    bumpMap={planet.bumpMap}
-                    bumpScale={3.5}
-                    metalness={planet.metalness}
-                    roughness={planet.roughness}
-                  />
-                </mesh>
+                <SpinningPlanetMesh
+                  geometryType={planet.geometryType}
+                  radius={planet.radius}
+                  colorMap={planet.colorMap}
+                  color={planet.color}
+                  bumpMap={planet.bumpMap}
+                  metalness={planet.metalness}
+                  roughness={planet.roughness}
+                  angularVelocity={planet.angularVelocity}
+                />
                 {planet.atmosphereLayers?.map((layer, idx) => (
                   <mesh key={idx}>
                     <sphereGeometry
