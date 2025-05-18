@@ -81,10 +81,34 @@ export const updatePhysics = (
   dt: number,
 ): GameState => {
   return produce(currentState, (draftState) => {
-    // The following lines are to satisfy the linter for intentionally unused parameters,
-    // as server-side physics for celestial bodies is currently inactive.
-    if (false) {
-      console.log(dt, draftState);
+    const bodyEntries = Object.entries(draftState.celestialBodies) as [
+      string,
+      CelestialBodyState,
+    ][];
+    const forces: Record<string, THREE.Vector3> = {};
+
+    for (const [id] of bodyEntries) {
+      forces[id] = new THREE.Vector3(0, 0, 0);
+    }
+
+    for (let i = 0; i < bodyEntries.length; i++) {
+      const [id1, body1] = bodyEntries[i];
+      for (let j = i + 1; j < bodyEntries.length; j++) {
+        const [id2, body2] = bodyEntries[j];
+        if (body1.id === body2.id) continue;
+        const force = calculateGravitationalForce(body1, body2);
+        forces[id1].add(force);
+        forces[id2].add(force.clone().multiplyScalar(-1));
+      }
+    }
+
+    for (const [id, body] of bodyEntries) {
+      if (body.type === "sun") continue;
+      const netForce = forces[id];
+      const updated = updateCelestialBody(body, netForce, dt);
+      draftState.celestialBodies[
+        id as keyof typeof draftState.celestialBodies
+      ] = updated;
     }
   });
 };
