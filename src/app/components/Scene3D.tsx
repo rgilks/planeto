@@ -49,8 +49,8 @@ const StarField = ({ count = 500 }: { count?: number }) => {
 };
 
 const G = 1;
-const sunMass = 10;
-const sunRadius = 1;
+const sunMass = 50;
+const sunRadius = 3;
 
 const randomColor = () => {
   const colors = [
@@ -67,7 +67,7 @@ const randomColor = () => {
   return colors[Math.floor(Math.random() * colors.length)];
 };
 
-const velocityMultiplier = 2.8;
+const velocityMultiplier = 0.7;
 
 const generateRandomPlanets = (count: number) => {
   const G = 1;
