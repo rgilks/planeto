@@ -233,36 +233,18 @@ const Scene3D = () => {
   useEffect(() => {
     if (!bumpMaps) return;
     const N = 400;
-    const supergiantRadii = [
-      7.5 + Math.random() * 0.5,
-      6.5 + Math.random() * 0.5,
-    ];
-    setPlanets(
-      Array.from({ length: N }, (_, idx) => {
-        let radius = randomRadius();
-        if (idx === 0) radius = supergiantRadii[0];
-        if (idx === 1) radius = supergiantRadii[1];
-        const mass = Math.pow(radius, 3) * (6 + Math.random() * 2);
-        const angle = Math.random() * 2 * Math.PI;
-        const r = Math.random() * 60 + 20;
-        const x = r * Math.cos(angle);
-        const y = r * Math.sin(angle);
-        const z = (Math.random() - 0.5) * 2;
-        const vMag = 5 * Math.sqrt((G * 50) / r);
-        const vx = -vMag * Math.sin(angle);
-        const vy = vMag * Math.cos(angle);
-        const vz = 0;
-        const seed = Math.random() * 10000;
-        const noise2D = createNoise2D(seededRandom(seed));
-        const band = Math.abs(noise2D(Math.sin(angle), Math.cos(angle)));
+    const centralRadius = 8.5 + Math.random() * 1.5;
+    const planetsArr = [
+      (() => {
+        const radius = centralRadius;
+        const mass = Math.pow(radius, 3) * (8 + Math.random() * 2);
         const baseColor = randomColor();
         const altColor = randomColor();
-        const color = blendColor(baseColor, altColor, band * 0.7);
+        const seed = Math.random() * 10000;
         const bumpMap = bumpMaps[Math.floor(Math.random() * bumpMaps.length)];
         const colorMap = generateColorMap(seed, baseColor, altColor);
         const metalness = Math.random() * 0.5 + 0.1;
         const roughness = Math.random() * 0.5 + 0.3;
-        const hasRing = Math.random() < 0.18;
         const ringColor = blendColor(
           baseColor,
           altColor,
@@ -270,10 +252,9 @@ const Scene3D = () => {
         );
         const ringInner = radius * (1.2 + Math.random() * 0.2);
         const ringOuter = ringInner + radius * (0.2 + Math.random() * 0.3);
-        const moonCount =
-          Math.random() < 0.18 ? Math.floor(Math.random() * 2) + 1 : 0;
+        const moonCount = Math.floor(Math.random() * 3);
         const moons = Array.from({ length: moonCount }, (_, mi) => ({
-          radius: radius * (0.18 + Math.random() * 0.12),
+          radius: radius * (0.12 + Math.random() * 0.09),
           color: randomColor(),
           orbitRadius: radius * (2.2 + Math.random() * 1.5 + mi * 0.7),
           orbitSpeed: 0.2 + Math.random() * 0.3,
@@ -287,22 +268,115 @@ const Scene3D = () => {
         const atmosphereLayers = [
           {
             color: atmosphereColor,
-            opacity: 0.18 + Math.random() * 0.12,
-            scale: 1.08 + Math.random() * 0.04,
+            opacity: 0.28 + Math.random() * 0.18,
+            scale: 1.12 + Math.random() * 0.08,
           },
           {
             color: blendColor(atmosphereColor, "white", 0.5),
-            opacity: 0.08 + Math.random() * 0.07,
-            scale: 1.13 + Math.random() * 0.06,
+            opacity: 0.13 + Math.random() * 0.09,
+            scale: 1.19 + Math.random() * 0.09,
           },
           {
             color: blendColor(atmosphereColor, "aqua", 0.5),
-            opacity: 0.04 + Math.random() * 0.05,
-            scale: 1.18 + Math.random() * 0.08,
+            opacity: 0.09 + Math.random() * 0.07,
+            scale: 1.25 + Math.random() * 0.12,
             additive: true,
           },
         ];
-        const geometryType =
+        const geometryType: "sphere" | "lowpoly" | "oblate" =
+          Math.random() < 0.2
+            ? "lowpoly"
+            : Math.random() < 0.3
+              ? "oblate"
+              : "sphere";
+        return {
+          mass,
+          radius,
+          position: [0, 0, 0] as [number, number, number],
+          velocity: [0, 0, 0] as [number, number, number],
+          color: blendColor(baseColor, altColor, 0.5),
+          id: Math.random().toString(36).slice(2),
+          bumpMap,
+          colorMap,
+          metalness,
+          roughness,
+          hasRing: Math.random() < 0.7,
+          ringColor,
+          ringInner,
+          ringOuter,
+          moons,
+          atmosphereColor,
+          atmosphereLayers,
+          geometryType,
+        };
+      })(),
+      ...Array.from({ length: N - 1 }).map(() => {
+        const radius = randomRadius();
+        const mass = Math.pow(radius, 3) * (6 + Math.random() * 2);
+        const angle = Math.random() * 2 * Math.PI;
+        const r = Math.random() * 60 + 20;
+        const z = (Math.random() - 0.5) * (Math.random() * 18 + 2);
+        const x = r * Math.cos(angle);
+        const y = r * Math.sin(angle);
+        const vMag = 5 * Math.sqrt((G * 50) / r);
+        const vx = -vMag * Math.sin(angle);
+        const vy = vMag * Math.cos(angle);
+        const vz = (Math.random() - 0.5) * 0.5 * (radius < 1.2 ? 1 : 0.2);
+        const seed = Math.random() * 10000;
+        const noise2D = createNoise2D(seededRandom(seed));
+        const band = Math.abs(noise2D(Math.sin(angle), Math.cos(angle)));
+        const baseColor = randomColor();
+        const altColor = randomColor();
+        const color = blendColor(baseColor, altColor, band * 0.7);
+        const bumpMap = bumpMaps[Math.floor(Math.random() * bumpMaps.length)];
+        const colorMap = generateColorMap(seed, baseColor, altColor);
+        const metalness = Math.random() * 0.5 + 0.1;
+        const roughness = Math.random() * 0.5 + 0.3;
+        const isLarge = radius > 2.2;
+        const hasRing = isLarge ? Math.random() < 0.5 : Math.random() < 0.12;
+        const ringColor = blendColor(
+          baseColor,
+          altColor,
+          0.5 + Math.random() * 0.5,
+        );
+        const ringInner = radius * (1.2 + Math.random() * 0.2);
+        const ringOuter = ringInner + radius * (0.2 + Math.random() * 0.3);
+        const moonCount = isLarge
+          ? Math.floor(Math.random() * 3) + 1
+          : Math.random() < 0.12
+            ? 1
+            : 0;
+        const moons = Array.from({ length: moonCount }, (_, mi) => ({
+          radius: radius * (0.12 + Math.random() * 0.09),
+          color: randomColor(),
+          orbitRadius: radius * (2.2 + Math.random() * 1.5 + mi * 0.7),
+          orbitSpeed: 0.2 + Math.random() * 0.3,
+          phase: Math.random() * Math.PI * 2,
+        }));
+        const atmosphereColor = blendColor(
+          baseColor,
+          "white",
+          0.5 + Math.random() * 0.3,
+        );
+        const atmosphereLayers = [
+          {
+            color: atmosphereColor,
+            opacity: 0.18 + Math.random() * 0.12 + (isLarge ? 0.1 : 0),
+            scale: 1.08 + Math.random() * 0.04 + (isLarge ? 0.04 : 0),
+          },
+          {
+            color: blendColor(atmosphereColor, "white", 0.5),
+            opacity: 0.08 + Math.random() * 0.07 + (isLarge ? 0.05 : 0),
+            scale: 1.13 + Math.random() * 0.06 + (isLarge ? 0.05 : 0),
+          },
+          {
+            color: blendColor(atmosphereColor, "aqua", 0.5),
+            opacity: 0.04 + Math.random() * 0.05 + (isLarge ? 0.04 : 0),
+            scale: 1.18 + Math.random() * 0.08 + (isLarge ? 0.07 : 0),
+            additive: true,
+          },
+        ];
+        const geometryType: "sphere" | "lowpoly" | "oblate" =
           Math.random() < 0.12
             ? "lowpoly"
             : Math.random() < 0.18
@@ -329,7 +403,8 @@ const Scene3D = () => {
           geometryType,
         };
       }),
-    );
+    ];
+    setPlanets(planetsArr);
   }, [bumpMaps]);
 
   useEffect(() => {
