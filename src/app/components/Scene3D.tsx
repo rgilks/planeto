@@ -92,7 +92,7 @@ const randomRadius = () => {
   return Math.pow(
     Math.random() * (Math.pow(max, 1 - alpha) - Math.pow(min, 1 - alpha)) +
       Math.pow(min, 1 - alpha),
-    1 / (1 - alpha),
+    1 / (1 - alpha)
   );
 };
 
@@ -129,7 +129,7 @@ const generateBumpMap = (seed: number) => {
 const generateColorMap = (
   seed: number,
   baseColor: string,
-  altColor: string,
+  altColor: string
 ) => {
   const size = 128;
   const noise2D = createNoise2D(seededRandom(seed));
@@ -173,15 +173,18 @@ const generateColorMap = (
 
 const CameraFollower = ({
   getTarget,
+  disabled = false,
 }: {
   getTarget: () => {
     position: [number, number, number];
     radius: number;
   } | null;
+  disabled?: boolean;
 }) => {
   const { camera } = useThree();
   const camPos = useRef(new THREE.Vector3(0, 0, 120));
-  useFrame(() => {
+  useFrame((_, delta) => {
+    if (disabled) return;
     const target = getTarget();
     if (!target) return;
     const { position, radius } = target;
@@ -189,9 +192,11 @@ const CameraFollower = ({
     const targetPos = new THREE.Vector3(
       position[0],
       position[1] + camDist,
-      position[2],
+      position[2]
     );
-    camPos.current.lerp(targetPos, 0.12);
+    const smoothTime = 0.32;
+    const lerpFactor = 1 - Math.exp(-delta / smoothTime);
+    camPos.current.lerp(targetPos, lerpFactor);
     camera.position.copy(camPos.current);
     camera.up.set(0, 0, 1);
     camera.lookAt(...position);
@@ -212,6 +217,7 @@ const Scene3D = () => {
   const allPlanetRefs = useRef<RigidBodyRef[]>([]);
   const allPlanetMasses = useRef<number[]>([]);
   const [centeredIdx, setCenteredIdx] = useState(0);
+  const [isUserInteracting, setIsUserInteracting] = useState(false);
 
   useEffect(() => {
     const maps = [
@@ -304,7 +310,7 @@ const Scene3D = () => {
         const ringColor = blendColor(
           baseColor,
           altColor,
-          0.5 + Math.random() * 0.5,
+          0.5 + Math.random() * 0.5
         );
         const ringInner = radius * (1.2 + Math.random() * 0.2);
         const ringOuter = ringInner + radius * (0.2 + Math.random() * 0.3);
@@ -323,7 +329,7 @@ const Scene3D = () => {
         const atmosphereColor = blendColor(
           baseColor,
           "white",
-          0.5 + Math.random() * 0.3,
+          0.5 + Math.random() * 0.3
         );
         const atmosphereLayers = [
           {
@@ -356,7 +362,7 @@ const Scene3D = () => {
         const spinAxis = new THREE.Vector3(
           Math.random(),
           Math.random(),
-          Math.random(),
+          Math.random()
         ).normalize();
         const angularVelocity = [
           spinAxis.x * spinMag,
@@ -440,7 +446,7 @@ const Scene3D = () => {
         }
         ref.current.applyImpulse(
           { x: fx * 0.016, y: fy * 0.016, z: fz * 0.016 },
-          true,
+          true
         );
       }
       frame = requestAnimationFrame(step);
@@ -478,6 +484,7 @@ const Scene3D = () => {
           }
           return null;
         }}
+        disabled={isUserInteracting}
       />
       <group>
         <directionalLight
@@ -606,6 +613,8 @@ const Scene3D = () => {
         dampingFactor={0.05}
         rotateSpeed={0.4}
         zoomSpeed={0.4}
+        onStart={() => setIsUserInteracting(true)}
+        onEnd={() => setIsUserInteracting(false)}
       />
     </Canvas>
   );
