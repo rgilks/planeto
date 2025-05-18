@@ -9,6 +9,11 @@ Planeto is a Next.js application that visualizes a simple planetary system in 3D
 - Planets are initialized with different positions, velocities, masses, and radii for interesting orbits
 - Camera controls (zoom, rotate) with OrbitControls
 - Type-safe domain model for planets using Zod
+- Realistic 3D solar system simulation
+- Physics-based planetary motion
+- Procedural planet textures
+- Dynamic sun rendering
+- Camera now follows the focused object in world space, always keeping it centered on the screen
 
 ## Physics & Orbits
 
@@ -68,3 +73,7 @@ planeto/
 ## License
 
 MIT
+
+## Technical Notes
+
+- The camera logic was refactored so that it follows the focused object (planet or sun) by updating its position and lookAt target each frame. The previous approach of offsetting the entire group was removed for a more natural and robust camera-following effect.

@@ -50,3 +50,7 @@ Planeto is a modern, interactive 3D planetary system simulation. All bodies are 
 - Rapier physics
 - Zod
 - TypeScript
+
+## Camera Following Logic
+
+The camera now follows the focused object (planet or sun) in world space. Each frame, the camera's position and lookAt target are updated to keep the focused object centered on the screen. This approach replaces the previous method of offsetting the entire group of objects, resulting in more natural camera movement, improved lighting and depth, and a more robust experience for features like shadows and post-processing effects.
