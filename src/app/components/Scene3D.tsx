@@ -213,13 +213,14 @@ const getGeometry = (type: "sphere" | "lowpoly" | "oblate", radius: number) => {
 };
 
 const Scene3D = () => {
-  const [cameraTrigger, setCameraTrigger] = useState(0);
+  const [cameraTrigger] = useState(0);
   const [bumpMaps, setBumpMaps] = useState<THREE.Texture[] | null>(null);
   const [planets, setPlanets] = useState<Planet[]>([]);
   const [center, setCenter] = useState<[number, number, number]>([0, 0, 0]);
   const planetRefs = useRef<RigidBodyRef[]>([]);
   const allPlanetRefs = useRef<RigidBodyRef[]>([]);
   const allPlanetMasses = useRef<number[]>([]);
+  const [centeredIdx, setCenteredIdx] = useState(0);
 
   useEffect(() => {
     const maps = [
@@ -399,6 +400,7 @@ const Scene3D = () => {
 
   useEffect(() => {
     if (!ENABLE_RECENTER) {
+      setCenteredIdx(0);
       setCenter([0, 0, 0]);
       return;
     }
@@ -408,30 +410,26 @@ const Scene3D = () => {
         if (n <= 1) return;
         // Pick a random planet (not the Sun)
         const idx = 1 + Math.floor(Math.random() * (n - 1));
-        const ref = planetRefs.current[idx];
-        if (!ref?.current) return;
-        const pos = ref.current.translation();
-        for (let i = 0; i < planetRefs.current.length; i++) {
-          const p = planetRefs.current[i]?.current;
-          if (p) {
-            const cur = p.translation();
-            p.setTranslation(
-              {
-                x: cur.x - pos.x,
-                y: cur.y - pos.y,
-                z: cur.z - pos.z,
-              },
-              true,
-            );
-          }
-        }
-        setCenter([-pos.x, -pos.y, -pos.z]);
-        setCameraTrigger((t) => t + 1);
+        setCenteredIdx(idx);
       }
     };
     window.addEventListener("keydown", handleSpace);
     return () => window.removeEventListener("keydown", handleSpace);
   }, []);
+
+  useEffect(() => {
+    let frame: number;
+    const updateCenter = () => {
+      const ref = planetRefs.current[centeredIdx];
+      if (ref?.current) {
+        const pos = ref.current.translation();
+        setCenter([-pos.x, -pos.y, -pos.z]);
+      }
+      frame = requestAnimationFrame(updateCenter);
+    };
+    updateCenter();
+    return () => cancelAnimationFrame(frame);
+  }, [centeredIdx, planets]);
 
   useEffect(() => {
     let frame: number;
@@ -502,12 +500,6 @@ const Scene3D = () => {
     frame = requestAnimationFrame(step);
     return () => cancelAnimationFrame(frame);
   }, [planets]);
-
-  useEffect(() => {
-    if (!ENABLE_RECENTER) {
-      setCenter([0, 0, 0]);
-    }
-  }, [ENABLE_RECENTER, planets.length]);
 
   if (!bumpMaps || planets.length === 0) return null;
 
