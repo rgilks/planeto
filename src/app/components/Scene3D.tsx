@@ -67,7 +67,7 @@ const randomColor = () => {
   return colors[Math.floor(Math.random() * colors.length)];
 };
 
-const velocityMultiplier = 2.5;
+const velocityMultiplier = 3.5;
 
 const generateRandomPlanets = (count: number) => {
   const G = 1;
