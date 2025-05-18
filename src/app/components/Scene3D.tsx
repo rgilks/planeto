@@ -75,29 +75,37 @@ const generateBumpMap = (seed: number) => {
   return new THREE.CanvasTexture(canvas);
 };
 
-const CameraAnimator = ({ trigger }: { trigger: number }) => {
+const CameraAnimator = ({
+  trigger,
+  target,
+}: {
+  trigger: number;
+  target: [number, number, number];
+}) => {
   const { camera } = useThree();
   const animRef = useRef<number | null>(null);
-  const target = { x: 0, y: 0, z: 120 };
 
   useEffect(() => {
     let frame = 0;
+    const start = camera.position.clone();
+    const end = new THREE.Vector3(target[0], target[1], target[2] + 60);
+    const lookAtTarget = new THREE.Vector3(...target);
     const animate = () => {
       frame++;
-      camera.position.lerp(target, 0.08);
-      camera.lookAt(0, 0, 0);
-      if (frame < 40) {
+      camera.position.lerpVectors(start, end, Math.min(frame / 60, 1));
+      camera.lookAt(lookAtTarget);
+      if (frame < 60) {
         animRef.current = requestAnimationFrame(animate);
       } else {
-        camera.position.set(target.x, target.y, target.z);
-        camera.lookAt(0, 0, 0);
+        camera.position.copy(end);
+        camera.lookAt(lookAtTarget);
       }
     };
     animRef.current = requestAnimationFrame(animate);
     return () => {
       if (animRef.current) cancelAnimationFrame(animRef.current);
     };
-  }, [trigger]);
+  }, [trigger, target, camera]);
   return null;
 };
 
@@ -105,6 +113,7 @@ const Scene3D = () => {
   const [cameraTrigger, setCameraTrigger] = useState(0);
   const [bumpMaps, setBumpMaps] = useState<THREE.Texture[] | null>(null);
   const [planets, setPlanets] = useState<Planet[]>([]);
+  const [center, setCenter] = useState<[number, number, number]>([0, 0, 0]);
   const planetRefs = useRef<RigidBodyRef[]>([]);
   const allPlanetRefs = useRef<RigidBodyRef[]>([]);
   const allPlanetMasses = useRef<number[]>([]);
@@ -148,7 +157,7 @@ const Scene3D = () => {
         const atmosphereColor = blendColor(
           baseColor,
           "white",
-          0.5 + Math.random() * 0.3,
+          0.5 + Math.random() * 0.3
         );
         return {
           mass,
@@ -163,7 +172,7 @@ const Scene3D = () => {
           hasRing,
           atmosphereColor,
         };
-      }),
+      })
     );
   }, [bumpMaps]);
 
@@ -186,10 +195,11 @@ const Scene3D = () => {
                 y: cur.y - pos.y,
                 z: cur.z - pos.z,
               },
-              true,
+              true
             );
           }
         }
+        setCenter([-pos.x, -pos.y, -pos.z]);
         setCameraTrigger((t) => t + 1);
       }
     };
@@ -233,13 +243,13 @@ const Scene3D = () => {
         }
         ref.current.applyImpulse(
           { x: fx * 0.016, y: fy * 0.016, z: fz * 0.016 },
-          true,
+          true
         );
         // Reposition if too far
         const d = Math.sqrt(
           planetPos.x * planetPos.x +
             planetPos.y * planetPos.y +
-            planetPos.z * planetPos.z,
+            planetPos.z * planetPos.z
         );
         if (d > 150) {
           const newPlanet = planets[i];
@@ -249,7 +259,7 @@ const Scene3D = () => {
               y: newPlanet.position[1],
               z: newPlanet.position[2],
             },
-            true,
+            true
           );
           ref.current.setLinvel(
             {
@@ -257,7 +267,7 @@ const Scene3D = () => {
               y: newPlanet.velocity[1],
               z: newPlanet.velocity[2],
             },
-            true,
+            true
           );
         }
       }
@@ -271,10 +281,10 @@ const Scene3D = () => {
 
   return (
     <Canvas
-      camera={{ position: [0, 0, 120] }}
+      camera={{ position: [center[0], center[1], center[2] + 120] }}
       style={{ width: "100%", height: "100%" }}
     >
-      <CameraAnimator trigger={cameraTrigger} />
+      <CameraAnimator trigger={cameraTrigger} target={center} />
       <ambientLight intensity={0.3} />
       <directionalLight position={[40, 80, 60]} intensity={1.2} castShadow />
       <Physics gravity={[0, 0, 0]}>
