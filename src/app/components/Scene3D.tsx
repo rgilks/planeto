@@ -1,13 +1,7 @@
 import { Canvas, useThree, useFrame } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import { EffectComposer, Bloom } from "@react-three/postprocessing";
-import {
-  useRef,
-  useEffect,
-  createRef,
-  useState,
-  useRef as useReactRef,
-} from "react";
+import { useRef, useEffect, createRef, useState } from "react";
 import { Physics, RigidBody, RapierRigidBody } from "@react-three/rapier";
 import * as THREE from "three";
 import { createNoise2D } from "simplex-noise";
@@ -180,16 +174,20 @@ const generateColorMap = (
 const CameraFollower = ({
   getTarget,
 }: {
-  getTarget: () => { radius: number } | null;
+  getTarget: () => {
+    position: [number, number, number];
+    radius: number;
+  } | null;
 }) => {
   const { camera } = useThree();
   useFrame(() => {
     const target = getTarget();
     if (!target) return;
-    const { radius } = target;
+    const { position, radius } = target;
     const camDist = radius * 8 + 60;
-    camera.position.set(0, 0, camDist);
-    camera.lookAt(0, 0, 0);
+    camera.position.set(position[0], position[1] + camDist, position[2]);
+    camera.up.set(0, 0, 1);
+    camera.lookAt(...position);
   });
   return null;
 };
@@ -200,25 +198,6 @@ const getGeometry = (type: "sphere" | "lowpoly" | "oblate", radius: number) => {
   return <sphereGeometry args={[radius, 32, 32]} />;
 };
 
-const OffsetUpdater = ({
-  planetRefs,
-  centeredIdx,
-  offsetRef,
-}: {
-  planetRefs: React.MutableRefObject<RigidBodyRef[]>;
-  centeredIdx: number;
-  offsetRef: React.MutableRefObject<[number, number, number]>;
-}) => {
-  useFrame(() => {
-    const ref = planetRefs.current[centeredIdx];
-    if (ref?.current) {
-      const pos = ref.current.translation();
-      offsetRef.current = [pos.x, pos.y, pos.z];
-    }
-  });
-  return null;
-};
-
 const Scene3D = () => {
   const [bumpMaps, setBumpMaps] = useState<THREE.Texture[] | null>(null);
   const [planets, setPlanets] = useState<Planet[]>([]);
@@ -226,7 +205,6 @@ const Scene3D = () => {
   const allPlanetRefs = useRef<RigidBodyRef[]>([]);
   const allPlanetMasses = useRef<number[]>([]);
   const [centeredIdx, setCenteredIdx] = useState(0);
-  const offsetRef = useReactRef<[number, number, number]>([0, 0, 0]);
 
   useEffect(() => {
     const maps = [
@@ -479,135 +457,143 @@ const Scene3D = () => {
           intensity={0.35}
         />
       </EffectComposer>
-      <OffsetUpdater
-        planetRefs={planetRefs}
-        centeredIdx={centeredIdx}
-        offsetRef={offsetRef}
-      />
       <CameraFollower
         getTarget={() => {
           const ref = planetRefs.current[centeredIdx];
           if (ref?.current) {
             const planet = planets[centeredIdx];
-            return { radius: planet.radius };
+            const pos = ref.current.translation();
+            if (!pos) return null;
+            return {
+              position: [pos.x, pos.y, pos.z] as [number, number, number],
+              radius: planet.radius,
+            };
           }
           return null;
         }}
       />
-      <directionalLight
-        position={[100, 100, 100]}
-        intensity={6}
-        color={"#fffbe6"}
-        castShadow
-        shadow-mapSize-width={8192}
-        shadow-mapSize-height={8192}
-        shadow-bias={-0.001}
-        shadow-camera-near={1}
-        shadow-camera-far={2000}
-        shadow-camera-left={-1000}
-        shadow-camera-right={1000}
-        shadow-camera-top={1000}
-        shadow-camera-bottom={-1000}
-        target-position={[0, 0, 0]}
-      />
-      <Physics gravity={[0, 0, 0]}>
-        {planets.map((planet, i) => {
-          if (!planetRefs.current[i]) planetRefs.current[i] = createRef();
-          if (!allPlanetRefs.current[i]) allPlanetRefs.current[i] = createRef();
-          allPlanetMasses.current[i] = planet.mass;
-          const isSun = planet.id === "sun";
-          const offset = offsetRef.current || [0, 0, 0];
-          const relPos: [number, number, number] = [
-            planet.position[0] - offset[0],
-            planet.position[1] - offset[1],
-            planet.position[2] - offset[2],
-          ];
-          return (
-            <RigidBody
-              key={planet.id}
-              ref={planetRefs.current[i]}
-              position={relPos}
-              mass={planet.mass}
-              type="dynamic"
-              colliders="ball"
-              linearVelocity={planet.velocity}
-              angularVelocity={planet.angularVelocity}
-              angularDamping={0}
-            >
-              <group>
-                <mesh
-                  castShadow={false}
-                  receiveShadow={false}
-                  scale={isSun ? 1.1 : 1}
-                  renderOrder={999}
-                  visible={isSun}
-                >
-                  {getGeometry(planet.geometryType, planet.radius)}
-                  {isSun ? (
-                    <meshBasicMaterial
-                      color={"#fffbe6"}
-                      transparent
-                      opacity={0.95}
-                    />
-                  ) : (
-                    <meshStandardMaterial
-                      color={"white"}
-                      emissive={planet.color}
-                      emissiveIntensity={0.08}
-                      map={planet.colorMap}
-                      bumpMap={planet.bumpMap}
-                      bumpScale={3.5}
-                      metalness={planet.metalness}
-                      roughness={planet.roughness}
-                    />
-                  )}
-                </mesh>
-                {!isSun &&
-                  planet.atmosphereLayers?.map((layer, idx) => (
-                    <mesh key={idx} castShadow receiveShadow>
-                      <sphereGeometry
-                        args={[planet.radius * layer.scale, 32, 32]}
-                      />
-                      <meshPhysicalMaterial
-                        color={layer.color}
+      <group>
+        <primitive object={new THREE.AxesHelper(50)} position={[0, 0, 0]} />
+        <directionalLight
+          position={[100, 100, 100]}
+          intensity={6}
+          color={"#fffbe6"}
+          castShadow
+          shadow-mapSize-width={8192}
+          shadow-mapSize-height={8192}
+          shadow-bias={-0.001}
+          shadow-camera-near={1}
+          shadow-camera-far={2000}
+          shadow-camera-left={-1000}
+          shadow-camera-right={1000}
+          shadow-camera-top={1000}
+          shadow-camera-bottom={-1000}
+          target-position={[0, 0, 0]}
+        />
+        <Physics gravity={[0, 0, 0]}>
+          {planets.map((planet, i) => {
+            if (!planetRefs.current[i]) planetRefs.current[i] = createRef();
+            if (!allPlanetRefs.current[i])
+              allPlanetRefs.current[i] = createRef();
+            allPlanetMasses.current[i] = planet.mass;
+            const isSun = planet.id === "sun";
+            let curPos = planet.position;
+            const ref = planetRefs.current[i];
+            if (ref?.current) {
+              const p = ref.current.translation();
+              curPos = [p.x, p.y, p.z];
+            }
+            return (
+              <RigidBody
+                key={planet.id}
+                ref={planetRefs.current[i]}
+                position={curPos}
+                mass={planet.mass}
+                type="dynamic"
+                colliders="ball"
+                linearVelocity={planet.velocity}
+                angularVelocity={planet.angularVelocity}
+                angularDamping={0}
+              >
+                <group>
+                  <mesh
+                    castShadow={false}
+                    receiveShadow={false}
+                    scale={isSun ? 1.1 : 1}
+                    renderOrder={999}
+                    visible={isSun}
+                  >
+                    {getGeometry(planet.geometryType, planet.radius)}
+                    {isSun ? (
+                      <meshBasicMaterial
+                        color={"#fffbe6"}
                         transparent
-                        opacity={layer.opacity * 0.5}
-                        transmission={0.7}
-                        thickness={0.4}
-                        roughness={0.7}
-                        metalness={0.08}
-                        depthWrite={false}
-                        blending={
-                          layer.additive
-                            ? THREE.AdditiveBlending
-                            : THREE.NormalBlending
-                        }
+                        opacity={0.95}
+                      />
+                    ) : (
+                      <meshStandardMaterial
+                        color={"white"}
+                        emissive={planet.color}
+                        emissiveIntensity={0.08}
+                        map={planet.colorMap}
+                        bumpMap={planet.bumpMap}
+                        bumpScale={3.5}
+                        metalness={planet.metalness}
+                        roughness={planet.roughness}
+                      />
+                    )}
+                  </mesh>
+                  {!isSun &&
+                    planet.atmosphereLayers?.map((layer, idx) => (
+                      <mesh key={idx} castShadow receiveShadow>
+                        <sphereGeometry
+                          args={[planet.radius * layer.scale, 32, 32]}
+                        />
+                        <meshPhysicalMaterial
+                          color={layer.color}
+                          transparent
+                          opacity={layer.opacity * 0.5}
+                          transmission={0.7}
+                          thickness={0.4}
+                          roughness={0.7}
+                          metalness={0.08}
+                          depthWrite={false}
+                          blending={
+                            layer.additive
+                              ? THREE.AdditiveBlending
+                              : THREE.NormalBlending
+                          }
+                        />
+                      </mesh>
+                    ))}
+                  {!isSun && planet.hasRing && (
+                    <mesh
+                      rotation={[Math.PI / 2, 0, 0]}
+                      castShadow
+                      receiveShadow
+                    >
+                      <ringGeometry
+                        args={[planet.ringInner, planet.ringOuter, 64]}
+                      />
+                      <meshBasicMaterial
+                        color={planet.ringColor}
+                        transparent
+                        opacity={0.38}
+                        side={THREE.DoubleSide}
+                        blending={THREE.AdditiveBlending}
                       />
                     </mesh>
-                  ))}
-                {!isSun && planet.hasRing && (
-                  <mesh rotation={[Math.PI / 2, 0, 0]} castShadow receiveShadow>
-                    <ringGeometry
-                      args={[planet.ringInner, planet.ringOuter, 64]}
-                    />
-                    <meshBasicMaterial
-                      color={planet.ringColor}
-                      transparent
-                      opacity={0.38}
-                      side={THREE.DoubleSide}
-                      blending={THREE.AdditiveBlending}
-                    />
-                  </mesh>
-                )}
-                {!isSun &&
-                  planet.moons?.map((moon, mi) => (
-                    <Moon key={mi} moon={moon} />
-                  ))}
-              </group>
-            </RigidBody>
-          );
-        })}
-      </Physics>
+                  )}
+                  {!isSun &&
+                    planet.moons?.map((moon, mi) => (
+                      <Moon key={mi} moon={moon} />
+                    ))}
+                </group>
+              </RigidBody>
+            );
+          })}
+        </Physics>
+      </group>
       <OrbitControls
         enablePan={false}
         enableDamping
