@@ -40,6 +40,7 @@ type Planet = {
     additive?: boolean;
   }[];
   geometryType: "sphere" | "lowpoly" | "oblate";
+  angularVelocity: [number, number, number];
 };
 
 // Helper to blend two colors
@@ -289,6 +290,17 @@ const Scene3D = () => {
             : Math.random() < 0.3
               ? "oblate"
               : "sphere";
+        const spinMag = 0.1 + Math.random() * (0.7 / radius);
+        const spinAxis = new THREE.Vector3(
+          Math.random(),
+          Math.random(),
+          Math.random(),
+        ).normalize();
+        const angularVelocity = [
+          spinAxis.x * spinMag,
+          spinAxis.y * spinMag,
+          spinAxis.z * spinMag,
+        ] as [number, number, number];
         return {
           mass,
           radius,
@@ -308,6 +320,7 @@ const Scene3D = () => {
           atmosphereColor,
           atmosphereLayers,
           geometryType,
+          angularVelocity,
         };
       })(),
       ...Array.from({ length: N - 1 }).map(() => {
@@ -382,6 +395,17 @@ const Scene3D = () => {
             : Math.random() < 0.18
               ? "oblate"
               : "sphere";
+        const spinMag = 0.1 + Math.random() * (0.7 / radius);
+        const spinAxis = new THREE.Vector3(
+          Math.random(),
+          Math.random(),
+          Math.random(),
+        ).normalize();
+        const angularVelocity = [
+          spinAxis.x * spinMag,
+          spinAxis.y * spinMag,
+          spinAxis.z * spinMag,
+        ] as [number, number, number];
         return {
           mass,
           radius,
@@ -401,6 +425,7 @@ const Scene3D = () => {
           atmosphereColor,
           atmosphereLayers,
           geometryType,
+          angularVelocity,
         };
       }),
     ];
@@ -539,6 +564,7 @@ const Scene3D = () => {
               type="dynamic"
               colliders="ball"
               linearVelocity={planet.velocity}
+              angularVelocity={planet.angularVelocity}
             >
               <group>
                 <mesh>
