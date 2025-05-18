@@ -92,7 +92,7 @@ const randomRadius = () => {
   return Math.pow(
     Math.random() * (Math.pow(max, 1 - alpha) - Math.pow(min, 1 - alpha)) +
       Math.pow(min, 1 - alpha),
-    1 / (1 - alpha)
+    1 / (1 - alpha),
   );
 };
 
@@ -129,7 +129,7 @@ const generateBumpMap = (seed: number) => {
 const generateColorMap = (
   seed: number,
   baseColor: string,
-  altColor: string
+  altColor: string,
 ) => {
   const size = 128;
   const noise2D = createNoise2D(seededRandom(seed));
@@ -311,7 +311,7 @@ const Scene3D = () => {
         const ringColor = blendColor(
           baseColor,
           altColor,
-          0.5 + Math.random() * 0.5
+          0.5 + Math.random() * 0.5,
         );
         const ringInner = radius * (1.2 + Math.random() * 0.2);
         const ringOuter = ringInner + radius * (0.2 + Math.random() * 0.3);
@@ -330,7 +330,7 @@ const Scene3D = () => {
         const atmosphereColor = blendColor(
           baseColor,
           "white",
-          0.5 + Math.random() * 0.3
+          0.5 + Math.random() * 0.3,
         );
         const atmosphereLayers = [
           {
@@ -363,7 +363,7 @@ const Scene3D = () => {
         const spinAxis = new THREE.Vector3(
           Math.random(),
           Math.random(),
-          Math.random()
+          Math.random(),
         ).normalize();
         const angularVelocity = [
           spinAxis.x * spinMag,
@@ -415,7 +415,7 @@ const Scene3D = () => {
                 y: cur.y - pos.y,
                 z: cur.z - pos.z,
               },
-              true
+              true,
             );
           }
         }
@@ -463,13 +463,13 @@ const Scene3D = () => {
         }
         ref.current.applyImpulse(
           { x: fx * 0.016, y: fy * 0.016, z: fz * 0.016 },
-          true
+          true,
         );
         // Reposition if too far
         const d = Math.sqrt(
           planetPos.x * planetPos.x +
             planetPos.y * planetPos.y +
-            planetPos.z * planetPos.z
+            planetPos.z * planetPos.z,
         );
         if (d > 150) {
           const newPlanet = planets[i];
@@ -479,7 +479,7 @@ const Scene3D = () => {
               y: newPlanet.position[1],
               z: newPlanet.position[2],
             },
-            true
+            true,
           );
           ref.current.setLinvel(
             {
@@ -487,7 +487,7 @@ const Scene3D = () => {
               y: newPlanet.velocity[1],
               z: newPlanet.velocity[2],
             },
-            true
+            true,
           );
         }
       }
@@ -513,16 +513,21 @@ const Scene3D = () => {
         />
       </EffectComposer>
       <CameraAnimator trigger={cameraTrigger} target={center} />
-      <pointLight
-        position={[0, 0, 0]}
-        intensity={4}
-        distance={500}
-        decay={2}
+      <directionalLight
+        position={[100, 100, 100]}
+        intensity={6}
         color={"#fffbe6"}
         castShadow
-        shadow-mapSize-width={4096}
-        shadow-mapSize-height={4096}
+        shadow-mapSize-width={8192}
+        shadow-mapSize-height={8192}
         shadow-bias={-0.001}
+        shadow-camera-near={1}
+        shadow-camera-far={2000}
+        shadow-camera-left={-1000}
+        shadow-camera-right={1000}
+        shadow-camera-top={1000}
+        shadow-camera-bottom={-1000}
+        target-position={[0, 0, 0]}
       />
       <Physics gravity={[0, 0, 0]}>
         {planets.map((planet, i) => {
@@ -544,9 +549,11 @@ const Scene3D = () => {
             >
               <group>
                 <mesh
-                  castShadow={!isSun}
-                  receiveShadow={!isSun}
+                  castShadow={false}
+                  receiveShadow={false}
                   scale={isSun ? 1.1 : 1}
+                  renderOrder={999}
+                  visible={isSun}
                 >
                   {getGeometry(planet.geometryType, planet.radius)}
                   {isSun ? (
