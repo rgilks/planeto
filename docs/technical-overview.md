@@ -33,7 +33,7 @@ Planeto is a modern, interactive 3D planetary system simulation. All bodies are 
 
 ## Extending
 
-- To add more planets, update the `planetConfigs` array in `Scene3D.tsx`.
+- To add more planets, update the planet generation logic in `Scene3D.tsx`.
 
 ## Future Directions
 
