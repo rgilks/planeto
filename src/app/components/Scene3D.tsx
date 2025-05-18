@@ -21,6 +21,7 @@ type Planet = {
   roughness: number;
   hasRing: boolean;
   atmosphereColor: string;
+  atmosphereLayers: { color: string; opacity: number; scale: number }[];
 };
 
 // Helper to blend two colors
@@ -66,7 +67,16 @@ const generateBumpMap = (seed: number) => {
     for (let x = 0; x < size; x++) {
       const nx = x / size - 0.5;
       const ny = y / size - 0.5;
-      const n = noise2D(nx * 4, ny * 4);
+      // Multi-octave noise for richer features
+      let n = 0;
+      let amp = 1;
+      let freq = 1;
+      for (let o = 0; o < 4; o++) {
+        n += amp * noise2D(nx * freq * 4, ny * freq * 4);
+        amp *= 0.5;
+        freq *= 2;
+      }
+      n = n / 2;
       const v = Math.floor((n + 1) * 0.5 * 255);
       ctx.fillStyle = `rgb(${v},${v},${v})`;
       ctx.fillRect(x, y, 1, 1);
@@ -142,23 +152,32 @@ const Scene3D = () => {
         const vx = -vMag * Math.sin(angle);
         const vy = vMag * Math.cos(angle);
         const vz = 0;
-        // Procedural color variation
         const noise2D = createNoise2D(seededRandom(Math.random() * 10000));
         const band = Math.abs(noise2D(Math.sin(angle), Math.cos(angle)));
         const baseColor = randomColor();
         const altColor = randomColor();
         const color = blendColor(baseColor, altColor, band * 0.7);
-        // Random metalness/roughness
         const metalness = Math.random() * 0.5 + 0.1;
         const roughness = Math.random() * 0.5 + 0.3;
-        // Randomly add a ring
         const hasRing = Math.random() < 0.12;
-        // Random atmosphere color
         const atmosphereColor = blendColor(
           baseColor,
           "white",
           0.5 + Math.random() * 0.3
         );
+        // Multi-layered atmospheres
+        const atmosphereLayers = [
+          {
+            color: atmosphereColor,
+            opacity: 0.18 + Math.random() * 0.12,
+            scale: 1.08 + Math.random() * 0.04,
+          },
+          {
+            color: blendColor(atmosphereColor, "white", 0.5),
+            opacity: 0.08 + Math.random() * 0.07,
+            scale: 1.13 + Math.random() * 0.06,
+          },
+        ];
         return {
           mass,
           radius,
@@ -171,6 +190,9 @@ const Scene3D = () => {
           roughness,
           hasRing,
           atmosphereColor,
+          atmosphereLayers,
+        } as Planet & {
+          atmosphereLayers: { color: string; opacity: number; scale: number }[];
         };
       })
     );
@@ -302,18 +324,37 @@ const Scene3D = () => {
               colliders="ball"
               linearVelocity={planet.velocity}
             >
-              <mesh>
-                <sphereGeometry args={[planet.radius, 32, 32]} />
-                <meshStandardMaterial
-                  color={planet.color}
-                  emissive={planet.color}
-                  emissiveIntensity={0.1}
-                  bumpMap={planet.bumpMap}
-                  bumpScale={3}
-                  metalness={planet.metalness}
-                  roughness={planet.roughness}
-                />
-              </mesh>
+              <group>
+                <mesh>
+                  <sphereGeometry args={[planet.radius, 32, 32]} />
+                  <meshStandardMaterial
+                    color={planet.color}
+                    emissive={planet.color}
+                    emissiveIntensity={0.35}
+                    bumpMap={planet.bumpMap}
+                    bumpScale={3}
+                    metalness={planet.metalness}
+                    roughness={planet.roughness}
+                  />
+                </mesh>
+                {planet.atmosphereLayers?.map((layer, idx) => (
+                  <mesh key={idx}>
+                    <sphereGeometry
+                      args={[planet.radius * layer.scale, 32, 32]}
+                    />
+                    <meshPhysicalMaterial
+                      color={layer.color}
+                      transparent
+                      opacity={layer.opacity}
+                      transmission={0.8}
+                      thickness={0.5}
+                      roughness={0.7}
+                      metalness={0.1}
+                      depthWrite={false}
+                    />
+                  </mesh>
+                ))}
+              </group>
             </RigidBody>
           );
         })}
