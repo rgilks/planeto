@@ -20,6 +20,7 @@
     "@dimforge/rapier3d-compat": "^0.17.0",
     "@react-three/drei": "^10.0.8",
     "@react-three/fiber": "^9.1.2",
+    "@react-three/postprocessing": "^3.0.4",
     "@react-three/rapier": "^2.1.0",
     "better-sqlite3": "^11.9.1",
     "immer": "^10.1.1",
