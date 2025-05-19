@@ -8,8 +8,8 @@ const IRIS_COLOR = "#4a90e2";
 const PUPIL_COLOR = "#111";
 const SCLERA_COLOR = "#fff";
 const EYE_RADIUS = 20;
-const IRIS_RADIUS = 6;
-const PUPIL_RADIUS = 2.5;
+const IRIS_RADIUS = 7;
+const PUPIL_RADIUS = 3.5;
 
 export const RemoteEyes = ({ myId }: { myId: string }) => {
   const refs = useRef<Record<string, Mesh | Group>>({});
@@ -66,12 +66,12 @@ export const RemoteEyes = ({ myId }: { myId: string }) => {
       const iris = irisRefs.current[id];
       const pupil = pupilRefs.current[id];
       if (iris && pupil) {
-        // Direction from eye to sun
         const eyePos = m.position;
         const toSun = sun.clone().sub(eyePos).normalize();
-        // Place iris and pupil on the surface, slightly offset for layering
-        iris.position.copy(toSun.clone().multiplyScalar(EYE_RADIUS - 2));
+        iris.position.copy(toSun.clone().multiplyScalar(EYE_RADIUS - 1.2));
+        iris.lookAt(eyePos.clone().add(toSun));
         pupil.position.copy(toSun.clone().multiplyScalar(EYE_RADIUS - 0.5));
+        pupil.lookAt(eyePos.clone().add(toSun));
       }
     }
   });
@@ -100,7 +100,7 @@ export const RemoteEyes = ({ myId }: { myId: string }) => {
                 if (el) irisRefs.current[id] = el;
               }}
             >
-              <sphereGeometry args={[IRIS_RADIUS, 24, 24]} />
+              <circleGeometry args={[IRIS_RADIUS, 32]} />
               <meshStandardMaterial
                 color={IRIS_COLOR}
                 roughness={0.2}
@@ -112,7 +112,7 @@ export const RemoteEyes = ({ myId }: { myId: string }) => {
                 if (el) pupilRefs.current[id] = el;
               }}
             >
-              <sphereGeometry args={[PUPIL_RADIUS, 16, 16]} />
+              <circleGeometry args={[PUPIL_RADIUS, 32]} />
               <meshStandardMaterial
                 color={PUPIL_COLOR}
                 roughness={0.1}
