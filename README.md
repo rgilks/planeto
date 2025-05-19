@@ -50,7 +50,7 @@ Open your portal: [http://localhost:3000](http://localhost:3000)
 Behold the lattice of the void, where every glyph and watcher finds its place:
 
 ```mermaid
-flowchart TD
+flowchart LR
     A[planeto/] --> B[src/]
     B --> C[app/]
     C --> C1[api/]
@@ -71,42 +71,6 @@ flowchart TD
     D --> D1[domain/keyboard.ts]
     D --> D2[sseStore.ts]
     D --> D3[store/keyboardStore.ts]
-    A --> E[docs/]
-    E --> E1[e2e-testing.md]
-    E --> E2[keyboard-input.md]
-    E --> E3[physics-simulation.md]
-    E --> E4[sun-rendering.md]
-    E --> E5[technical-overview.md]
-    A --> F[public/]
-    F --> F1[screenshot.png]
-    F --> F2[eye.jpg]
-    F --> F3[globe.svg]
-    F --> F4[next.svg]
-    F --> F5[vercel.svg]
-    F --> F6[window.svg]
-    F --> F7[file.svg]
-    A --> G[screenshots/]
-    G --> G1[snapshot.png]
-    G --> G2[solarsystem-snapshot.png]
-    A --> H[tests/]
-    H --> H1[example.spec.ts]
-    H --> H2[visual-snapshot.spec.ts]
-    A --> I[.github/]
-    A --> J[.next/]
-    A --> K[node_modules/]
-    A --> L[test-results/]
-    A --> M[playwright-report/]
-    A --> N[.gitignore]
-    A --> O[eslint.config.mjs]
-    A --> P[next-env.d.ts]
-    A --> Q[next.config.ts]
-    A --> R[package-lock.json]
-    A --> S[package.json]
-    A --> T[playwright.config.ts]
-    A --> U[postcss.config.mjs]
-    A --> V[README.md]
-    A --> W[tsconfig.json]
-    A --> X[tsconfig.tsbuildinfo]
 ```
 
 _The void is deep. The structure is ever-shifting, but this is its current form._
