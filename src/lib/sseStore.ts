@@ -14,6 +14,7 @@ export const setCamera = (id: string, p?: Vec3) => {
   if (p) {
     const msg: CameraMessage = { id, p, t: Date.now() };
     cameras.set(id, msg);
+    console.log("setCamera: position", msg);
     broadcast(msg);
     return;
   }
@@ -21,6 +22,9 @@ export const setCamera = (id: string, p?: Vec3) => {
   if (cam) {
     cam.t = Date.now();
     cameras.set(id, cam);
+    console.log("setCamera: ping, updated timestamp for", id);
+  } else {
+    console.log("setCamera: ping for unknown id", id);
   }
 };
 
