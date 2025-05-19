@@ -378,6 +378,7 @@ const Scene3D = () => {
           continue;
         const planetPos = ref.current.translation();
         if (!planetPos) continue;
+        if (planets[i].id === "sun") continue;
         let fx = 0,
           fy = 0,
           fz = 0;
@@ -481,7 +482,7 @@ const Scene3D = () => {
                 ref={planetRefs.current[i]}
                 position={curPos}
                 mass={planet.mass}
-                type="dynamic"
+                type={isSun ? "fixed" : "dynamic"}
                 colliders="ball"
                 linearVelocity={planet.velocity}
                 angularVelocity={planet.angularVelocity}
