@@ -1,0 +1,47 @@
+app = 'planeto'
+primary_region = 'lhr'
+
+[build]
+
+[http_service]
+internal_port = 3000
+force_https = true
+auto_stop_machines = 'stop'
+auto_start_machines = true
+min_machines_running = 0
+max_machines_running = 1
+processes = ['app']
+
+[[vm]]
+memory = '256mb'
+cpu_kind = 'shared'
+cpus = 1
+
+# Add health check for the service
+[[services]]
+protocol = "tcp"
+internal_port = 3000
+processes = ["app"]
+
+[[services.ports]]
+port = 80
+handlers = ["http"]
+force_https = true
+
+[[services.ports]]
+port = 443
+handlers = ["tls", "http"]
+
+[[services.http_checks]]
+interval = "10s"
+timeout = "2s"
+method = "GET"
+path = "/"
+grace_period = "5s"
+# For SSE, ensure your app responds with 200 on the health check path
+# even if SSE connections are active on other paths.
+
+[services.concurrency]
+# type = "connections" # or "requests"
+# hard_limit = 25 # Default, adjust if needed for SSE
+# soft_limit = 20 # Default, adjust if needed for SSE

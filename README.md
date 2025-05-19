@@ -157,3 +157,48 @@ This project uses Server-Sent Events (SSE) to share camera positions and game ev
 - **Server-Side Logic**: The server manages lists of active cameras and event subscribers, efficiently broadcasting updates only when necessary.
 
 For a detailed technical explanation of the real-time architecture and bandwidth optimization strategies, please see [`docs/realtime-communication.md`](./docs/realtime-communication.md).
+
+## Deployment on Fly.io
+
+This application can be deployed to Fly.io using the provided `Dockerfile` and `fly.toml` configuration.
+
+### Prerequisites
+
+1.  Install `flyctl`: Follow the instructions at [https://fly.io/docs/hands-on/install-flyctl/](https://fly.io/docs/hands-on/install-flyctl/).
+2.  Login to Fly: Run `fly auth login`.
+
+### Initial Deployment
+
+1.  **Launch the app on Fly.io (if you haven't already):**
+
+    ```sh
+    fly launch
+    ```
+
+    - Choose an app name (e.g., `planeto`).
+    - Select your organization and a region.
+    - **IMPORTANT**: Say "No" when asked to set up a Postgres database or Redis, as this application does not require them.
+    - A `fly.toml` file will be generated. The provided `fly.toml` in this repository is configured for cost-effectiveness (small machine, auto-stop/start).
+
+2.  **Deploy your application:**
+    ```sh
+    fly deploy
+    ```
+
+### Subsequent Deployments
+
+After making changes to your application, simply run:
+
+```sh
+fly deploy
+```
+
+Fly.io will use the `Dockerfile` to build and deploy your updated application.
+
+### Monitoring
+
+- View logs: `fly logs -a <your-app-name>`
+- Open your deployed app: `fly apps open -a <your-app-name>`
+- Access the Fly.io dashboard for more detailed monitoring.
+
+For more detailed deployment and configuration information, see `docs/deployment-flyio.md`.
