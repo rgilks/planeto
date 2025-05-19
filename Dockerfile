@@ -25,25 +25,29 @@ WORKDIR /app
 
 ENV NODE_ENV production
 ENV NEXT_TELEMETRY_DISABLED 1
+ENV PORT 3000
+ENV HOSTNAME 0.0.0.0 # Explicitly set hostname to listen on all interfaces
 
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-COPY --from=builder --chown=nextjs:nodejs /app/.next ./.next
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/package.json ./package.json
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/next.config.ts ./next.config.ts
+# Copy package.json, as it might be needed by some modules at runtime or for specific Next.js features.
+COPY --from=builder --chown=nextjs:nodejs /app/package.json ./package.json
 
-# Automatically leverage output traces to reduce image size
-# https://nextjs.org/docs/advanced-features/output-file-tracing
+# Copy the full node_modules from the builder stage.
+# This ensures all dependencies, including native ones that might not be fully traced
+# by the standalone output, are present. This is a common fix for native module issues.
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules ./node_modules
+
+# Copy the standalone output. This includes server.js and expects associated files
+# (like .next/static and public) to be relative to it, which this copy achieves.
+# If standalone itself includes a node_modules, it might overwrite parts of the above copy,
+# but this is generally fine as server.js is built for the standalone structure.
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
 USER nextjs
 
 EXPOSE 3000
 
-ENV PORT 3000
-
+# server.js is now in /app/server.js from the standalone copy
 CMD ["node", "server.js"] 
