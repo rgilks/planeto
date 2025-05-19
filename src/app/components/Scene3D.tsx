@@ -574,6 +574,8 @@ const Scene3D = () => {
         dampingFactor={0.05}
         rotateSpeed={0.4}
         zoomSpeed={0.4}
+        minDistance={40}
+        maxDistance={400}
         onStart={() => {}}
         onEnd={() => {}}
       />
