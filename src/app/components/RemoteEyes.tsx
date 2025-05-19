@@ -1,5 +1,5 @@
 "use client";
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Mesh, Vector3, Group } from "three";
 import { useRemoteCameras } from "./useRemoteCameras";
@@ -7,18 +7,28 @@ import { useRemoteCameras } from "./useRemoteCameras";
 export const RemoteEyes = ({ myId }: { myId: string }) => {
   const refs = useRef<Record<string, Mesh | Group>>({});
   const cams = useRemoteCameras();
-  const tempVec = useRef(new Vector3());
-  const [lastUpdate, setLastUpdate] = useState(0);
+  const targets = useRef<Record<string, Vector3>>({});
+  const [, setTick] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      for (const [id, p] of cams) {
+        if (id === myId) continue;
+        if (!targets.current[id]) targets.current[id] = new Vector3(...p);
+        else targets.current[id].set(p[0], p[1], p[2]);
+      }
+      setTick((t) => t + 1);
+    }, 2000);
+    return () => clearInterval(interval);
+  }, [cams, myId]);
 
   useFrame(() => {
-    const now = performance.now();
-    if (now - lastUpdate < 2000) return;
-    setLastUpdate(now);
-    for (const [id, p] of cams) {
+    for (const [id] of cams) {
       if (id === myId) continue;
       const m = refs.current[id];
-      if (!m) continue;
-      m.position.lerp(tempVec.current.set(p[0], p[1], p[2]), 0.2);
+      const target = targets.current[id];
+      if (!m || !target) continue;
+      m.position.lerp(target, 0.2);
     }
   });
 
@@ -30,7 +40,7 @@ export const RemoteEyes = ({ myId }: { myId: string }) => {
           <group
             key={id}
             ref={(el) => el && (refs.current[id] = el)}
-            position={[p[0], p[1], p[2]]}
+            position={p}
           >
             <mesh>
               <boxGeometry args={[20, 20, 20]} />
