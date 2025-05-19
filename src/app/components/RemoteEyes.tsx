@@ -1,10 +1,8 @@
 "use client";
 import { Text } from "@react-three/drei";
 import { useFrame, useLoader } from "@react-three/fiber";
-import { useRef, useEffect } from "react";
-import { useMemo } from "react";
-import { Mesh, Vector3, Group } from "three";
-import { TextureLoader, ShaderMaterial } from "three";
+import { useRef, useEffect, useMemo } from "react";
+import { Mesh, Vector3, Group, TextureLoader, ShaderMaterial } from "three";
 
 import { useKeyboardStore } from "../../lib/store/keyboardStore";
 
@@ -38,7 +36,7 @@ const fragmentShader = `
   void main() {
     vec2 uv = normalize(vNormal).xy * 0.5 + 0.5;
     vec3 color = texture2D(tex, uv).rgb;
-    if (vNormal.z < -0.85) color = vec3(0.777, 0.74, 0.74);
+    if (vNormal.z < -0.85) color = vec3(0.777, 0.74, 0.74); // Pupil color part
     gl_FragColor = vec4(color, 1.0);
   }
 `;
@@ -64,27 +62,21 @@ export const RemoteEyes = ({ myId }: { myId: string }) => {
   useEffect(() => {
     const camIds = new Set(cams.map(([id]) => id));
 
-    // Remove targets for cameras that no longer exist
     for (const id in targets.current) {
       if (!camIds.has(id)) {
         delete targets.current[id];
       }
     }
 
-    // Remove refs for cameras that no longer exist
     for (const id in refs.current) {
       if (!camIds.has(id)) {
         delete refs.current[id];
       }
     }
 
-    // Update or create targets for current cameras
     for (const [id, p] of cams) {
       if (id === myId) continue;
       if (!targets.current[id]) {
-        // If it's a new eye, set its initial position directly for refs.current
-        // to avoid lerping from [0,0,0] if the ref was just created.
-        // The target will also be set for future lerping.
         targets.current[id] = new Vector3(...p);
         if (refs.current[id]) {
           refs.current[id].position.set(p[0], p[1], p[2]);
@@ -93,8 +85,6 @@ export const RemoteEyes = ({ myId }: { myId: string }) => {
         targets.current[id].set(p[0], p[1], p[2]);
       }
     }
-    // setTick((t) => t + 1); // No longer need to force re-render with setTick here
-    // The component will re-render if `cams` itself changes, which triggers this effect.
   }, [cams, myId]);
 
   useFrame(() => {

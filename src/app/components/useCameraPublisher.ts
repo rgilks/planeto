@@ -36,7 +36,6 @@ export const useCameraPublisher = (id: string) => {
       ];
       const currentPositionRounded = roundVec3(currentPositionRaw);
 
-      // Only send if the rounded position has changed
       if (!areVec3sEqual(lastSentPositionRef.current, currentPositionRounded)) {
         const payload = {
           id,
@@ -47,30 +46,12 @@ export const useCameraPublisher = (id: string) => {
           JSON.stringify(payload),
         );
         if (ok === false) {
-          // console.warn(
-          //   `sendBeacon for position update failed for id: ${id}, skipping update`,
-          // );
+          // Potential place for a non-console error reporting in the future
         }
         lastSentPositionRef.current = currentPositionRounded;
-      } else {
-        // Position hasn't changed significantly.
-        // Optionally, send a "ping" to keep the camera alive on the server
-        // This ping ensures the timestamp 't' is updated in sseStore.
-        // We should also rate-limit these pings if we add them.
-        // For now, we rely on purgeStale to remove idle cameras.
-        // If a camera becomes active again, it will send its position.
-        // To send a ping:
-        /*
-        const pingPayload = { id };
-        const ok = navigator.sendBeacon?.("/api/camera", JSON.stringify(pingPayload));
-        if (ok === false) {
-          // console.warn(`sendBeacon for ping failed for id: ${id}`);
-        }
-        */
       }
     }, INTERVAL_MS);
 
-    // Send initial position once on mount
     const initialPositionRaw: [number, number, number] = [
       camera.position.x,
       camera.position.y,
@@ -86,9 +67,6 @@ export const useCameraPublisher = (id: string) => {
 
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
-      // Optionally, send a final "disconnect" or "cleanup" message
-      // For example, to explicitly remove the camera from the server:
-      // navigator.sendBeacon?.("/api/camera/disconnect", JSON.stringify({ id }));
     };
-  }, [id, camera]); // Keep camera in dependencies if its instance can change
+  }, [id, camera]);
 };

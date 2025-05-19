@@ -51,7 +51,6 @@ type Planet = {
   angularVelocity: [number, number, number];
 };
 
-// Helper to blend two colors
 const blendColor = (color1: string, color2: string, t: number) => {
   const c1 = new THREE.Color(color1);
   const c2 = new THREE.Color(color2);
@@ -83,7 +82,6 @@ const randomColor = () => {
   return colors[Math.floor(Math.random() * colors.length)];
 };
 
-// Simple seeded random function
 const seededRandom = (seed: number) => {
   let x = Math.sin(seed) * 10000;
   return () => {
@@ -472,7 +470,6 @@ const Scene3D = () => {
     return () => cancelAnimationFrame(frame);
   }, [planets]);
 
-  // Randomize initial camera position
   const randomCameraPos = () => {
     const r = 80 + Math.random() * 80;
     const theta = Math.random() * 2 * Math.PI;

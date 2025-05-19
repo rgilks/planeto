@@ -12,7 +12,7 @@ export const POST = async (req: NextRequest) => {
   let payload;
   try {
     payload = await req.json();
-  } catch /* (error) */ {
+  } catch {
     return NextResponse.json(
       { error: "Invalid JSON payload" },
       { status: 400 },
