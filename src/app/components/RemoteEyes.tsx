@@ -6,7 +6,7 @@ import { useRemoteCameras } from "./useRemoteCameras";
 import { TextureLoader, ShaderMaterial } from "three";
 import { useMemo } from "react";
 
-const EYE_RADIUS = 4;
+const EYE_RADIUS = 8;
 const SUN_POS = new Vector3(0, 0, 0);
 
 const vertexShader = `
