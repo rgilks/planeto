@@ -74,3 +74,7 @@ MIT
 ## Technical Notes
 
 - The camera is now fixed in position and does not follow any object.
+
+## Camera Position Updates
+
+Camera positions are now lerped smoothly towards their targets and updates are published every 2 seconds. Remote camera positions are also updated and lerped every 2 seconds for smooth transitions.

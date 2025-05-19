@@ -1,5 +1,5 @@
 "use client";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Mesh, Vector3, Group } from "three";
 import { useRemoteCameras } from "./useRemoteCameras";
@@ -8,8 +8,12 @@ export const RemoteEyes = ({ myId }: { myId: string }) => {
   const refs = useRef<Record<string, Mesh | Group>>({});
   const cams = useRemoteCameras();
   const tempVec = useRef(new Vector3());
+  const [lastUpdate, setLastUpdate] = useState(0);
 
   useFrame(() => {
+    const now = performance.now();
+    if (now - lastUpdate < 2000) return;
+    setLastUpdate(now);
     for (const [id, p] of cams) {
       if (id === myId) continue;
       const m = refs.current[id];
