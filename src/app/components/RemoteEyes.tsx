@@ -6,6 +6,7 @@ import { useRemoteCameras } from "./useRemoteCameras";
 import { TextureLoader } from "three";
 
 const EYE_RADIUS = 20;
+const SUN_POS = new Vector3(0, 0, 0);
 
 export const RemoteEyes = ({ myId }: { myId: string }) => {
   const refs = useRef<Record<string, Mesh | Group>>({});
@@ -51,6 +52,7 @@ export const RemoteEyes = ({ myId }: { myId: string }) => {
       const target = targets.current[id];
       if (!m || !target) continue;
       m.position.lerpVectors(m.position, target, lerpFactor);
+      m.lookAt(SUN_POS);
     }
   });
 
@@ -67,10 +69,13 @@ export const RemoteEyes = ({ myId }: { myId: string }) => {
           >
             <mesh>
               <sphereGeometry args={[EYE_RADIUS, 32, 32]} />
-              <meshStandardMaterial
+              <meshPhysicalMaterial
                 map={eyeTexture}
-                roughness={0.4}
-                metalness={0.1}
+                roughness={0.5}
+                metalness={0.05}
+                clearcoat={0.5}
+                clearcoatRoughness={0.2}
+                reflectivity={0.2}
               />
             </mesh>
           </group>

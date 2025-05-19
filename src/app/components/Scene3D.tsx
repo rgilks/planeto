@@ -422,6 +422,7 @@ const Scene3D = () => {
         style={{ width: "100%", height: "100%" }}
       >
         <color attach="background" args={["#000"]} />
+        <ambientLight intensity={0.08} />
         <mesh>
           <sphereGeometry args={[1, 16, 16]} />
           <meshStandardMaterial color="gray" />
@@ -445,6 +446,7 @@ const Scene3D = () => {
         />
       </EffectComposer>
       <group>
+        <ambientLight intensity={0.08} />
         <RemoteEyes myId={myId.current} />
         <directionalLight
           position={[100, 100, 100]}
