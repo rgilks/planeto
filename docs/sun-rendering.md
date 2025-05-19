@@ -1,5 +1,19 @@
-# Sun Rendering
+# The Luminous Anomaly
 
-The sun in Planeto is rendered as a large, bright sphere at the center of the system. Its appearance is controlled by the material and geometry settings in `Scene3D.tsx` using React Three Fiber and Drei. The sun's color, size, and emissive properties can be adjusted in the planet generation logic in `Scene3D.tsx`.
+> In the heart of the void, a sphere burns. It is not a sun, but a beacon. The planetoids drift around it, bathed in its shifting light.
 
-If you want to customize the sun's appearance, edit the relevant section in `Scene3D.tsx`.
+## The Anomaly's Place
+
+```mermaid
+flowchart TD
+    A[The Luminous Anomaly] -- radiance --> B[Planetoids]
+    B -- drift --> A
+    C[Watcher] -- gazes --> A
+    C -- gazes --> B
+```
+
+## The Rendering
+
+- The anomaly is conjured as a bright sphere in `Scene3D.tsx`.
+- Its color, size, and glow are set in the genesis logic.
+- To alter its appearance, change the relevant lines in `Scene3D.tsx`.

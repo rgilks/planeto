@@ -1,23 +1,29 @@
-# Keyboard Input Display
+# Glyphic Exchange
 
-## Overview
+> The watcher presses a key. A glyph is conjured, emerald and strange. It appears in the portal, and is seen by all other eyes in the void.
 
-When a user presses a key, a large green symbol (from a custom set of weird symbols) appears in the bottom-right corner of the app. This symbol is mapped from the key pressed and is not the literal key. Only remote users' symbols are shown above their eyes in the 3D scene.
+## The Ritual of Glyphs
 
-## Implementation
+- When a watcher presses a key, it is mapped to a symbol from an alien alphabet.
+- The glyph appears in the bottom-right portal, vast and green.
+- Only the glyphs of other eyes are seen in the void; your own glyph is for your gaze alone.
+- Glyphs are broadcast instantly to all who watch.
 
-- **Domain Model:**
-  - `src/lib/domain/keyboard.ts` defines a Zod schema for keyboard input.
-- **State Management:**
-  - `src/lib/store/keyboardStore.ts` uses Zustand and immer to store the last key pressed and remote key events.
-- **UI:**
-  - `src/app/components/KeyboardDisplay.tsx` displays the mapped symbol in green in the bottom-right.
-  - `src/app/components/RemoteEyes.tsx` displays remote users' symbols above their eyes in the 3D scene.
-- **Event Handling:**
-  - `src/app/page.tsx` attaches a global keyboard event listener and updates the store.
-  - Keyboard events are broadcast to all players and received in real time.
+## The Flow of Glyphs
 
-## Extending
+```mermaid
+flowchart TD
+    A[Watcher] -- presses key --> B[Key Event]
+    B -- mapped to glyph --> C[Green Symbol]
+    C -- appears --> D[Bottom Right Portal]
+    B -- broadcast --> E[Other Watchers]
+    E -- see glyph --> F[Above Remote Eyes]
+```
 
-- To change the symbol set, edit the `SYMBOLS` array in `KeyboardDisplay.tsx` and `RemoteEyes.tsx`.
-- To style differently, edit the respective components.
+## The Runes
+
+- State: Zustand (`src/lib/store/keyboardStore.ts`)
+- Schema: Zod (`src/lib/domain/keyboard.ts`)
+- Ritual: `src/app/page.tsx`
+- Manifestation: `src/app/components/KeyboardDisplay.tsx` (your glyph), `src/app/components/RemoteEyes.tsx` (others' glyphs)
+- To alter the glyphs or their color, change the relevant components.

@@ -1,41 +1,36 @@
-# End-to-End (E2E) Testing Strategy
+# End-to-End Omens
 
-This document outlines the end-to-end testing strategy for the Planeto project, utilizing Playwright.
+> The watcher must be vigilant. Rituals are performed to ensure the void remains unbroken. Omens are read in the glyphs and the cluster's dance.
 
-## Overview
+## The Ritual
 
-E2E tests ensure the application behaves as expected from a user's perspective. They simulate real user scenarios by interacting with the application's UI in a browser.
+- Playwright is the oracle, revealing what the watcher sees.
+- Ritual scripts are found in `tests/`.
+- The portal is opened, the omens are read, and the void is checked for corruption.
 
-We use Playwright for E2E testing due to its robust features, cross-browser support, and developer-friendly API.
+## The Flow of Omens
 
-## Configuration
+```mermaid
+flowchart TD
+    A[Watcher] -- invokes --> B[Playwright]
+    B -- runs --> C[tests/]
+    C -- interacts --> D[The Void]
+    D -- responds --> C
+    C -- results --> B
+    B -- omens --> A
+```
 
-Playwright is configured in `playwright.config.ts`:
+## Ritual Scripts
 
-- **Reporters**: `html` for manual inspection, `json` for structured output and debugging.
-- **`testDir`**: Tests are in the `./tests` directory.
-- **`baseURL`**: Set to `http://localhost:3000`.
-- **`webServer`**: Playwright launches the dev server before tests run and shuts it down afterwards.
+- `npm run test:e2e`: Invoke all omens.
+- `npm run test:e2e:watch`: Watch the void for changes, omens appear as they arise.
 
-## Writing Tests
+## Reading the Omens
 
-Tests are written in TypeScript (`.spec.ts` files) within the `tests` directory. We follow Playwright's best practices:
+- The HTML report (`npx playwright show-report`) reveals visions.
+- The JSON report is for those who read the glyphs in code.
 
-- Use web-first assertions and auto-waiting.
-- Prefer user-visible locators like roles, text, and test IDs.
-- Keep tests focused and independent.
+## Future Omens
 
-## Running Tests
-
-- `npm run test:e2e`: Runs all E2E tests.
-- `npm run test:e2e:watch`: Runs E2E tests in watch mode.
-
-## Debugging
-
-- Use the HTML report (`npx playwright show-report`) for visual inspection.
-- Use the JSON report for structured debugging.
-
-## Future Enhancements
-
-- Visual regression testing.
-- CI integration.
+- Visual regression: to see if the void has shifted.
+- CI integration: to ensure the void is always watched.

@@ -8,25 +8,25 @@
   <a href='https://ko-fi.com/N4N31DPNUS' target='_blank'><img height='36' style='border:0px;height:36px;' src='https://storage.ko-fi.com/cdn/kofi2.png?v=6' border='0' alt='Buy Me a Coffee at ko-fi.com' /></a>
 </div>
 
-Planeto is a Next.js application that visualizes a simple planetary system in 3D. All bodies are simulated as planets with real-time gravity and collisions using the Rapier physics engine. The scene is rendered with React Three Fiber.
+> In the void, a cluster of planetoids drifts. Disembodied eyes hover, exchanging cryptic emerald glyphs. No sun, no orbit, only the silent gaze and the endless, shifting dance of matter and symbol.
 
 ## Features
 
-- Physics-based planetary motion
-- Procedural planet textures
-- Dynamic sun rendering
-- Type-safe domain model for planets and keyboard events using Zod
-- Camera controls (zoom, rotate) with OrbitControls
-- Multiplayer keyboard event broadcasting and visualization
+- Esoteric planetoid cluster, ever-evolving
+- Disembodied eyes, each a silent watcher
+- Glyphic communication: green symbols flicker between entities
+- Procedural textures and shifting forms
+- Arcane controls: zoom, rotate, peer deeper
+- Multiplayer: your glyphs are seen by other eyes, and theirs by you
+- Immutable domain, defined by Zod
 
-## Physics & Orbits
+## The Dance of Matter
 
-- All planets are simulated as dynamic rigid bodies
-- Gravity is applied between every pair of planets (N-body)
-- Planets are given initial velocities to create orbital motion
-- Collisions are handled by Rapier, so planets can bounce off each other
+- All bodies drift, collide, and influence each other in the void
+- Gravity is a hidden hand, unseen but ever-present
+- Collisions are rare, but when they occur, the cluster shudders
 
-## Tech Stack
+## The Stack of Rituals
 
 - Next.js (App Router, TypeScript)
 - React Three Fiber (@react-three/fiber)
@@ -35,61 +35,112 @@ Planeto is a Next.js application that visualizes a simple planetary system in 3D
 - Zod (domain model)
 - Zustand (state management)
 
-## Getting Started
+## To Enter the World
 
 ```sh
 npm install
 npm run dev
 ```
 
-Visit [http://localhost:3000](http://localhost:3000) to view the simulation.
+Open your portal: [http://localhost:3000](http://localhost:3000)
 
-## Project Structure
+## The Structure of the Void
 
+Behold the lattice of the void, where every glyph and watcher finds its place:
+
+```mermaid
+flowchart TD
+    A[planeto/] --> B[src/]
+    B --> C[app/]
+    C --> C1[api/]
+    C1 --> C11[camera/route.ts]
+    C1 --> C12[events/route.ts]
+    C1 --> C13[game-events/route.ts]
+    C --> C2[components/]
+    C2 --> C21[KeyboardDisplay.tsx]
+    C2 --> C22[RemoteEyes.tsx]
+    C2 --> C23[Scene3D.tsx]
+    C2 --> C24[useCameraPublisher.ts]
+    C2 --> C25[useRemoteCameras.ts]
+    C --> C3[globals.css]
+    C --> C4[favicon.ico]
+    C --> C5[layout.tsx]
+    C --> C6[page.tsx]
+    B --> D[lib/]
+    D --> D1[domain/keyboard.ts]
+    D --> D2[sseStore.ts]
+    D --> D3[store/keyboardStore.ts]
+    A --> E[docs/]
+    E --> E1[e2e-testing.md]
+    E --> E2[keyboard-input.md]
+    E --> E3[physics-simulation.md]
+    E --> E4[sun-rendering.md]
+    E --> E5[technical-overview.md]
+    A --> F[public/]
+    F --> F1[screenshot.png]
+    F --> F2[eye.jpg]
+    F --> F3[globe.svg]
+    F --> F4[next.svg]
+    F --> F5[vercel.svg]
+    F --> F6[window.svg]
+    F --> F7[file.svg]
+    A --> G[screenshots/]
+    G --> G1[snapshot.png]
+    G --> G2[solarsystem-snapshot.png]
+    A --> H[tests/]
+    H --> H1[example.spec.ts]
+    H --> H2[visual-snapshot.spec.ts]
+    A --> I[.github/]
+    A --> J[.next/]
+    A --> K[node_modules/]
+    A --> L[test-results/]
+    A --> M[playwright-report/]
+    A --> N[.gitignore]
+    A --> O[eslint.config.mjs]
+    A --> P[next-env.d.ts]
+    A --> Q[next.config.ts]
+    A --> R[package-lock.json]
+    A --> S[package.json]
+    A --> T[playwright.config.ts]
+    A --> U[postcss.config.mjs]
+    A --> V[README.md]
+    A --> W[tsconfig.json]
+    A --> X[tsconfig.tsbuildinfo]
 ```
-planeto/
-├── docs/
-│   └── technical-overview.md
-├── src/
-│   ├── app/
-│   │   ├── components/
-│   │   │   └── Scene3D.tsx  # Main 3D scene logic (planets, physics, multiplayer events)
-│   │   └── page.tsx        # Home page and keyboard event handler
-├── README.md
-└── ...
-```
 
-## Scripts
+_The void is deep. The structure is ever-shifting, but this is its current form._
 
-- `npm run dev`: Start the dev server
-- `npm run build`: Build for production
-- `npm run start`: Start production server
-- `npm run lint`: Lint the codebase
-- `npm run check`: Format, lint, type-check, and run Playwright tests
+## Ritual Scripts
 
-## Testing
+- `npm run dev`: Open the portal
+- `npm run build`: Prepare the world for others
+- `npm run start`: Begin the ritual in production
+- `npm run lint`: Seek out impurities
+- `npm run check`: All-seeing check: format, lint, type, and test
 
-- End-to-end tests with Playwright: `npm run test:e2e`
+## End-to-End Omens
 
-## Extending
+- Playwright tests: `npm run test:e2e`
 
-- To add more planets, update the planet generation logic in `Scene3D.tsx`
-- To change the keyboard symbol set, edit the `SYMBOLS` array in `src/app/components/KeyboardDisplay.tsx` and `src/app/components/RemoteEyes.tsx`
+## Extending the Mystery
+
+- To birth new planetoids, alter the genesis logic in `Scene3D.tsx`
+- To change the glyphs, edit the `SYMBOLS` array in `src/app/components/KeyboardDisplay.tsx` and `src/app/components/RemoteEyes.tsx`
 
 ## License
 
-MIT
+MIT (for those who care for such things)
 
-## Technical Notes
+## Notes from the Void
 
-- The camera is fixed in position and does not follow any object.
+- The gaze is fixed. There is no sun. There is no center. Only the cluster and the eyes.
 
-## Multiplayer Keyboard Input Display
+## Glyphic Exchange
 
-When a user presses a key, a large green symbol (from a custom set of weird symbols) appears in the bottom-right corner of the screen. This symbol is mapped from the key pressed and is not the literal key. Only remote users' symbols are shown above their eyes in the 3D scene. Keyboard events are broadcast in real time to all players.
+When a watcher presses a key, a vast green glyph (from an alien alphabet) appears in the bottom-right. This glyph is not the key, but a symbol mapped from it. Only the glyphs of other eyes are seen in the void; your own glyph is for your gaze alone. Glyphs are broadcast instantly to all who watch.
 
-- State management: Zustand (`src/lib/store/keyboardStore.ts`)
-- Schema validation: Zod (`src/lib/domain/keyboard.ts`)
-- Event handling: `src/app/page.tsx`
-- Display components: `src/app/components/KeyboardDisplay.tsx` (bottom right), `src/app/components/RemoteEyes.tsx` (3D scene)
-- To change the symbol set or color, edit the relevant components.
+- State: Zustand (`src/lib/store/keyboardStore.ts`)
+- Schema: Zod (`src/lib/domain/keyboard.ts`)
+- Ritual: `src/app/page.tsx`
+- Manifestation: `src/app/components/KeyboardDisplay.tsx` (your glyph), `src/app/components/RemoteEyes.tsx` (others' glyphs)
+- To alter the glyphs or their color, change the relevant components.

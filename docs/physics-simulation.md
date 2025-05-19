@@ -1,41 +1,51 @@
-# Physics Simulation in Planeto
+# The Physics of the Void
 
-This document outlines the key aspects of the physics simulation implemented in the Planeto project, focusing on celestial body interactions and relevant parameters.
+> In the darkness, planetoids drift. Gravity whispers. Collisions echo. The void is never still.
 
-## Overview
+## The Dance of the Cluster
 
-The simulation models a solar system where planets interact gravitationally with each other and the central star. Physics is handled client-side using the Rapier physics engine integrated with React Three Fiber, all within `src/app/components/Scene3D.tsx`.
+- Every planetoid pulls on every other, unseen threads binding the void.
+- Collisions are rare, but when they occur, the cluster shudders and shifts.
+- All is calculated in the heart of the cluster: `Scene3D.tsx`.
 
-Key characteristics:
+## The Flow of Forces
 
-- **N-Body Gravitation:** Each celestial body (planets, sun) exerts gravitational forces on all other celestial bodies.
-- **Client-Side Calculation:** Gravitational forces and physics updates are calculated in the `useFrame` loop in `Scene3D.tsx`.
-- **Rapier Physics Engine:** Rapier is used for rigid body dynamics, collision detection, and applying forces.
+```mermaid
+flowchart TD
+    A[Planetoid] -- gravity --> B[Planetoid]
+    B -- gravity --> A
+    A -- collision --> B
+    B -- collision --> A
+    subgraph The Cluster
+      A
+      B
+      C[...]
+    end
+    D[Watcher] -- observes --> The Cluster
+```
 
-## Core Components & Logic
+## Core Runes
 
-- **`src/app/components/Scene3D.tsx`**: The heart of the simulation. In its `useFrame` hook:
-  - Iterates through all pairs of celestial bodies.
-  - Calculates the gravitational force between them.
-  - Applies these forces to the respective `RapierRigidBody` instances.
-  - Rapier updates the positions and velocities of the bodies based on these forces and other physics properties.
+- **Scene3D.tsx:**
+  - The locus of all movement and force.
+  - Each planetoid is given mass, color, and motion.
+  - Gravity and collisions are calculated every frame.
 
-## Key Simulation Parameters & Tuning
+## Tuning the Void
 
-Several parameters can be adjusted to alter the behavior and stability of the simulation:
+- Gravitational constant
+- Mass of each planetoid
+- Initial positions and velocities
+- Restitution, damping, and other properties
 
-- **Gravitational constant**
-- **Planet and sun mass**
-- **Initial positions and velocities**
-- **Restitution, damping, and other Rapier properties**
+All are set or conjured in `Scene3D.tsx`.
 
-All of these are set or generated in `Scene3D.tsx`.
+## The State of the Void
 
-## Current State
+- All movement and force is calculated on the client, in the watcher's own void.
+- Each watcher sees their own cluster, ever-shifting.
 
-All gravitational interactions and subsequent movements are simulated purely on the client side. Each client runs its own independent physics simulation based on the initial state.
+## Future Whispers
 
-## Future Considerations
-
-- **Server-Authoritative Physics:** For a shared, consistent simulation state across multiple clients, server-authoritative physics would be necessary.
-- **Performance Optimization:** With many bodies, client-side N-body calculations can become performance-intensive.
+- Server-authoritative physics may one day bind all voids together.
+- With many planetoids, the dance grows ever more complex.
