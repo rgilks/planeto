@@ -415,6 +415,17 @@ const Scene3D = () => {
     return () => cancelAnimationFrame(frame);
   }, [planets]);
 
+  // Randomize initial camera position
+  const randomCameraPos = () => {
+    const r = 80 + Math.random() * 80;
+    const theta = Math.random() * 2 * Math.PI;
+    const phi = Math.acos(2 * Math.random() - 1);
+    const x = r * Math.sin(phi) * Math.cos(theta);
+    const y = r * Math.sin(phi) * Math.sin(theta);
+    const z = r * Math.cos(phi);
+    return [x, y, z] as [number, number, number];
+  };
+
   if (!bumpMaps || planets.length === 0) {
     return (
       <Canvas
@@ -433,7 +444,7 @@ const Scene3D = () => {
 
   return (
     <Canvas
-      camera={{ position: [0, 0, 120] }}
+      camera={{ position: randomCameraPos() }}
       style={{ width: "100%", height: "100%" }}
       shadows
     >
