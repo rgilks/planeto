@@ -1,9 +1,11 @@
 "use client";
 
-import Scene3D from "./components/Scene3D";
-import KeyboardDisplay from "./components/KeyboardDisplay";
 import { useEffect } from "react";
+
 import { useKeyboardStore } from "../lib/store/keyboardStore";
+
+import KeyboardDisplay from "./components/KeyboardDisplay";
+import Scene3D from "./components/Scene3D";
 
 const KeyboardHandler = ({ children }: { children: React.ReactNode }) => {
   const setLastInput = useKeyboardStore((s) => s.setLastInput);

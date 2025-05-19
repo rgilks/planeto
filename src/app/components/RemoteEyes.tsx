@@ -1,12 +1,14 @@
 "use client";
-import { useRef, useState, useEffect } from "react";
-import { useFrame, useLoader } from "@react-three/fiber";
-import { Mesh, Vector3, Group } from "three";
-import { useRemoteCameras } from "./useRemoteCameras";
-import { TextureLoader, ShaderMaterial } from "three";
-import { useMemo } from "react";
-import { useKeyboardStore } from "../../lib/store/keyboardStore";
 import { Text } from "@react-three/drei";
+import { useFrame, useLoader } from "@react-three/fiber";
+import { useRef, useState, useEffect } from "react";
+import { useMemo } from "react";
+import { Mesh, Vector3, Group } from "three";
+import { TextureLoader, ShaderMaterial } from "three";
+
+import { useKeyboardStore } from "../../lib/store/keyboardStore";
+
+import { useRemoteCameras } from "./useRemoteCameras";
 
 const EYE_RADIUS = 8;
 const SUN_POS = new Vector3(0, 0, 0);

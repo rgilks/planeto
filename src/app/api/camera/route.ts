@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+
 import { setCamera, Vec3 } from "@/lib/sseStore";
 
 const CameraPayloadSchema = z.object({

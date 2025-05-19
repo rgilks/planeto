@@ -14,7 +14,6 @@ export const setCamera = (id: string, p?: Vec3) => {
   if (p) {
     const msg: CameraMessage = { id, p, t: Date.now() };
     cameras.set(id, msg);
-    console.log("setCamera: position", msg);
     broadcast(msg);
     return;
   }
@@ -22,15 +21,11 @@ export const setCamera = (id: string, p?: Vec3) => {
   if (cam) {
     cam.t = Date.now();
     cameras.set(id, cam);
-    console.log("setCamera: ping, updated timestamp for", id);
-  } else {
-    console.log("setCamera: ping for unknown id", id);
   }
 };
 
 export const broadcast = (msg: CameraMessage) => {
   const data = `data:${JSON.stringify(msg)}\n\n`;
-  console.log("broadcasting to", subs.size, "subs:", data);
   for (const w of subs) {
     if (w.closed) {
       subs.delete(w);
@@ -42,7 +37,6 @@ export const broadcast = (msg: CameraMessage) => {
 
 export const subscribe = (w: Writer) => {
   subs.add(w);
-  console.log("subscribe: now", subs.size, "subs");
   for (const cam of cameras.values()) {
     w.write(`data:${JSON.stringify(cam)}\n\n`);
   }
@@ -62,6 +56,5 @@ export const unsubscribe = (w: Writer) => {
 // Periodically purge stale cameras
 const PURGE_INTERVAL = 3000; // 3 seconds
 setInterval(() => {
-  // console.log("Purging stale cameras...");
   purgeStale();
 }, PURGE_INTERVAL);

@@ -1,14 +1,17 @@
-import { Canvas } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
+import { Canvas } from "@react-three/fiber";
 import { EffectComposer, Bloom } from "@react-three/postprocessing";
-import { useRef, useEffect, createRef, useState } from "react";
 import { Physics, RigidBody, RapierRigidBody } from "@react-three/rapier";
-import * as THREE from "three";
+import { nanoid } from "nanoid";
+import { useRef, useEffect, createRef, useState } from "react";
 import { createNoise2D } from "simplex-noise";
+import * as THREE from "three";
+
+import { useKeyboardStore } from "../../lib/store/keyboardStore";
+
 import { RemoteEyes } from "./RemoteEyes";
 import { useCameraPublisher } from "./useCameraPublisher";
-import { nanoid } from "nanoid";
-import { useKeyboardStore } from "../../lib/store/keyboardStore";
+
 import type { State as KeyboardState } from "../../lib/store/keyboardStore";
 
 const G = 1;
@@ -187,6 +190,8 @@ const CameraPublisher = ({ id }: { id: string }) => {
   return null;
 };
 
+const THROTTLE_MS = 100; // Max 10 events per second
+
 const Scene3D = () => {
   const [bumpMaps, setBumpMaps] = useState<THREE.Texture[] | null>(null);
   const [planets, setPlanets] = useState<Planet[]>([]);
@@ -196,6 +201,9 @@ const Scene3D = () => {
   const myId = useRef(nanoid());
   const setRemoteKey = useKeyboardStore((s: KeyboardState) => s.setRemoteKey);
   const lastInput = useKeyboardStore((s: KeyboardState) => s.lastInput);
+
+  const lastSentTimeRef = useRef(0);
+  const throttleTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     const es = new EventSource("/api/game-events");
@@ -208,11 +216,38 @@ const Scene3D = () => {
 
   useEffect(() => {
     if (!lastInput) return;
-    fetch("/api/game-events", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: myId.current, key: lastInput.key }),
-    });
+
+    const now = Date.now();
+    const timeSinceLastSend = now - lastSentTimeRef.current;
+    const currentLastInput = lastInput; // Capture current value for the closure
+
+    const sendEvent = () => {
+      fetch("/api/game-events", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: myId.current, key: currentLastInput.key }),
+      });
+      lastSentTimeRef.current = Date.now();
+    };
+
+    if (throttleTimeoutRef.current) {
+      clearTimeout(throttleTimeoutRef.current);
+    }
+
+    if (timeSinceLastSend >= THROTTLE_MS) {
+      sendEvent();
+    } else {
+      throttleTimeoutRef.current = setTimeout(
+        sendEvent,
+        THROTTLE_MS - timeSinceLastSend,
+      );
+    }
+
+    return () => {
+      if (throttleTimeoutRef.current) {
+        clearTimeout(throttleTimeoutRef.current);
+      }
+    };
   }, [lastInput]);
 
   useEffect(() => {

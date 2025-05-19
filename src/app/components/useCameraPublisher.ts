@@ -1,6 +1,6 @@
 "use client";
-import { useEffect, useRef } from "react";
 import { useThree } from "@react-three/fiber";
+import { useEffect, useRef } from "react";
 
 const INTERVAL_MS = 1000;
 const roundVec3 = (v: [number, number, number]): [number, number, number] =>
@@ -47,9 +47,9 @@ export const useCameraPublisher = (id: string) => {
           JSON.stringify(payload),
         );
         if (ok === false) {
-          console.warn(
-            `sendBeacon for position update failed for id: ${id}, skipping update`,
-          );
+          // console.warn(
+          //   `sendBeacon for position update failed for id: ${id}, skipping update`,
+          // );
         }
         lastSentPositionRef.current = currentPositionRounded;
       } else {
@@ -64,7 +64,7 @@ export const useCameraPublisher = (id: string) => {
         const pingPayload = { id };
         const ok = navigator.sendBeacon?.("/api/camera", JSON.stringify(pingPayload));
         if (ok === false) {
-          console.warn(`sendBeacon for ping failed for id: ${id}`);
+          // console.warn(`sendBeacon for ping failed for id: ${id}`);
         }
         */
       }
