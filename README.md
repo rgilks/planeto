@@ -73,4 +73,4 @@ MIT
 
 ## Technical Notes
 
-- The camera logic uses lerp to smoothly follow the focused object, reducing jitter and shaking. The previous approach of offsetting the entire group was removed for a more natural and robust camera-following effect.
+- The camera is now fixed in position and does not follow any object.

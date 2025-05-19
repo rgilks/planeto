@@ -1,4 +1,4 @@
-import { Canvas, useThree, useFrame } from "@react-three/fiber";
+import { Canvas } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import { EffectComposer, Bloom } from "@react-three/postprocessing";
 import { useRef, useEffect, createRef, useState } from "react";
@@ -174,39 +174,6 @@ const generateColorMap = (
   return new THREE.CanvasTexture(canvas);
 };
 
-const CameraFollower = ({
-  getTarget,
-  disabled = false,
-}: {
-  getTarget: () => {
-    position: [number, number, number];
-    radius: number;
-  } | null;
-  disabled?: boolean;
-}) => {
-  const { camera } = useThree();
-  const camPos = useRef(new THREE.Vector3(0, 0, 120));
-  useFrame((_, delta) => {
-    if (disabled) return;
-    const target = getTarget();
-    if (!target) return;
-    const { position, radius } = target;
-    const camDist = radius * 8 + 60;
-    const targetPos = new THREE.Vector3(
-      position[0],
-      position[1] + camDist,
-      position[2],
-    );
-    const smoothTime = 0.32;
-    const lerpFactor = 1 - Math.exp(-delta / smoothTime);
-    camPos.current.lerp(targetPos, lerpFactor);
-    camera.position.copy(camPos.current);
-    camera.up.set(0, 0, 1);
-    camera.lookAt(...position);
-  });
-  return null;
-};
-
 const getGeometry = (type: "sphere" | "lowpoly" | "oblate", radius: number) => {
   if (type === "lowpoly") return <icosahedronGeometry args={[radius, 1]} />;
   if (type === "oblate") return <sphereGeometry args={[radius, 24, 16]} />;
@@ -224,8 +191,6 @@ const Scene3D = () => {
   const planetRefs = useRef<RigidBodyRef[]>([]);
   const allPlanetRefs = useRef<RigidBodyRef[]>([]);
   const allPlanetMasses = useRef<number[]>([]);
-  const [centeredIdx, setCenteredIdx] = useState(0);
-  const [isUserInteracting, setIsUserInteracting] = useState(false);
   const myId = useRef(nanoid());
 
   useEffect(() => {
@@ -405,21 +370,6 @@ const Scene3D = () => {
   }, [bumpMaps]);
 
   useEffect(() => {
-    setCenteredIdx(0); // Always start with the Sun
-    const handleSpace = (e: KeyboardEvent) => {
-      if (e.code === "Space") {
-        const n = planetRefs.current.length;
-        if (n <= 1) return;
-        // Pick a random planet (not the Sun)
-        const idx = 1 + Math.floor(Math.random() * (n - 1));
-        setCenteredIdx(idx);
-      }
-    };
-    window.addEventListener("keydown", handleSpace);
-    return () => window.removeEventListener("keydown", handleSpace);
-  }, []);
-
-  useEffect(() => {
     let frame: number;
     const step = () => {
       for (let i = 0; i < planetRefs.current.length; i++) {
@@ -494,22 +444,6 @@ const Scene3D = () => {
           intensity={0.35}
         />
       </EffectComposer>
-      <CameraFollower
-        getTarget={() => {
-          const ref = planetRefs.current[centeredIdx];
-          if (ref?.current) {
-            const planet = planets[centeredIdx];
-            const pos = ref.current.translation();
-            if (!pos) return null;
-            return {
-              position: [pos.x, pos.y, pos.z] as [number, number, number],
-              radius: planet.radius,
-            };
-          }
-          return null;
-        }}
-        disabled={isUserInteracting}
-      />
       <group>
         <RemoteEyes myId={myId.current} />
         <directionalLight
@@ -638,8 +572,8 @@ const Scene3D = () => {
         dampingFactor={0.05}
         rotateSpeed={0.4}
         zoomSpeed={0.4}
-        onStart={() => setIsUserInteracting(true)}
-        onEnd={() => setIsUserInteracting(false)}
+        onStart={() => {}}
+        onEnd={() => {}}
       />
     </Canvas>
   );
