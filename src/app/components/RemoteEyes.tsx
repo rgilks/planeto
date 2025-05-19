@@ -5,9 +5,22 @@ import { Mesh, Vector3, Group } from "three";
 import { useRemoteCameras } from "./useRemoteCameras";
 import { TextureLoader, ShaderMaterial } from "three";
 import { useMemo } from "react";
+import { useKeyboardStore } from "../../lib/store/keyboardStore";
+import { Text } from "@react-three/drei";
 
 const EYE_RADIUS = 8;
 const SUN_POS = new Vector3(0, 0, 0);
+
+const GREEN = "#00FF41";
+const SYMBOLS =
+  "☉☯☢☣☠☮☭☽☾☿♀♁♂♃♄♅♆♇♈♉♊♋♌♍♎♏♐♑♒♓♔♕♖♗♘♙♚♛♜♝♞♟♠♣♥♦♪♫☀☁☂☃☄★☆☇☈☉☊☋☌☍☎☏☑☒☓☚☛☜☝☞☟☠☡☢☣☤☥☦☧☨☩☪☫☬☭☮☯☸☹☺☻☼☽☾☿♀♁♂♃♄♅♆♇".split(
+    "",
+  );
+
+const getSymbol = (key: string) => {
+  const code = key.codePointAt(0) || 0;
+  return SYMBOLS[code % SYMBOLS.length];
+};
 
 const vertexShader = `
   varying vec3 vNormal;
@@ -35,6 +48,7 @@ export const RemoteEyes = ({ myId }: { myId: string }) => {
   const [, setTick] = useState(0);
   const lerpFactor = 0.05;
   const eyeTexture = useLoader(TextureLoader, "/eye.jpg");
+  const remoteKeys = useKeyboardStore((s) => s.remoteKeys);
 
   const shaderMaterial = useMemo(
     () =>
@@ -101,6 +115,20 @@ export const RemoteEyes = ({ myId }: { myId: string }) => {
               <sphereGeometry args={[EYE_RADIUS, 32, 32]} />
               <primitive object={shaderMaterial} attach="material" />
             </mesh>
+            {remoteKeys[id] && Date.now() - remoteKeys[id].ts < 2000 && (
+              <Text
+                position={[0, EYE_RADIUS + 6, 0]}
+                fontSize={10}
+                color={GREEN}
+                anchorX="center"
+                anchorY="middle"
+                fillOpacity={1 - (Date.now() - remoteKeys[id].ts) / 2000}
+                outlineColor="black"
+                outlineWidth={0.25}
+              >
+                {getSymbol(remoteKeys[id].key)}
+              </Text>
+            )}
           </group>
         ))}
     </>

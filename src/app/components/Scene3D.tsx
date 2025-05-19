@@ -8,6 +8,8 @@ import { createNoise2D } from "simplex-noise";
 import { RemoteEyes } from "./RemoteEyes";
 import { useCameraPublisher } from "./useCameraPublisher";
 import { nanoid } from "nanoid";
+import { useKeyboardStore } from "../../lib/store/keyboardStore";
+import type { State as KeyboardState } from "../../lib/store/keyboardStore";
 
 const G = 1;
 
@@ -192,6 +194,26 @@ const Scene3D = () => {
   const allPlanetRefs = useRef<RigidBodyRef[]>([]);
   const allPlanetMasses = useRef<number[]>([]);
   const myId = useRef(nanoid());
+  const setRemoteKey = useKeyboardStore((s: KeyboardState) => s.setRemoteKey);
+  const lastInput = useKeyboardStore((s: KeyboardState) => s.lastInput);
+
+  useEffect(() => {
+    const es = new EventSource("/api/game-events");
+    es.onmessage = (e) => {
+      const { id, key } = JSON.parse(e.data);
+      setRemoteKey(id, key);
+    };
+    return () => es.close();
+  }, [setRemoteKey]);
+
+  useEffect(() => {
+    if (!lastInput) return;
+    fetch("/api/game-events", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: myId.current, key: lastInput.key }),
+    });
+  }, [lastInput]);
 
   useEffect(() => {
     const maps = [

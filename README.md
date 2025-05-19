@@ -78,3 +78,14 @@ MIT
 ## Camera Position Updates
 
 Camera positions are now lerped smoothly towards their targets and updates are published every 2 seconds. Remote camera positions are also updated and lerped every 2 seconds for smooth transitions.
+
+## Keyboard Input Display
+
+When a user presses any key, the last key pressed is shown in the bottom-right corner of the screen. This is implemented using:
+
+- Zustand for state management (`src/lib/store/keyboardStore.ts`)
+- Zod for schema validation (`src/lib/domain/keyboard.ts`)
+- A global keyboard event handler in `src/app/layout.tsx`
+- A display component in `src/app/components/KeyboardDisplay.tsx`
+
+This feature is fully type-safe and uses immer for immutability.
