@@ -5,6 +5,9 @@ import { useRef, useEffect, createRef, useState } from "react";
 import { Physics, RigidBody, RapierRigidBody } from "@react-three/rapier";
 import * as THREE from "three";
 import { createNoise2D } from "simplex-noise";
+import { RemoteEyes } from "./RemoteEyes";
+import { useCameraPublisher } from "./useCameraPublisher";
+import { nanoid } from "nanoid";
 
 const G = 1;
 
@@ -210,6 +213,11 @@ const getGeometry = (type: "sphere" | "lowpoly" | "oblate", radius: number) => {
   return <sphereGeometry args={[radius, 32, 32]} />;
 };
 
+const CameraPublisher = ({ id }: { id: string }) => {
+  useCameraPublisher(id);
+  return null;
+};
+
 const Scene3D = () => {
   const [bumpMaps, setBumpMaps] = useState<THREE.Texture[] | null>(null);
   const [planets, setPlanets] = useState<Planet[]>([]);
@@ -218,6 +226,7 @@ const Scene3D = () => {
   const allPlanetMasses = useRef<number[]>([]);
   const [centeredIdx, setCenteredIdx] = useState(0);
   const [isUserInteracting, setIsUserInteracting] = useState(false);
+  const myId = useRef(nanoid());
 
   useEffect(() => {
     const maps = [
@@ -455,7 +464,21 @@ const Scene3D = () => {
     return () => cancelAnimationFrame(frame);
   }, [planets]);
 
-  if (!bumpMaps || planets.length === 0) return null;
+  if (!bumpMaps || planets.length === 0) {
+    return (
+      <Canvas
+        camera={{ position: [0, 0, 120] }}
+        style={{ width: "100%", height: "100%" }}
+      >
+        <color attach="background" args={["#000"]} />
+        <ambientLight intensity={0.2} />
+        <mesh>
+          <sphereGeometry args={[1, 16, 16]} />
+          <meshStandardMaterial color="gray" />
+        </mesh>
+      </Canvas>
+    );
+  }
 
   return (
     <Canvas
@@ -463,6 +486,7 @@ const Scene3D = () => {
       style={{ width: "100%", height: "100%" }}
       shadows
     >
+      <CameraPublisher id={myId.current} />
       <EffectComposer>
         <Bloom
           luminanceThreshold={0.25}
@@ -487,6 +511,7 @@ const Scene3D = () => {
         disabled={isUserInteracting}
       />
       <group>
+        <RemoteEyes />
         <directionalLight
           position={[100, 100, 100]}
           intensity={6}
