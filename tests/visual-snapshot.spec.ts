@@ -7,7 +7,7 @@ test.describe("Visual Snapshots", () => {
     await page.waitForTimeout(3000);
 
     await page.screenshot({
-      path: "screenshots/solarsystem-snapshot.png",
+      path: "screenshots/snapshot.png",
       fullPage: true,
     });
 

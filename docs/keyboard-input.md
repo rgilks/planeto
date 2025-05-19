@@ -2,20 +2,22 @@
 
 ## Overview
 
-This feature displays the last key pressed by the user in the bottom-right corner of the app. It is implemented in a type-safe, concise, and idiomatic way using Zustand, immer, and Zod.
+When a user presses a key, a large green symbol (from a custom set of weird symbols) appears in the bottom-right corner of the app. This symbol is mapped from the key pressed and is not the literal key. Only remote users' symbols are shown above their eyes in the 3D scene.
 
 ## Implementation
 
 - **Domain Model:**
   - `src/lib/domain/keyboard.ts` defines a Zod schema for keyboard input.
 - **State Management:**
-  - `src/lib/store/keyboardStore.ts` uses Zustand and immer to store the last key pressed.
+  - `src/lib/store/keyboardStore.ts` uses Zustand and immer to store the last key pressed and remote key events.
 - **UI:**
-  - `src/app/components/KeyboardDisplay.tsx` displays the last key pressed.
+  - `src/app/components/KeyboardDisplay.tsx` displays the mapped symbol in green in the bottom-right.
+  - `src/app/components/RemoteEyes.tsx` displays remote users' symbols above their eyes in the 3D scene.
 - **Event Handling:**
-  - `src/app/layout.tsx` attaches a global keyboard event listener and updates the store.
+  - `src/app/page.tsx` attaches a global keyboard event listener and updates the store.
+  - Keyboard events are broadcast to all players and received in real time.
 
 ## Extending
 
-- To display more information (modifiers, key codes), extend the Zod schema and update the store/component accordingly.
-- To style differently, edit `KeyboardDisplay.tsx`.
+- To change the symbol set, edit the `SYMBOLS` array in `KeyboardDisplay.tsx` and `RemoteEyes.tsx`.
+- To style differently, edit the respective components.

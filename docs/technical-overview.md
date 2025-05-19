@@ -6,10 +6,11 @@ Planeto is a modern, interactive 3D planetary system simulation. All bodies are 
 
 ## Key Principles
 
-- **Strong Domain Model:** Zod schemas define the structure for planets.
+- **Strong Domain Model:** Zod schemas define the structure for planets and keyboard events.
 - **Component-Based 3D Rendering:** React Three Fiber is used for all 3D rendering. The main scene logic is in `src/app/components/Scene3D.tsx`.
 - **Physics-Driven Simulation:** Rapier physics provides real-time rigid body dynamics, gravity, and collisions.
 - **Type Safety:** TypeScript and Zod ensure robust, maintainable code.
+- **Multiplayer Keyboard Events:** Keyboard events are broadcast in real time and visualized above remote players' eyes.
 
 ## Core Components & Architecture
 
@@ -19,29 +20,22 @@ Planeto is a modern, interactive 3D planetary system simulation. All bodies are 
   - Applies gravity between every pair of planets (N-body)
   - Handles collisions and orbits
   - Provides camera controls with OrbitControls
+  - Handles multiplayer keyboard event display
 
 ## Data Flow
 
-- **Planet Configs:**
-  - All planet properties (mass, radius, position, velocity, color) are defined in a `planetConfigs` array in `Scene3D.tsx`.
+- **Planet Generation:**
+  - All planet properties (mass, radius, position, velocity, color) are generated in `Scene3D.tsx`.
 - **Refs:**
   - Each planet has a ref to its Rapier rigid body instance for physics updates.
 - **Gravity:**
-  - A custom `Gravity` component applies gravitational force between every pair of planets every frame.
+  - Gravity is applied between every pair of planets every frame in `Scene3D.tsx`.
 - **Rendering:**
   - All planets are rendered as colored spheres.
 
 ## Extending
 
 - To add more planets, update the planet generation logic in `Scene3D.tsx`.
-
-## Future Directions
-
-- Add more complex N-body gravity (planet-planet interactions)
-- Procedural planet textures and atmospheres
-- UI for adjusting simulation parameters
-- Save/load planetary systems
-- More advanced rendering (shaders, postprocessing)
 
 ## Libraries
 
@@ -53,4 +47,4 @@ Planeto is a modern, interactive 3D planetary system simulation. All bodies are 
 
 ## Camera Logic
 
-The camera is now fixed in position and does not follow any object. The view remains static, providing a consistent perspective of the planetary system.
+The camera is fixed in position and does not follow any object. The view remains static, providing a consistent perspective of the planetary system.

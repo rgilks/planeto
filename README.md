@@ -1,16 +1,23 @@
-# Planeto - Solar System Visualizer
+# Planeto
+
+[![CI/CD](https://github.com/rgilks/planeto/actions/workflows/fly.yml/badge.svg)](https://github.com/rgilks/planeto/actions/workflows/fly.yml)
+
+![planeto Screenshot](/public/screenshot.png)
+
+<div align="center">
+  <a href='https://ko-fi.com/N4N31DPNUS' target='_blank'><img height='36' style='border:0px;height:36px;' src='https://storage.ko-fi.com/cdn/kofi2.png?v=6' border='0' alt='Buy Me a Coffee at ko-fi.com' /></a>
+</div>
 
 Planeto is a Next.js application that visualizes a simple planetary system in 3D. All bodies are simulated as planets with real-time gravity and collisions using the Rapier physics engine. The scene is rendered with React Three Fiber.
 
 ## Features
 
-- Realistic 3D solar system simulation
 - Physics-based planetary motion
 - Procedural planet textures
 - Dynamic sun rendering
-- Camera smoothly follows the focused object in world space, always keeping it centered on the screen
-- Type-safe domain model for planets using Zod
+- Type-safe domain model for planets and keyboard events using Zod
 - Camera controls (zoom, rotate) with OrbitControls
+- Multiplayer keyboard event broadcasting and visualization
 
 ## Physics & Orbits
 
@@ -26,6 +33,7 @@ Planeto is a Next.js application that visualizes a simple planetary system in 3D
 - Drei (@react-three/drei)
 - Rapier physics (@react-three/rapier)
 - Zod (domain model)
+- Zustand (state management)
 
 ## Getting Started
 
@@ -45,8 +53,8 @@ planeto/
 ├── src/
 │   ├── app/
 │   │   ├── components/
-│   │   │   └── Scene3D.tsx  # Main 3D scene logic (planets, physics)
-│   │   └── page.tsx        # Home page
+│   │   │   └── Scene3D.tsx  # Main 3D scene logic (planets, physics, multiplayer events)
+│   │   └── page.tsx        # Home page and keyboard event handler
 ├── README.md
 └── ...
 ```
@@ -66,6 +74,7 @@ planeto/
 ## Extending
 
 - To add more planets, update the planet generation logic in `Scene3D.tsx`
+- To change the keyboard symbol set, edit the `SYMBOLS` array in `src/app/components/KeyboardDisplay.tsx` and `src/app/components/RemoteEyes.tsx`
 
 ## License
 
@@ -73,19 +82,14 @@ MIT
 
 ## Technical Notes
 
-- The camera is now fixed in position and does not follow any object.
+- The camera is fixed in position and does not follow any object.
 
-## Camera Position Updates
+## Multiplayer Keyboard Input Display
 
-Camera positions are now lerped smoothly towards their targets and updates are published every 2 seconds. Remote camera positions are also updated and lerped every 2 seconds for smooth transitions.
+When a user presses a key, a large green symbol (from a custom set of weird symbols) appears in the bottom-right corner of the screen. This symbol is mapped from the key pressed and is not the literal key. Only remote users' symbols are shown above their eyes in the 3D scene. Keyboard events are broadcast in real time to all players.
 
-## Keyboard Input Display
-
-When a user presses any key, the last key pressed is shown in the bottom-right corner of the screen. This is implemented using:
-
-- Zustand for state management (`src/lib/store/keyboardStore.ts`)
-- Zod for schema validation (`src/lib/domain/keyboard.ts`)
-- A global keyboard event handler in `src/app/layout.tsx`
-- A display component in `src/app/components/KeyboardDisplay.tsx`
-
-This feature is fully type-safe and uses immer for immutability.
+- State management: Zustand (`src/lib/store/keyboardStore.ts`)
+- Schema validation: Zod (`src/lib/domain/keyboard.ts`)
+- Event handling: `src/app/page.tsx`
+- Display components: `src/app/components/KeyboardDisplay.tsx` (bottom right), `src/app/components/RemoteEyes.tsx` (3D scene)
+- To change the symbol set or color, edit the relevant components.
