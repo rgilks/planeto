@@ -1,7 +1,7 @@
 "use client";
 import { Text } from "@react-three/drei";
 import { useFrame, useLoader } from "@react-three/fiber";
-import { useRef, useState, useEffect } from "react";
+import { useRef, useEffect } from "react";
 import { useMemo } from "react";
 import { Mesh, Vector3, Group } from "three";
 import { TextureLoader, ShaderMaterial } from "three";
@@ -47,7 +47,6 @@ export const RemoteEyes = ({ myId }: { myId: string }) => {
   const refs = useRef<Record<string, Mesh | Group>>({});
   const cams = useRemoteCameras();
   const targets = useRef<Record<string, Vector3>>({});
-  const [, setTick] = useState(0);
   const lerpFactor = 0.05;
   const eyeTexture = useLoader(TextureLoader, "/eye.jpg");
   const remoteKeys = useKeyboardStore((s) => s.remoteKeys);
@@ -64,31 +63,38 @@ export const RemoteEyes = ({ myId }: { myId: string }) => {
 
   useEffect(() => {
     const camIds = new Set(cams.map(([id]) => id));
-    for (const id in targets.current) {
-      if (!camIds.has(id)) delete targets.current[id];
-    }
-    for (const id in refs.current) {
-      if (!camIds.has(id)) delete refs.current[id];
-    }
-    const interval = setInterval(() => {
-      for (const [id, p] of cams) {
-        if (id === myId) continue;
-        if (!targets.current[id]) targets.current[id] = new Vector3(...p);
-        else targets.current[id].set(p[0], p[1], p[2]);
-      }
-      setTick((t) => t + 1);
-    }, 300);
-    return () => clearInterval(interval);
-  }, [cams, myId]);
 
-  useEffect(() => {
+    // Remove targets for cameras that no longer exist
+    for (const id in targets.current) {
+      if (!camIds.has(id)) {
+        delete targets.current[id];
+      }
+    }
+
+    // Remove refs for cameras that no longer exist
+    for (const id in refs.current) {
+      if (!camIds.has(id)) {
+        delete refs.current[id];
+      }
+    }
+
+    // Update or create targets for current cameras
     for (const [id, p] of cams) {
       if (id === myId) continue;
-      const ref = refs.current[id];
-      if (ref && !targets.current[id]) {
-        ref.position.set(p[0], p[1], p[2]);
+      if (!targets.current[id]) {
+        // If it's a new eye, set its initial position directly for refs.current
+        // to avoid lerping from [0,0,0] if the ref was just created.
+        // The target will also be set for future lerping.
+        targets.current[id] = new Vector3(...p);
+        if (refs.current[id]) {
+          refs.current[id].position.set(p[0], p[1], p[2]);
+        }
+      } else {
+        targets.current[id].set(p[0], p[1], p[2]);
       }
     }
+    // setTick((t) => t + 1); // No longer need to force re-render with setTick here
+    // The component will re-render if `cams` itself changes, which triggers this effect.
   }, [cams, myId]);
 
   useFrame(() => {
