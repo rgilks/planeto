@@ -2,7 +2,7 @@
 
 [![CI/CD](https://github.com/rgilks/planeto/actions/workflows/fly.yml/badge.svg)](https://github.com/rgilks/planeto/actions/workflows/fly.yml)
 
-![planeto Screenshot](/public/screenshot.png)
+![planeto Screenshot](/screenshots/loaded.png)
 
 <div align="center">
   <a href='https://ko-fi.com/N4N31DPNUS' target='_blank'><img height='36' style='border:0px;height:36px;' src='https://storage.ko-fi.com/cdn/kofi2.png?v=6' border='0' alt='Buy Me a Coffee at ko-fi.com' /></a>
