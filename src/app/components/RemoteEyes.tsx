@@ -11,6 +11,13 @@ export const RemoteEyes = ({ myId }: { myId: string }) => {
   const [, setTick] = useState(0);
 
   useEffect(() => {
+    const camIds = new Set(cams.map(([id]) => id));
+    for (const id in targets.current) {
+      if (!camIds.has(id)) delete targets.current[id];
+    }
+    for (const id in refs.current) {
+      if (!camIds.has(id)) delete refs.current[id];
+    }
     const interval = setInterval(() => {
       for (const [id, p] of cams) {
         if (id === myId) continue;
