@@ -9,8 +9,9 @@ interface Cam {
 }
 
 interface StoreState {
-  cams: Record<string, Vec3>;
+  cams: Record<string, { p: Vec3; t: number }>;
   set: (c: Cam) => void;
+  cleanup: () => void;
 }
 
 // Add EventSource to Window interface
@@ -22,11 +23,28 @@ declare global {
 
 export const useCamStore = create<StoreState>((set) => ({
   cams: {},
-  set: (c) => set((s) => ({ cams: { ...s.cams, [c.id]: c.p } })),
+  set: (c) =>
+    set((s) => ({
+      cams: {
+        ...s.cams,
+        [c.id]: { p: c.p, t: Date.now() },
+      },
+    })),
+  cleanup: () => {
+    const now = Date.now();
+    set((s) => {
+      const cams = { ...s.cams };
+      for (const id in cams) {
+        if (now - cams[id].t > 3000) delete cams[id];
+      }
+      return { cams };
+    });
+  },
 }));
 
 export const useRemoteCameras = () => {
   const set = useCamStore((s) => s.set);
+  const cleanup = useCamStore((s) => s.cleanup);
 
   useEffect(() => {
     if (typeof window !== "undefined" && !window.__es) {
@@ -37,8 +55,13 @@ export const useRemoteCameras = () => {
         set(JSON.parse(e.data));
       };
     }
-  }, [set]);
+    const interval = setInterval(cleanup, 1000);
+    return () => clearInterval(interval);
+  }, [set, cleanup]);
 
   const cams = useCamStore((s) => s.cams);
-  return useMemo(() => Object.entries(cams), [cams]);
+  return useMemo(
+    () => Object.entries(cams).map(([id, v]) => [id, v.p] as [string, Vec3]),
+    [cams],
+  );
 };
