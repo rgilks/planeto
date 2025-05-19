@@ -14,8 +14,8 @@ export const useCameraPublisher = (id: string) => {
   useFrame(({ camera }) => {
     lerped.current.lerp(camera.position, 0.2);
     const now = performance.now();
-    if (now - lastSent.current < THROTTLE_MS) return;
-    if (prev.current.distanceTo(lerped.current) < EPS) return;
+    const moved = prev.current.distanceTo(lerped.current) >= EPS;
+    if (!moved && now - lastSent.current < THROTTLE_MS) return;
     lastSent.current = now;
     prev.current.copy(lerped.current);
     const payload = { id, p: lerped.current.toArray() };
