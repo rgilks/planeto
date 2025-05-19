@@ -29,6 +29,16 @@ export const RemoteEyes = ({ myId }: { myId: string }) => {
     return () => clearInterval(interval);
   }, [cams, myId]);
 
+  useEffect(() => {
+    for (const [id, p] of cams) {
+      if (id === myId) continue;
+      const ref = refs.current[id];
+      if (ref && !targets.current[id]) {
+        ref.position.set(p[0], p[1], p[2]);
+      }
+    }
+  }, [cams, myId]);
+
   useFrame(() => {
     for (const [id] of cams) {
       if (id === myId) continue;
@@ -43,11 +53,12 @@ export const RemoteEyes = ({ myId }: { myId: string }) => {
     <>
       {cams
         .filter(([id]) => id !== myId)
-        .map(([id, p]) => (
+        .map(([id]) => (
           <group
             key={id}
-            ref={(el) => el && (refs.current[id] = el)}
-            position={p}
+            ref={(el) => {
+              if (el) refs.current[id] = el;
+            }}
           >
             <mesh>
               <boxGeometry args={[20, 20, 20]} />
