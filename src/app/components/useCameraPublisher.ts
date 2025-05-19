@@ -6,7 +6,7 @@ const INTERVAL_MS = 1000;
 const roundVec3 = (v: [number, number, number]): [number, number, number] =>
   v.map((n) => Math.round(n * 100) / 100) as [number, number, number];
 
-const VEC3_EPSILON = 0.001; // Epsilon for comparing vector components
+const VEC3_EPSILON = 0.001;
 
 const areVec3sEqual = (
   a: [number, number, number] | undefined,
@@ -41,13 +41,7 @@ export const useCameraPublisher = (id: string) => {
           id,
           p: currentPositionRounded,
         };
-        const ok = navigator.sendBeacon?.(
-          "/api/camera",
-          JSON.stringify(payload),
-        );
-        if (ok === false) {
-          // Potential place for a non-console error reporting in the future
-        }
+        navigator.sendBeacon?.("/api/camera", JSON.stringify(payload));
         lastSentPositionRef.current = currentPositionRounded;
       }
     }, INTERVAL_MS);

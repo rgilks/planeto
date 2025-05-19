@@ -6,15 +6,14 @@ type Vec3 = [number, number, number];
 interface Cam {
   id: string;
   p: Vec3;
-  t: number; // Server sends t, and it's used in the store
+  t: number;
 }
 
 interface StoreState {
-  cams: Record<string, { p: Vec3; t: number }>; // t here is server's timestamp
+  cams: Record<string, { p: Vec3; t: number }>;
   set: (c: Cam) => void;
 }
 
-// Add EventSource to Window interface
 declare global {
   interface Window {
     __es?: EventSource;
