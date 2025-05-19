@@ -35,7 +35,7 @@ export const useCamStore = create<StoreState>((set) => ({
     set((s) => {
       const cams = { ...s.cams };
       for (const id in cams) {
-        if (now - cams[id].t > 3000) delete cams[id];
+        if (now - cams[id].t > 4000) delete cams[id];
       }
       return { cams };
     });

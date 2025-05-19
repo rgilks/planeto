@@ -48,7 +48,7 @@ export const subscribe = (w: Writer) => {
   }
 };
 
-export const purgeStale = (maxAge = 30_000) => {
+export const purgeStale = (maxAge = 4000) => {
   const now = Date.now();
   for (const [id, cam] of cameras) {
     if (now - cam.t > maxAge) cameras.delete(id);
