@@ -8,8 +8,8 @@ const IRIS_COLOR = "#4a90e2";
 const PUPIL_COLOR = "#111";
 const SCLERA_COLOR = "#fff";
 const EYE_RADIUS = 20;
-const IRIS_RADIUS = 8;
-const PUPIL_RADIUS = 4;
+const IRIS_RADIUS = 6;
+const PUPIL_RADIUS = 2.5;
 
 export const RemoteEyes = ({ myId }: { myId: string }) => {
   const refs = useRef<Record<string, Mesh | Group>>({});
@@ -19,6 +19,7 @@ export const RemoteEyes = ({ myId }: { myId: string }) => {
   const targets = useRef<Record<string, Vector3>>({});
   const [, setTick] = useState(0);
   const lerpFactor = 0.05;
+  const sun = new Vector3(0, 0, 0);
 
   useEffect(() => {
     const camIds = new Set(cams.map(([id]) => id));
@@ -62,12 +63,15 @@ export const RemoteEyes = ({ myId }: { myId: string }) => {
       const target = targets.current[id];
       if (!m || !target) continue;
       m.position.lerpVectors(m.position, target, lerpFactor);
-      // Make the iris and pupil look at the origin (sun)
       const iris = irisRefs.current[id];
       const pupil = pupilRefs.current[id];
       if (iris && pupil) {
-        iris.lookAt(0, 0, 0);
-        pupil.lookAt(0, 0, 0);
+        // Direction from eye to sun
+        const eyePos = m.position;
+        const toSun = sun.clone().sub(eyePos).normalize();
+        // Place iris and pupil on the surface, slightly offset for layering
+        iris.position.copy(toSun.clone().multiplyScalar(EYE_RADIUS - 2));
+        pupil.position.copy(toSun.clone().multiplyScalar(EYE_RADIUS - 0.5));
       }
     }
   });
@@ -95,9 +99,8 @@ export const RemoteEyes = ({ myId }: { myId: string }) => {
               ref={(el) => {
                 if (el) irisRefs.current[id] = el;
               }}
-              position={[0, 0, EYE_RADIUS - 2]}
             >
-              <circleGeometry args={[IRIS_RADIUS, 32]} />
+              <sphereGeometry args={[IRIS_RADIUS, 24, 24]} />
               <meshStandardMaterial
                 color={IRIS_COLOR}
                 roughness={0.2}
@@ -108,9 +111,8 @@ export const RemoteEyes = ({ myId }: { myId: string }) => {
               ref={(el) => {
                 if (el) pupilRefs.current[id] = el;
               }}
-              position={[0, 0, EYE_RADIUS - 1]}
             >
-              <circleGeometry args={[PUPIL_RADIUS, 32]} />
+              <sphereGeometry args={[PUPIL_RADIUS, 16, 16]} />
               <meshStandardMaterial
                 color={PUPIL_COLOR}
                 roughness={0.1}
