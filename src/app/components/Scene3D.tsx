@@ -422,7 +422,6 @@ const Scene3D = () => {
         style={{ width: "100%", height: "100%" }}
       >
         <color attach="background" args={["#000"]} />
-        <ambientLight intensity={0.2} />
         <mesh>
           <sphereGeometry args={[1, 16, 16]} />
           <meshStandardMaterial color="gray" />
