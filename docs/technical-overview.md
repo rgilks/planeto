@@ -62,3 +62,9 @@ flowchart TD
 ## Camera Logic
 
 The camera is fixed in position and does not follow any object. The view remains static, providing a consistent perspective of the planetary system.
+
+---
+
+## Camera Presence and Heartbeat
+
+To keep your eye visible to others, the app now sends a minimal heartbeat (just your id) every 2 seconds if your camera hasn't moved. This avoids unnecessary network traffic and ensures your presence is maintained efficiently. If you move your camera, the full position is sent as before. The backend updates your timestamp on ping, so your eye is not removed from the cluster unless you close the browser or lose connection for an extended period.

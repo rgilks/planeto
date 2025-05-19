@@ -10,11 +10,18 @@ type Writer = { write: (data: string) => void; closed: boolean };
 const cameras = new Map<string, CameraMessage>();
 const subs = new Set<Writer>();
 
-export const setCamera = (id: string, p: Vec3) => {
-  const msg: CameraMessage = { id, p, t: Date.now() };
-  cameras.set(id, msg);
-  console.log("setCamera:", msg);
-  broadcast(msg);
+export const setCamera = (id: string, p?: Vec3) => {
+  if (p) {
+    const msg: CameraMessage = { id, p, t: Date.now() };
+    cameras.set(id, msg);
+    broadcast(msg);
+    return;
+  }
+  const cam = cameras.get(id);
+  if (cam) {
+    cam.t = Date.now();
+    cameras.set(id, cam);
+  }
 };
 
 export const broadcast = (msg: CameraMessage) => {

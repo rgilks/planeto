@@ -19,6 +19,7 @@
 - Arcane controls: zoom, rotate, peer deeper
 - Multiplayer: your glyphs are seen by other eyes, and theirs by you
 - Immutable domain, defined by Zod
+- **Efficient presence:** Camera sends a lightweight ping if it hasn't moved, so your eye remains visible without unnecessary data
 
 ## The Dance of Matter
 
@@ -144,3 +145,9 @@ When a watcher presses a key, a vast green glyph (from an alien alphabet) appear
 - Ritual: `src/app/page.tsx`
 - Manifestation: `src/app/components/KeyboardDisplay.tsx` (your glyph), `src/app/components/RemoteEyes.tsx` (others' glyphs)
 - To alter the glyphs or their color, change the relevant components.
+
+---
+
+### Camera Presence and Heartbeat
+
+Your eye remains visible to others as long as your browser is open. If you don't move your camera for a while, the app now sends a minimal heartbeat (just your id) every 2 seconds to keep your presence alive, instead of resending the full camera position. This reduces network traffic and keeps the cluster efficient.
