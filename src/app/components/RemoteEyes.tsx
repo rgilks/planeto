@@ -9,6 +9,7 @@ export const RemoteEyes = ({ myId }: { myId: string }) => {
   const cams = useRemoteCameras();
   const targets = useRef<Record<string, Vector3>>({});
   const [, setTick] = useState(0);
+  const lerpFactor = 0.05;
 
   useEffect(() => {
     const camIds = new Set(cams.map(([id]) => id));
@@ -45,7 +46,7 @@ export const RemoteEyes = ({ myId }: { myId: string }) => {
       const m = refs.current[id];
       const target = targets.current[id];
       if (!m || !target) continue;
-      m.position.lerp(target, 0.2);
+      m.position.lerpVectors(m.position, target, lerpFactor);
     }
   });
 
