@@ -18,7 +18,7 @@ export const RemoteEyes = ({ myId }: { myId: string }) => {
         else targets.current[id].set(p[0], p[1], p[2]);
       }
       setTick((t) => t + 1);
-    }, 2000);
+    }, 1000);
     return () => clearInterval(interval);
   }, [cams, myId]);
 
