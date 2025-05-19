@@ -58,3 +58,10 @@ export const purgeStale = (maxAge = 4000) => {
 export const unsubscribe = (w: Writer) => {
   subs.delete(w);
 };
+
+// Periodically purge stale cameras
+const PURGE_INTERVAL = 3000; // 3 seconds
+setInterval(() => {
+  // console.log("Purging stale cameras...");
+  purgeStale();
+}, PURGE_INTERVAL);

@@ -138,16 +138,22 @@ MIT (for those who care for such things)
 
 ## Glyphic Exchange
 
-When a watcher presses a key, a vast green glyph (from an alien alphabet) appears in the bottom-right. This glyph is not the key, but a symbol mapped from it. Only the glyphs of other eyes are seen in the void; your own glyph is for your gaze alone. Glyphs are broadcast instantly to all who watch.
+When a watcher presses a key, a vast green glyph (from an alien alphabet) appears in the bottom-right. This glyph is not the key, but a symbol mapped from it. Only the glyphs of other eyes are seen in the void; your own glyph is for your gaze alone. Glyphs are broadcast instantly to all who watch. Repeated key events from holding a key down are now ignored to save bandwidth.
 
 - State: Zustand (`src/lib/store/keyboardStore.ts`)
 - Schema: Zod (`src/lib/domain/keyboard.ts`)
-- Ritual: `src/app/page.tsx`
+- Ritual: `src/app/page.tsx` (captures non-repeated keydown events)
 - Manifestation: `src/app/components/KeyboardDisplay.tsx` (your glyph), `src/app/components/RemoteEyes.tsx` (others' glyphs)
 - To alter the glyphs or their color, change the relevant components.
 
 ---
 
-### Camera Presence and Heartbeat
+### Efficient Real-Time Communication (Camera & Events)
 
-Your eye remains visible to others as long as your browser is open. If you don't move your camera for a while, the app now sends a minimal heartbeat (just your id) every 2 seconds to keep your presence alive, instead of resending the full camera position. This reduces network traffic and keeps the cluster efficient.
+This project uses Server-Sent Events (SSE) to share camera positions and game events (like keyboard inputs) in near real-time among all connected users. Significant effort has been made to minimize bandwidth and server load:
+
+- **Camera Presence**: Your camera's position is sent to the server when you first connect and then only when it significantly changes. If your camera remains idle, its data is automatically purged from the server after a short period (currently ~4 seconds of inactivity) to keep the active user list fresh and reduce unnecessary data retention. If you move again, your camera will reappear to others.
+- **Keyboard Events**: Only distinct key presses are sent to the server; repeated events from holding a key down are ignored on the client-side before transmission.
+- **Server-Side Logic**: The server manages lists of active cameras and event subscribers, efficiently broadcasting updates only when necessary.
+
+For a detailed technical explanation of the real-time architecture and bandwidth optimization strategies, please see [`docs/realtime-communication.md`](./docs/realtime-communication.md).

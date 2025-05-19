@@ -10,6 +10,7 @@ const KeyboardHandler = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.repeat) return; // Ignore key repeats
       setLastInput({ key: e.key });
     };
     window.addEventListener("keydown", handleKeyDown);
