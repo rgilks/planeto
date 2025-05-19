@@ -3,7 +3,7 @@ import { useFrame } from "@react-three/fiber";
 import { useRef } from "react";
 import { Vector3 } from "three";
 
-const THROTTLE_MS = 100;
+const THROTTLE_MS = 1000; // 1 second
 const EPS = 0.05;
 
 export const useCameraPublisher = (id: string) => {
@@ -17,9 +17,11 @@ export const useCameraPublisher = (id: string) => {
 
     lastSent.current = now;
     prev.current.copy(camera.position);
-    navigator.sendBeacon?.(
-      "/api/camera",
-      JSON.stringify({ id, p: camera.position.toArray() }),
-    );
+    const payload = { id, p: camera.position.toArray() };
+    console.log("POSTING CAMERA POSITION", payload);
+    const ok = navigator.sendBeacon?.("/api/camera", JSON.stringify(payload));
+    if (ok === false) {
+      console.warn("sendBeacon failed, skipping this update");
+    }
   });
 };

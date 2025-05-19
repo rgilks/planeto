@@ -13,11 +13,13 @@ const subs = new Set<Writer>();
 export const setCamera = (id: string, p: Vec3) => {
   const msg: CameraMessage = { id, p, t: Date.now() };
   cameras.set(id, msg);
+  console.log("setCamera:", msg);
   broadcast(msg);
 };
 
 export const broadcast = (msg: CameraMessage) => {
   const data = `data:${JSON.stringify(msg)}\n\n`;
+  console.log("broadcasting to", subs.size, "subs:", data);
   for (const w of subs) {
     if (w.closed) {
       subs.delete(w);
@@ -29,6 +31,7 @@ export const broadcast = (msg: CameraMessage) => {
 
 export const subscribe = (w: Writer) => {
   subs.add(w);
+  console.log("subscribe: now", subs.size, "subs");
   for (const cam of cameras.values()) {
     w.write(`data:${JSON.stringify(cam)}\n\n`);
   }
@@ -39,4 +42,8 @@ export const purgeStale = (maxAge = 30_000) => {
   for (const [id, cam] of cameras) {
     if (now - cam.t > maxAge) cameras.delete(id);
   }
+};
+
+export const unsubscribe = (w: Writer) => {
+  subs.delete(w);
 };

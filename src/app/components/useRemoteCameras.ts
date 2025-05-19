@@ -1,5 +1,6 @@
 "use client";
 import { create } from "zustand";
+import { useMemo, useEffect } from "react";
 
 type Vec3 = [number, number, number];
 interface Cam {
@@ -26,9 +27,18 @@ export const useCamStore = create<StoreState>((set) => ({
 
 export const useRemoteCameras = () => {
   const set = useCamStore((s) => s.set);
-  if (typeof window !== "undefined" && !window.__es) {
-    window.__es = new EventSource("/api/events");
-    window.__es.onmessage = (e) => set(JSON.parse(e.data));
-  }
-  return useCamStore((s) => Object.entries(s.cams));
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && !window.__es) {
+      console.log("useRemoteCameras subscribing");
+      window.__es = new EventSource("/api/events");
+      window.__es.onmessage = (e) => {
+        console.log("RECEIVED CAMERA POSITION", e.data);
+        set(JSON.parse(e.data));
+      };
+    }
+  }, [set]);
+
+  const cams = useCamStore((s) => s.cams);
+  return useMemo(() => Object.entries(cams), [cams]);
 };

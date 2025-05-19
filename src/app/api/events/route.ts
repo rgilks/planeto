@@ -1,17 +1,27 @@
-import { subscribe } from "@/lib/sseStore";
+import { subscribe, unsubscribe } from "@/lib/sseStore";
 
-export const runtime = "edge";
+export const runtime = "nodejs";
 
 export const GET = async () => {
+  console.log("/api/events endpoint HIT");
   const encoder = new TextEncoder();
+  let writer: { write: (data: string) => void; closed: boolean };
 
   const stream = new ReadableStream({
     start: (controller) => {
-      const writer = {
+      console.log("/api/events: creating subscription");
+      writer = {
         write: (s: string) => controller.enqueue(encoder.encode(s)),
         closed: false,
       };
       subscribe(writer);
+    },
+    cancel: () => {
+      if (writer) {
+        writer.closed = true;
+        unsubscribe(writer);
+        console.log("/api/events: subscription closed (cancel)");
+      }
     },
   });
 
