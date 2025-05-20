@@ -14,7 +14,7 @@ const SUN_POS = new Vector3(0, 0, 0);
 const GREEN = "#00FF41";
 const SYMBOLS =
   "☉☯☢☣☠☮☭☽☾☿♀♁♂♃♄♅♆♇♈♉♊♋♌♍♎♏♐♑♒♓♔♕♖♗♘♙♚♛♜♝♞♟♠♣♥♦♪♫☀☁☂☃☄★☆☇☈☉☊☋☌☍☎☏☑☒☓☚☛☜☝☞☟☠☡☢☣☤☥☦☧☨☩☪☫☬☭☮☯☸☹☺☻☼☽☾☿♀♁♂♃♄♅♆♇".split(
-    "",
+    ""
   );
 
 const getSymbol = (key: string) => {
@@ -23,6 +23,7 @@ const getSymbol = (key: string) => {
 };
 
 const vertexShader = `
+  precision mediump float;
   varying vec3 vNormal;
   void main() {
     vNormal = normal;
@@ -31,12 +32,13 @@ const vertexShader = `
 `;
 
 const fragmentShader = `
+  precision mediump float;
   uniform sampler2D tex;
   varying vec3 vNormal;
   void main() {
     vec2 uv = normalize(vNormal).xy * 0.5 + 0.5;
     vec3 color = texture2D(tex, uv).rgb;
-    if (vNormal.z < -0.85) color = vec3(0.777, 0.74, 0.74); // Pupil color part
+    if (vNormal.z < -0.85) color = vec3(0.777, 0.74, 0.74);
     gl_FragColor = vec4(color, 1.0);
   }
 `;
@@ -56,7 +58,7 @@ export const RemoteEyes = ({ myId }: { myId: string }) => {
         vertexShader,
         fragmentShader,
       }),
-    [eyeTexture],
+    [eyeTexture]
   );
 
   useEffect(() => {
