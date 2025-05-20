@@ -14,6 +14,7 @@ export const POST = async (req: NextRequest) => {
   const parsed = KeyboardEventSchema.safeParse(data);
   if (!parsed.success) return new Response("Invalid", { status: 400 });
   const event = parsed.data;
+  console.log("POST /api/game-events", event);
   for (const res of subscribers) {
     res.write(`data: ${JSON.stringify(event)}\n\n`);
   }

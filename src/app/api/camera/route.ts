@@ -22,6 +22,7 @@ export const POST = async (req: NextRequest) => {
   const parsed = CameraPayloadSchema.safeParse(payload);
 
   if (!parsed.success) {
+    console.error("POST /api/camera - invalid payload", parsed.error.flatten());
     return NextResponse.json(
       { error: "Invalid payload", details: parsed.error.flatten() },
       { status: 400 },
@@ -29,6 +30,7 @@ export const POST = async (req: NextRequest) => {
   }
 
   const { id, p } = parsed.data;
+  console.log("POST /api/camera", { id, p });
 
   if (p) {
     setCamera(id, p);
