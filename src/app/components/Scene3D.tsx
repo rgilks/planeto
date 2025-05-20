@@ -197,7 +197,7 @@ const Scene3D = () => {
   const planetRefs = useRef<RigidBodyRef[]>([]);
   const allPlanetRefs = useRef<RigidBodyRef[]>([]);
   const allPlanetMasses = useRef<number[]>([]);
-  const myId = useRef(nanoid());
+  const myId = useRef(nanoid(6));
   const setRemoteKey = useKeyboardStore((s: KeyboardState) => s.setRemoteKey);
   const lastInput = useKeyboardStore((s: KeyboardState) => s.lastInput);
   const setLastInput = useKeyboardStore((s: KeyboardState) => s.setLastInput);
