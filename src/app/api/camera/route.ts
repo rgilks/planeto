@@ -4,7 +4,7 @@ import { z } from "zod";
 import { setCamera, Vec3 } from "@/lib/sseStore";
 
 const CameraPayloadSchema = z.object({
-  id: z.string().min(1), // Assuming ID should not be empty
+  id: z.string().min(1),
   p: z.array(z.number()).length(3).optional() as z.Schema<Vec3 | undefined>,
 });
 
@@ -34,8 +34,7 @@ export const POST = async (req: NextRequest) => {
 
   if (p) {
     setCamera(id, p);
-  } else {
-    setCamera(id);
   }
+
   return NextResponse.json({ ok: true });
 };

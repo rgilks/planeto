@@ -10,13 +10,11 @@ type Writer = { write: (data: string) => void; closed: boolean };
 const cameras = new Map<string, CameraMessage>();
 const subs = new Set<Writer>();
 
-export const setCamera = (id: string, p?: Vec3) => {
-  if (p) {
-    const msg: CameraMessage = { id, p, t: Date.now() };
-    cameras.set(id, msg);
-    broadcast(msg);
-    return;
-  }
+export const setCamera = (id: string, p: Vec3) => {
+  const msg: CameraMessage = { id, p, t: Date.now() };
+  cameras.set(id, msg);
+  broadcast(msg);
+
   const cam = cameras.get(id);
   if (cam) {
     cam.t = Date.now();
@@ -42,7 +40,7 @@ export const subscribe = (w: Writer) => {
   }
 };
 
-export const purgeStale = (maxAge = 60000) => {
+export const purgeStale = (maxAge = 30000) => {
   const now = Date.now();
   for (const [id, cam] of cameras) {
     if (now - cam.t > maxAge) cameras.delete(id);

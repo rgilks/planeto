@@ -10,8 +10,8 @@ const roundVec3 = (v: [number, number, number]): [number, number, number] =>
 const VEC3_EPSILON = 0.001;
 
 const areVec3sEqual = (
-  a: [number, number, number] | undefined,
-  b: [number, number, number],
+  a: Readonly<[number, number, number]> | undefined,
+  b: Readonly<[number, number, number]>,
 ): boolean => {
   if (!a) {
     return false;
