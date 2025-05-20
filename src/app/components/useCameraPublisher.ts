@@ -13,12 +13,25 @@ const areVec3sEqual = (
   a: [number, number, number] | undefined,
   b: [number, number, number],
 ): boolean => {
-  if (!a) return false;
-  return (
-    Math.abs(a[0] - b[0]) < VEC3_EPSILON &&
-    Math.abs(a[1] - b[1]) < VEC3_EPSILON &&
-    Math.abs(a[2] - b[2]) < VEC3_EPSILON
-  );
+  if (!a) {
+    return false;
+  }
+
+  for (let i = 0; i < 3; i++) {
+    const valA = a[i];
+    const valB = b[i];
+
+    if (Number.isNaN(valA) && Number.isNaN(valB)) {
+      continue;
+    }
+    if (Number.isNaN(valA) || Number.isNaN(valB)) {
+      return false;
+    }
+    if (Math.abs(valA - valB) >= VEC3_EPSILON) {
+      return false;
+    }
+  }
+  return true;
 };
 
 export const useCameraPublisher = (id: string) => {
