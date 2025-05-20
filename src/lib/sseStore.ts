@@ -42,7 +42,7 @@ export const subscribe = (w: Writer) => {
   }
 };
 
-export const purgeStale = (maxAge = 4000) => {
+export const purgeStale = (maxAge = 60000) => {
   const now = Date.now();
   for (const [id, cam] of cameras) {
     if (now - cam.t > maxAge) cameras.delete(id);
@@ -54,7 +54,7 @@ export const unsubscribe = (w: Writer) => {
 };
 
 // Periodically purge stale cameras
-const PURGE_INTERVAL = 3000; // 3 seconds
+const PURGE_INTERVAL = 10000; // 10 seconds
 setInterval(() => {
   purgeStale();
 }, PURGE_INTERVAL);

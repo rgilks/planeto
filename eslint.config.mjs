@@ -47,6 +47,12 @@ const eslintConfig = [
       },
     },
   },
+  {
+    files: ["src/app/api/**/*.ts"],
+    rules: {
+      "no-console": "off",
+    },
+  },
 ];
 
 export default eslintConfig;

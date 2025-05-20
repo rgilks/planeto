@@ -2,7 +2,8 @@
 import { useThree } from "@react-three/fiber";
 import { useEffect, useRef } from "react";
 
-const INTERVAL_MS = 1000;
+const FORCE_POSITION_UPDATE_INTERVAL_MS = 20000;
+
 const roundVec3 = (v: [number, number, number]): [number, number, number] =>
   v.map((n) => Math.round(n * 100) / 100) as [number, number, number];
 
@@ -26,26 +27,13 @@ export const useCameraPublisher = (id: string) => {
   const lastSentPositionRef = useRef<[number, number, number] | undefined>(
     undefined,
   );
+  const forcePositionUpdateCounterRef = useRef(0);
+
+  const localIntervalMs = 2000;
+  const checksPerForcePositionUpdate =
+    FORCE_POSITION_UPDATE_INTERVAL_MS / localIntervalMs;
 
   useEffect(() => {
-    intervalRef.current = setInterval(() => {
-      const currentPositionRaw: [number, number, number] = [
-        camera.position.x,
-        camera.position.y,
-        camera.position.z,
-      ];
-      const currentPositionRounded = roundVec3(currentPositionRaw);
-
-      if (!areVec3sEqual(lastSentPositionRef.current, currentPositionRounded)) {
-        const payload = {
-          id,
-          p: currentPositionRounded,
-        };
-        navigator.sendBeacon?.("/api/camera", JSON.stringify(payload));
-        lastSentPositionRef.current = currentPositionRounded;
-      }
-    }, INTERVAL_MS);
-
     const initialPositionRaw: [number, number, number] = [
       camera.position.x,
       camera.position.y,
@@ -58,9 +46,35 @@ export const useCameraPublisher = (id: string) => {
     };
     navigator.sendBeacon?.("/api/camera", JSON.stringify(initialPayload));
     lastSentPositionRef.current = initialPositionRounded;
+    forcePositionUpdateCounterRef.current = 0;
+
+    intervalRef.current = setInterval(() => {
+      const currentPositionRaw: [number, number, number] = [
+        camera.position.x,
+        camera.position.y,
+        camera.position.z,
+      ];
+      const currentPositionRounded = roundVec3(currentPositionRaw);
+
+      forcePositionUpdateCounterRef.current += 1;
+
+      const positionActuallyChanged = !areVec3sEqual(
+        lastSentPositionRef.current,
+        currentPositionRounded,
+      );
+      const isTimeForForcePositionUpdate =
+        forcePositionUpdateCounterRef.current >= checksPerForcePositionUpdate;
+
+      if (positionActuallyChanged || isTimeForForcePositionUpdate) {
+        const payload = { id, p: currentPositionRounded };
+        navigator.sendBeacon?.("/api/camera", JSON.stringify(payload));
+        lastSentPositionRef.current = currentPositionRounded;
+        forcePositionUpdateCounterRef.current = 0;
+      }
+    }, localIntervalMs);
 
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [id, camera]);
+  }, [id, camera, checksPerForcePositionUpdate]);
 };

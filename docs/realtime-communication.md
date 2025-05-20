@@ -19,9 +19,11 @@ This system allows clients to see the camera positions of other users in near re
 - A custom React hook `useCameraPublisher` is responsible for sending the local camera's position to the server.
 - **Update Logic**:
   1.  An initial camera position is sent to the server as soon as the component mounts.
-  2.  It then periodically checks the camera's position (default: every 1 second via `setInterval`).
-  3.  An update (containing a client `id` and position `p`) is sent to the `/api/camera` POST endpoint **only if** the current rounded camera position has changed significantly from the last sent position. This comparison uses a small epsilon value to avoid updates for micro-movements.
-- **Data Transmission**: Uses `navigator.sendBeacon` for sending updates. This API is designed for sending small amounts of data asynchronously, often when a page is unloading, without expecting a response, making it suitable for "fire-and-forget" telemetry like position updates.
+  2.  It then periodically checks the camera's position every 2 seconds:
+      - If the camera position has changed significantly (compared using a small epsilon) since the last full update, a new position update (client `id` and position `p`) is sent. The 20-second timer for forced updates is reset.
+      - If the position has not changed, but 20 seconds (`FORCE_POSITION_UPDATE_INTERVAL_MS`) have passed since the last full position update was sent, a full position update is sent anyway. The 20-second timer is reset.
+      - No other "ping" messages are sent.
+- **Data Transmission**: Uses `navigator.sendBeacon` for sending updates.
 
 ### b. Server-Side Receiver (`src/app/api/camera/route.ts`)
 
@@ -44,9 +46,9 @@ This system allows clients to see the camera positions of other users in near re
   - When a new client connects to the `/api/events` SSE stream, this function is called.
   - It adds the client's `writer` to a `Set` of subscribers.
   - Critically, it then immediately sends the current state of _all_ cameras in the `cameras` Map to the new subscriber. This ensures the new client gets the full picture right away.
-- **`purgeStale(maxAge = 4000)`**:
-  - This function iterates through the `cameras` Map and removes any camera whose timestamp `t` is older than `maxAge` (default 4 seconds).
-  - It is invoked periodically by a `setInterval` (default every 3 seconds) within `sseStore.ts` itself. This is crucial for:
+- **`purgeStale(maxAge = 60000)`**:
+  - This function iterates through the `cameras` Map and removes any camera whose timestamp `t` is older than `maxAge` (default 60 seconds).
+  - It is invoked periodically by a `setInterval` (default every 10 seconds) within `sseStore.ts` itself. This is crucial for:
     - Preventing the `cameras` Map from growing indefinitely with stale data.
     - Ensuring new subscribers don't receive outdated information.
     - Reducing server memory usage.
@@ -97,9 +99,9 @@ This system allows clients to send their keyboard inputs to the server, which th
 ## 3. Bandwidth and Cost Optimization Strategies Implemented
 
 - **Camera Data (`/api/events` & `/api/camera`):**
-  - **Conditional Publishing**: The client-side `useCameraPublisher` only sends position data to `/api/camera` if the (rounded) position has actually changed, significantly reducing updates for idle or slowly moving cameras.
-  - **Server-Side Purging**: The `sseStore` automatically purges camera data for clients that haven't sent an update or ping in a configurable interval (default 4 seconds), preventing stale data broadcasts and keeping the server state lean.
-  - **Ping Mechanism**: `setCamera(id)` (without position) updates a timestamp without broadcasting, allowing clients to signal they are still active without sending redundant position data. The `useCameraPublisher` currently relies on new movement to re-establish presence after being purged, but could be extended to send pings.
+  - **Conditional Publishing**: The client-side `useCameraPublisher` sends full position data to `/api/camera` if the (rounded) position has actually changed OR if 20 seconds have passed since the last full update. No pings are sent otherwise. This reduces updates for idle cameras while ensuring positions are periodically refreshed.
+  - **Server-Side Purging**: The `sseStore` automatically purges camera data for clients that haven't sent an update in a configurable interval (default 60 seconds), preventing stale data broadcasts and keeping the server state lean.
+  - **Ping Mechanism**: The explicit ping mechanism has been removed from the client. The server relies on the periodic (20-second) full updates or movement-triggered updates to keep a camera's timestamp current.
 - **Game Events (`/api/game-events`):**
   - **Ignoring Key Repeats**: The client-side global keyboard listener explicitly ignores `keydown` events where `event.repeat` is true. This drastically cuts down on messages sent when a user holds a key.
 - **General SSE Practices:**
