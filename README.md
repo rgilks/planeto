@@ -122,6 +122,18 @@ This project uses Server-Sent Events (SSE) to share camera positions and game ev
 
 For a detailed technical explanation of the real-time architecture and bandwidth optimization strategies, please see [`docs/realtime-communication.md`](./docs/realtime-communication.md).
 
+## Progressive Web App (PWA)
+
+This application is configured as a Progressive Web App (PWA), allowing it to be installed on devices for a more native-like experience. This is achieved using `next-pwa`.
+
+Key PWA features implemented:
+
+- **Web App Manifest**: `public/manifest.json` provides metadata about the application.
+- **Service Worker**: `next-pwa` automatically generates a service worker for caching and offline capabilities.
+- **Icons**: Placeholder icons are provided in `public/icons/`. These should be replaced with actual app icons.
+
+For more details on the PWA setup, see `docs/pwa-configuration.md`.
+
 ## Deployment on Fly.io
 
 This application can be deployed to Fly.io using the provided `Dockerfile` and `fly.toml` configuration.

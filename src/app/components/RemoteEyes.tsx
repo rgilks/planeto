@@ -74,7 +74,7 @@ export const RemoteEyes = ({ myId }: { myId: string }) => {
         fragmentShader,
         transparent: true,
       }),
-    [eyeTexture]
+    [eyeTexture],
   );
 
   useEffect(() => {

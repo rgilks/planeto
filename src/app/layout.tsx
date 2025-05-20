@@ -16,6 +16,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Planeto",
   description: "Planetoid art.",
+  manifest: "/manifest.json",
 };
 
 export default function RootLayout({
