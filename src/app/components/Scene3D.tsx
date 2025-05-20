@@ -7,6 +7,7 @@ import { useRef, useEffect, createRef, useState } from "react";
 import { createNoise2D } from "simplex-noise";
 import * as THREE from "three";
 
+import { SYMBOLS } from "../../lib/domain/keyboard";
 import { useKeyboardStore } from "../../lib/store/keyboardStore";
 
 import { RemoteEyes } from "./RemoteEyes";
@@ -199,6 +200,7 @@ const Scene3D = () => {
   const myId = useRef(nanoid());
   const setRemoteKey = useKeyboardStore((s: KeyboardState) => s.setRemoteKey);
   const lastInput = useKeyboardStore((s: KeyboardState) => s.lastInput);
+  const setLastInput = useKeyboardStore((s: KeyboardState) => s.setLastInput);
 
   const lastSentTimeRef = useRef(0);
   const throttleTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -501,6 +503,11 @@ const Scene3D = () => {
       camera={{ position: randomCameraPos() }}
       style={{ width: "100%", height: "100%" }}
       shadows
+      onDoubleClick={() => {
+        const randomSymbol =
+          SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)];
+        setLastInput({ key: randomSymbol });
+      }}
     >
       <CameraPublisher id={myId.current} />
       <EffectComposer>

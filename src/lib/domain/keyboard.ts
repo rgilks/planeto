@@ -5,3 +5,8 @@ export const KeyboardInputSchema = z.object({
 });
 
 export type KeyboardInput = z.infer<typeof KeyboardInputSchema>;
+
+export const SYMBOLS =
+  "☉☯☢☣☠☮☭☽☾☿♀♁♂♃♄♅♆♇♈♉♊♋♌♍♎♏♐♑♒♓♔♕♖♗♘♙♚♛♜♝♞♟♠♣♥♦♪♫☀☁☂☃☄★☆☇☈☉☊☋☌☍☎☏☑☒☓☚☛☜☝☞☟☠☡☢☣☤☥☦☧☨☩☪☫☬☭☮☯☸☹☺☻☼☽☾☿♀♁♂♃♄♅♆♇".split(
+    "",
+  );

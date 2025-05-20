@@ -4,6 +4,7 @@ import { useFrame, useLoader } from "@react-three/fiber";
 import { useRef, useEffect, useMemo } from "react";
 import { Mesh, Vector3, Group, TextureLoader, ShaderMaterial } from "three";
 
+import { SYMBOLS } from "../../lib/domain/keyboard";
 import { useKeyboardStore } from "../../lib/store/keyboardStore";
 
 import { useRemoteCameras } from "./useRemoteCameras";
@@ -12,10 +13,6 @@ const EYE_RADIUS = 8;
 const SUN_POS = new Vector3(0, 0, 0);
 
 const GREEN = "#00FF41";
-const SYMBOLS =
-  "☉☯☢☣☠☮☭☽☾☿♀♁♂♃♄♅♆♇♈♉♊♋♌♍♎♏♐♑♒♓♔♕♖♗♘♙♚♛♜♝♞♟♠♣♥♦♪♫☀☁☂☃☄★☆☇☈☉☊☋☌☍☎☏☑☒☓☚☛☜☝☞☟☠☡☢☣☤☥☦☧☨☩☪☫☬☭☮☯☸☹☺☻☼☽☾☿♀♁♂♃♄♅♆♇".split(
-    ""
-  );
 
 const getSymbol = (key: string) => {
   const code = key.codePointAt(0) || 0;
@@ -58,7 +55,7 @@ export const RemoteEyes = ({ myId }: { myId: string }) => {
         vertexShader,
         fragmentShader,
       }),
-    [eyeTexture]
+    [eyeTexture],
   );
 
   useEffect(() => {
