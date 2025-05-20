@@ -1,7 +1,7 @@
 "use client";
 import { Text } from "@react-three/drei";
 import { useFrame, useLoader } from "@react-three/fiber";
-import { useRef, useEffect, useMemo } from "react";
+import { useRef, useEffect, useMemo, useState } from "react";
 import { Mesh, Vector3, Group, TextureLoader, ShaderMaterial } from "three";
 
 import { SYMBOLS } from "../../lib/domain/keyboard";
@@ -31,103 +31,192 @@ const vertexShader = `
 const fragmentShader = `
   precision mediump float;
   uniform sampler2D tex;
+  uniform float uOpacity;
   varying vec3 vNormal;
   void main() {
     vec2 uv = normalize(vNormal).xy * 0.5 + 0.5;
     vec3 color = texture2D(tex, uv).rgb;
     if (vNormal.z < -0.85) color = vec3(0.777, 0.74, 0.74);
-    gl_FragColor = vec4(color, 1.0);
+    gl_FragColor = vec4(color, uOpacity);
   }
 `;
+
+interface EyeState {
+  id: string;
+  position: Vector3;
+  targetPosition: Vector3;
+  opacity: number;
+  scale: number;
+  status: "appearing" | "visible" | "disappearing";
+  material: ShaderMaterial;
+}
+
+const FADE_DURATION = 1;
+const INITIAL_SCALE = 0.01;
+const TARGET_SCALE = 1.0;
 
 export const RemoteEyes = ({ myId }: { myId: string }) => {
   const refs = useRef<Record<string, Mesh | Group>>({});
   const cams = useRemoteCameras();
-  const targets = useRef<Record<string, Vector3>>({});
-  const lerpFactor = 0.05;
   const eyeTexture = useLoader(TextureLoader, "/eye.jpg");
   const remoteKeys = useKeyboardStore((s) => s.remoteKeys);
 
-  const shaderMaterial = useMemo(
+  const [managedEyes, setManagedEyes] = useState<Record<string, EyeState>>({});
+
+  const baseShaderMaterial = useMemo(
     () =>
       new ShaderMaterial({
-        uniforms: { tex: { value: eyeTexture } },
+        uniforms: {
+          tex: { value: eyeTexture },
+          uOpacity: { value: 1.0 },
+        },
         vertexShader,
         fragmentShader,
+        transparent: true,
       }),
-    [eyeTexture],
+    [eyeTexture]
   );
 
   useEffect(() => {
-    const camIds = new Set(cams.map(([id]) => id));
+    const incomingCamIds = new Set(cams.map(([id]) => id));
 
-    for (const id in targets.current) {
-      if (!camIds.has(id)) {
-        delete targets.current[id];
-      }
-    }
+    setManagedEyes((prevEyes) => {
+      const newEyesState = { ...prevEyes };
 
-    for (const id in refs.current) {
-      if (!camIds.has(id)) {
-        delete refs.current[id];
-      }
-    }
+      for (const [id, p] of cams) {
+        if (id === myId) continue;
 
-    for (const [id, p] of cams) {
-      if (id === myId) continue;
-      if (!targets.current[id]) {
-        targets.current[id] = new Vector3(...p);
-        if (refs.current[id]) {
-          refs.current[id].position.set(p[0], p[1], p[2]);
+        const positionVec = new Vector3(...p);
+
+        if (newEyesState[id]) {
+          newEyesState[id] = {
+            ...newEyesState[id],
+            targetPosition: positionVec.clone(),
+            status:
+              newEyesState[id].status === "disappearing"
+                ? "appearing"
+                : newEyesState[id].status,
+          };
+        } else {
+          newEyesState[id] = {
+            id,
+            position: positionVec.clone(),
+            targetPosition: positionVec.clone(),
+            opacity: 0,
+            scale: INITIAL_SCALE,
+            status: "appearing",
+            material: baseShaderMaterial.clone(),
+          };
         }
-      } else {
-        targets.current[id].set(p[0], p[1], p[2]);
       }
-    }
-  }, [cams, myId]);
 
-  useFrame(() => {
-    for (const [id] of cams) {
-      if (id === myId) continue;
-      const m = refs.current[id];
-      const target = targets.current[id];
-      if (!m || !target) continue;
-      m.position.lerpVectors(m.position, target, lerpFactor);
-      m.lookAt(SUN_POS);
-    }
+      for (const id in newEyesState) {
+        if (id === myId) continue;
+        if (!incomingCamIds.has(id)) {
+          if (newEyesState[id].status !== "disappearing") {
+            newEyesState[id] = {
+              ...newEyesState[id],
+              status: "disappearing",
+            };
+          }
+        }
+      }
+      return newEyesState;
+    });
+  }, [cams, myId, baseShaderMaterial]);
+
+  useFrame((_, delta) => {
+    setManagedEyes((prevEyes) => {
+      const newEyes = { ...prevEyes };
+      let changed = false;
+
+      for (const id in newEyes) {
+        const eye = newEyes[id];
+        const group = refs.current[id];
+
+        if (!group) continue;
+
+        if (!eye.position.equals(eye.targetPosition)) {
+          eye.position.lerp(eye.targetPosition, 0.05);
+          group.position.copy(eye.position);
+          changed = true;
+        }
+        group.lookAt(SUN_POS);
+
+        let visualPropertyChanged = false;
+        if (eye.status === "appearing") {
+          const progress = eye.opacity;
+
+          eye.opacity += delta / FADE_DURATION;
+          eye.scale =
+            INITIAL_SCALE +
+            (TARGET_SCALE - INITIAL_SCALE) * Math.min(eye.opacity, 1);
+
+          if (progress >= 1) {
+            eye.opacity = 1;
+            eye.scale = TARGET_SCALE;
+            eye.status = "visible";
+          }
+          visualPropertyChanged = true;
+        } else if (eye.status === "disappearing") {
+          const progress = eye.opacity;
+
+          eye.opacity -= delta / FADE_DURATION;
+          eye.scale =
+            INITIAL_SCALE +
+            (TARGET_SCALE - INITIAL_SCALE) * Math.max(eye.opacity, 0);
+
+          if (progress <= 0) {
+            delete newEyes[id];
+            delete refs.current[id];
+            changed = true;
+            continue;
+          }
+          visualPropertyChanged = true;
+        }
+
+        if (visualPropertyChanged) {
+          eye.material.uniforms["uOpacity"].value = eye.opacity;
+          group.scale.set(eye.scale, eye.scale, eye.scale);
+          changed = true;
+        }
+      }
+      return changed ? newEyes : prevEyes;
+    });
   });
 
   return (
     <>
-      {cams
-        .filter(([id]) => id !== myId)
-        .map(([id]) => (
-          <group
-            key={id}
-            ref={(el) => {
-              if (el) refs.current[id] = el;
-            }}
-          >
-            <mesh>
-              <sphereGeometry args={[EYE_RADIUS, 32, 32]} />
-              <primitive object={shaderMaterial} attach="material" />
-            </mesh>
-            {remoteKeys[id] && Date.now() - remoteKeys[id].ts < 2000 && (
-              <Text
-                position={[0, EYE_RADIUS + 6, 0]}
-                fontSize={10}
-                color={GREEN}
-                anchorX="center"
-                anchorY="middle"
-                fillOpacity={1 - (Date.now() - remoteKeys[id].ts) / 2000}
-                outlineColor="black"
-                outlineWidth={0.25}
-              >
-                {getSymbol(remoteKeys[id].key)}
-              </Text>
-            )}
-          </group>
-        ))}
+      {Object.values(managedEyes).map((eye) => (
+        <group
+          key={eye.id}
+          ref={(el) => {
+            if (el) refs.current[eye.id] = el;
+          }}
+          position={eye.position}
+        >
+          <mesh>
+            <sphereGeometry args={[EYE_RADIUS, 32, 32]} />
+            <primitive object={eye.material} attach="material" />
+          </mesh>
+          {remoteKeys[eye.id] && Date.now() - remoteKeys[eye.id].ts < 2000 && (
+            <Text
+              position={[0, EYE_RADIUS + 6, 0]}
+              fontSize={10}
+              color={GREEN}
+              anchorX="center"
+              anchorY="middle"
+              fillOpacity={
+                eye.opacity * (1 - (Date.now() - remoteKeys[eye.id].ts) / 2000)
+              }
+              outlineColor="black"
+              outlineWidth={0.25}
+            >
+              {getSymbol(remoteKeys[eye.id].key)}
+            </Text>
+          )}
+        </group>
+      ))}
     </>
   );
 };
