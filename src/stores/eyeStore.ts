@@ -6,11 +6,11 @@ import { EyeUpdateType, Vec3Schema } from "@/domain/event";
 
 type Vec3 = z.infer<typeof Vec3Schema>;
 
-interface CamStoreState {
-  cams: Record<string, { p: Vec3; t: number }>;
+interface eyeStoreState {
+  eyes: Record<string, { p: Vec3; t: number }>;
 }
 
-interface CamStoreActions {
+interface EyeStoreActions {
   setEye: (eyeUpdate: EyeUpdateType) => void;
   removeStaleEyes: (thresholdMs: number) => void;
 }
@@ -18,23 +18,23 @@ interface CamStoreActions {
 // Augment the Window interface for the debug store
 declare global {
   interface Window {
-    __camStore?: typeof useCamStore;
+    __eyeStore?: typeof useEyeStore;
   }
 }
 
-export const useCamStore = create<CamStoreState & CamStoreActions>()(
+export const useEyeStore = create<eyeStoreState & EyeStoreActions>()(
   immer((set) => ({
-    cams: {},
+    eyes: {},
     setEye: (eyeUpdate) =>
       set((state) => {
-        state.cams[eyeUpdate.id] = { p: eyeUpdate.p, t: eyeUpdate.t };
+        state.eyes[eyeUpdate.id] = { p: eyeUpdate.p, t: eyeUpdate.t };
       }),
     removeStaleEyes: (thresholdMs) =>
       set((state) => {
         const now = Date.now();
-        for (const id in state.cams) {
-          if (now - state.cams[id].t > thresholdMs) {
-            delete state.cams[id];
+        for (const id in state.eyes) {
+          if (now - state.eyes[id].t > thresholdMs) {
+            delete state.eyes[id];
           }
         }
       }),
@@ -42,5 +42,5 @@ export const useCamStore = create<CamStoreState & CamStoreActions>()(
 );
 
 if (typeof window !== "undefined" && process.env.NODE_ENV !== "production") {
-  window.__camStore = useCamStore;
+  window.__eyeStore = useEyeStore;
 }

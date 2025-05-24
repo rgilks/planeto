@@ -38,9 +38,9 @@ export const broadcast = (msg: EventType): void => {
 
 export const subscribe = (w: Writer): void => {
   subs.add(w);
-  for (const cam of eyes.values()) {
+  for (const eye of eyes.values()) {
     try {
-      w.write(`data:${JSON.stringify(cam)}
+      w.write(`data:${JSON.stringify(eye)}
 
 `);
     } catch (error) {
@@ -56,8 +56,8 @@ export const subscribe = (w: Writer): void => {
 
 export const purgeStale = (maxAge = 30000): void => {
   const now = Date.now();
-  for (const [id, cam] of eyes) {
-    if (now - cam.t > maxAge) eyes.delete(id);
+  for (const [id, eye] of eyes) {
+    if (now - eye.t > maxAge) eyes.delete(id);
   }
 };
 

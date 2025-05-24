@@ -118,7 +118,7 @@ test.describe("API Robustness - POST /api/events", () => {
       const response = await request.post(API_ENDPOINT, {
         data: {
           type: "eyeUpdate",
-          id: "test-valid-cam",
+          id: "test-valid-eye",
           p: [1, 2, 3],
           t: Date.now(),
         },

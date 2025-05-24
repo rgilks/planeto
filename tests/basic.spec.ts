@@ -33,8 +33,8 @@ test.describe("Multi-User Event Synchronization", () => {
   });
 
   test("synchronizes eye updates between two users", async ({ request }) => {
-    const user1CamId = "user1-cam-test";
-    const user1CamPos: [number, number, number] = [10, 20, 30];
+    const user1EyeId = "user1-eye-test";
+    const user1EyePos: [number, number, number] = [10, 20, 30];
 
     // Allow page2 a moment to fully initialize its event listeners
     await page2.waitForTimeout(500);
@@ -42,8 +42,8 @@ test.describe("Multi-User Event Synchronization", () => {
     // User 1 posts a eye update
     const postData = {
       type: "eyeUpdate",
-      id: user1CamId,
-      p: user1CamPos,
+      id: user1EyeId,
+      p: user1EyePos,
       t: Date.now(),
     };
     const postResponse = await request.post("/api/events", { data: postData });
@@ -51,11 +51,11 @@ test.describe("Multi-User Event Synchronization", () => {
 
     // User 2 verifies receiving the eye update
     const receivedOnPage2 = await pollForCondition(page2, async () => {
-      const camData = await page2.evaluate((id) => {
-        const storeState = window.__camStore?.getState();
-        return storeState?.cams?.[id];
-      }, user1CamId);
-      return JSON.stringify(camData?.p) === JSON.stringify(user1CamPos);
+      const eyeData = await page2.evaluate((id) => {
+        const storeState = window.__eyeStore?.getState();
+        return storeState?.eyes?.[id];
+      }, user1EyeId);
+      return JSON.stringify(eyeData?.p) === JSON.stringify(user1EyePos);
     });
     expect(receivedOnPage2).toBe(true);
   });
@@ -130,11 +130,11 @@ test("original: has title and receives initial event data", async ({
   const received = await pollForCondition(
     page,
     async () => {
-      const camData = await page.evaluate(() => {
-        const storeState = window.__camStore?.getState();
-        return storeState?.cams?.["test-eye"];
+      const eyeData = await page.evaluate(() => {
+        const storeState = window.__eyeStore?.getState();
+        return storeState?.eyes?.["test-eye"];
       });
-      return JSON.stringify(camData?.p) === JSON.stringify([1, 2, 3]);
+      return JSON.stringify(eyeData?.p) === JSON.stringify([1, 2, 3]);
     },
     10000,
   );

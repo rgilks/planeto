@@ -45,7 +45,7 @@ const fragmentShader = `
 
 export const RemoteEyes = ({ myId }: { myId: string }) => {
   const refs = useRef<Record<string, Mesh | Group>>({});
-  const cams = useRemoteEyes();
+  const eyes = useRemoteEyes();
   const eyeTexture = useLoader(TextureLoader, EYE_TEXTURE_PATH);
   const remoteKeys = useSymbolStore((s) => s.remoteKeys);
 
@@ -68,8 +68,8 @@ export const RemoteEyes = ({ myId }: { myId: string }) => {
   );
 
   useEffect(() => {
-    syncEyes(cams, myId, baseShaderMaterial);
-  }, [cams, myId, baseShaderMaterial, syncEyes]);
+    syncEyes(eyes, myId, baseShaderMaterial);
+  }, [eyes, myId, baseShaderMaterial, syncEyes]);
 
   useFrame((_, delta) => {
     updateEyeAnimations(delta);

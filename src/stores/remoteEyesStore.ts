@@ -16,7 +16,7 @@ type RemoteEyesState = {
 
 type RemoteEyesActions = {
   syncEyes: (
-    cams: [string, [number, number, number]][],
+    eyes: [string, [number, number, number]][],
     myId: string,
     baseShaderMaterial: ShaderMaterial,
   ) => void;
@@ -28,11 +28,11 @@ export const useRemoteEyesStore = create<RemoteEyesState & RemoteEyesActions>()(
   immer((set) => ({
     managedEyes: {},
 
-    syncEyes: (cams, myId, baseShaderMaterial) =>
+    syncEyes: (eyes, myId, baseShaderMaterial) =>
       set((state) => {
-        const incomingCamIds = new Set(cams.map(([id]) => id));
+        const incomingEyeIds = new Set(eyes.map(([id]) => id));
 
-        for (const [id, p] of cams) {
+        for (const [id, p] of eyes) {
           if (id === myId) continue;
 
           const positionVec = new Vector3(...p);
@@ -57,7 +57,7 @@ export const useRemoteEyesStore = create<RemoteEyesState & RemoteEyesActions>()(
 
         for (const id in state.managedEyes) {
           if (id === myId) continue;
-          if (!incomingCamIds.has(id)) {
+          if (!incomingEyeIds.has(id)) {
             if (state.managedEyes[id].status !== "disappearing") {
               state.managedEyes[id].status = "disappearing";
             }

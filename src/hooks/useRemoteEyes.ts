@@ -3,8 +3,8 @@ import { useMemo, useEffect } from "react";
 import { z } from "zod";
 
 import { EyeUpdateType, Vec3Schema } from "@/domain/event"; // Ensure path is correct
-import { useCamStore } from "@/stores/camStore";
 import { useEventStore } from "@/stores/eventStore";
+import { useEyeStore } from "@/stores/eyeStore";
 
 type Vec3 = z.infer<typeof Vec3Schema>;
 
@@ -16,9 +16,9 @@ export const useRemoteEyes = () => {
   const subscribeToEyeUpdates = useEventStore((s) => s.subscribeEyeUpdates);
   const eventSourceConnected = useEventStore((s) => s.isConnected);
 
-  const setEyeInStore = useCamStore((s) => s.setEye);
-  const removeStaleEyesInStore = useCamStore((s) => s.removeStaleEyes);
-  const camsFromStore = useCamStore((s) => s.cams);
+  const setEyeInStore = useEyeStore((s) => s.setEye);
+  const removeStaleEyesInStore = useEyeStore((s) => s.removeStaleEyes);
+  const eyesFromStore = useEyeStore((s) => s.eyes);
 
   useEffect(() => {
     if (!eventSourceConnected) {
@@ -49,9 +49,9 @@ export const useRemoteEyes = () => {
 
   return useMemo(
     () =>
-      Object.entries(camsFromStore).map(
+      Object.entries(eyesFromStore).map(
         ([id, v]) => [id, v.p] as [string, Vec3],
       ),
-    [camsFromStore],
+    [eyesFromStore],
   );
 };
