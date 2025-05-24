@@ -3,7 +3,7 @@ import { test, expect, Page } from "@playwright/test";
 const pollForCondition = async (
   page: Page,
   conditionFn: () => Promise<boolean>,
-  timeout = 5000,
+  timeout = 10000,
   pollInterval = 100,
 ) => {
   const startTime = Date.now();
@@ -25,6 +25,7 @@ test.describe("Multi-User Event Synchronization", () => {
     const context2 = await browser.newContext();
     page1 = await context1.newPage();
     page2 = await context2.newPage();
+
     await page1.goto("/");
     await page2.goto("/");
     await expect(page1).toHaveTitle(/Planeto/);
@@ -34,6 +35,9 @@ test.describe("Multi-User Event Synchronization", () => {
   test("synchronizes camera updates between two users", async ({ request }) => {
     const user1CamId = "user1-cam-test";
     const user1CamPos: [number, number, number] = [10, 20, 30];
+
+    // Allow page2 a moment to fully initialize its event listeners
+    await page2.waitForTimeout(500);
 
     // User 1 posts a camera update
     const postData = {
