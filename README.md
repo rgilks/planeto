@@ -68,8 +68,11 @@ flowchart LR
     C --> C6[page.tsx]
     B --> D[lib/]
     D --> D1[domain/keyboard.ts]
-    D --> D2[sseStore.ts]
     D --> D3[store/keyboardStore.ts]
+    B --> E[stores/]
+    E --> E1[sseStore.ts]
+    E --> E2[keyboardStore.ts]
+    E --> E3[remoteEyesStore.ts]
     B --> H[hooks/]
     H --> H1[usePlanetData.ts]
     H --> H2[usePhysicsSimulation.ts]
@@ -104,7 +107,7 @@ MIT (for those who care for such things)
 
 When a watcher presses a key, a vast green glyph (from an alien alphabet) appears in the bottom-right. This glyph is not the key, but a symbol mapped from it. Only the glyphs of other eyes are seen in the void; your own glyph is for your gaze alone. Glyphs are broadcast instantly to all who watch. Repeated key events from holding a key down are now ignored to save bandwidth.
 
-- State: Zustand (`src/lib/store/keyboardStore.ts`)
+- State: Zustand (`src/stores/keyboardStore.ts`)
 - Schema: Zod (`src/lib/domain/keyboard.ts`)
 - Ritual: `src/app/page.tsx` (captures non-repeated keydown events)
 - Manifestation: `src/app/components/KeyboardDisplay.tsx` (your glyph), `src/app/components/RemoteEyes.tsx` (others' glyphs)

@@ -28,7 +28,7 @@ export const broadcast = (msg: EventType): void => {
       w.write(data);
     } catch (error) {
       console.error(
-        `Failed to write to SSE subscriber for event type ${msg.type}. Removing subscriber.`,
+        `Failed to write to SSE subscriber for event type ${msg?.type ?? "unknown"}. Removing subscriber.`,
         error,
       );
       subs.delete(w);
@@ -48,8 +48,8 @@ export const subscribe = (w: Writer): void => {
         `Failed to write initial camera data to SSE subscriber. Removing subscriber.`,
         error,
       );
-      subs.delete(w); // Remove problematic subscriber
-      break; // Stop sending more data to this failed writer
+      subs.delete(w);
+      break;
     }
   }
 };
