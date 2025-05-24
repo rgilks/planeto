@@ -22,7 +22,11 @@ export const useKeyboardStore = create<State>()(
     remoteKeys: {},
     setRemoteKey: (id, key) =>
       set((state) => {
-        state.remoteKeys[id] = { key, ts: Date.now() };
+        if (key) {
+          state.remoteKeys[id] = { key, ts: Date.now() };
+        } else {
+          delete state.remoteKeys[id];
+        }
       }),
   })),
 );

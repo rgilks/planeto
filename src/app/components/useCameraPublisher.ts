@@ -2,6 +2,8 @@
 import { useThree } from "@react-three/fiber";
 import { useEffect, useRef } from "react";
 
+import { CameraUpdateType } from "../../lib/domainTypes";
+
 const FORCE_POSITION_UPDATE_INTERVAL_MS = 20000;
 
 const roundVec3 = (v: [number, number, number]): [number, number, number] =>
@@ -53,11 +55,13 @@ export const useCameraPublisher = (id: string) => {
       camera.position.z,
     ];
     const initialPositionRounded = roundVec3(initialPositionRaw);
-    const initialPayload = {
+    const initialPayload: CameraUpdateType = {
+      type: "cameraUpdate",
       id,
       p: initialPositionRounded,
+      t: Date.now(),
     };
-    navigator.sendBeacon?.("/api/camera", JSON.stringify(initialPayload));
+    navigator.sendBeacon?.("/api/events", JSON.stringify(initialPayload));
     lastSentPositionRef.current = initialPositionRounded;
     forcePositionUpdateCounterRef.current = 0;
 
@@ -79,8 +83,13 @@ export const useCameraPublisher = (id: string) => {
         forcePositionUpdateCounterRef.current >= checksPerForcePositionUpdate;
 
       if (positionActuallyChanged || isTimeForForcePositionUpdate) {
-        const payload = { id, p: currentPositionRounded };
-        navigator.sendBeacon?.("/api/camera", JSON.stringify(payload));
+        const payload: CameraUpdateType = {
+          type: "cameraUpdate",
+          id,
+          p: currentPositionRounded,
+          t: Date.now(),
+        };
+        navigator.sendBeacon?.("/api/events", JSON.stringify(payload));
         lastSentPositionRef.current = currentPositionRounded;
         forcePositionUpdateCounterRef.current = 0;
       }

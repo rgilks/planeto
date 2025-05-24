@@ -174,3 +174,8 @@ Fly.io will use the `Dockerfile` to build and deploy your updated application.
 - Access the Fly.io dashboard for more detailed monitoring.
 
 For more detailed deployment and configuration information, see `docs/deployment-flyio.md`.
+
+### API Endpoints
+
+- `POST /api/events`: Receives event data (e.g., keyboard events, camera updates).
+- `GET /api/events`: Subscribes to a server-sent event stream for real-time updates.

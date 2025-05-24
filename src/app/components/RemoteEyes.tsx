@@ -199,22 +199,25 @@ export const RemoteEyes = ({ myId }: { myId: string }) => {
             <sphereGeometry args={[EYE_RADIUS, 32, 32]} />
             <primitive object={eye.material} attach="material" />
           </mesh>
-          {remoteKeys[eye.id] && Date.now() - remoteKeys[eye.id].ts < 2000 && (
-            <Text
-              position={[0, EYE_RADIUS + 6, 0]}
-              fontSize={10}
-              color={GREEN}
-              anchorX="center"
-              anchorY="middle"
-              fillOpacity={
-                eye.opacity * (1 - (Date.now() - remoteKeys[eye.id].ts) / 2000)
-              }
-              outlineColor="black"
-              outlineWidth={0.25}
-            >
-              {getSymbol(remoteKeys[eye.id].key)}
-            </Text>
-          )}
+          {remoteKeys[eye.id] &&
+            remoteKeys[eye.id].key &&
+            Date.now() - remoteKeys[eye.id].ts < 2000 && (
+              <Text
+                position={[0, EYE_RADIUS + 6, 0]}
+                fontSize={10}
+                color={GREEN}
+                anchorX="center"
+                anchorY="middle"
+                fillOpacity={
+                  eye.opacity *
+                  (1 - (Date.now() - remoteKeys[eye.id].ts) / 2000)
+                }
+                outlineColor="black"
+                outlineWidth={0.25}
+              >
+                {getSymbol(remoteKeys[eye.id].key)}
+              </Text>
+            )}
         </group>
       ))}
     </>

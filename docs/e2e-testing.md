@@ -27,7 +27,7 @@ Currently, there are two main E2E test suites:
 This suite focuses on core application functionality related to real-time events and state management. It verifies:
 
 - The application page loads and has the correct title (`/`).
-- The client can successfully POST camera data to the `/api/camera` endpoint.
+- The client can successfully POST camera data to the `/api/events` endpoint.
 - The client-side `EventSource` connection to `/api/events` is established upon page load.
 - Initial camera data (posted in the test) is received by the client via the EventSource and correctly updates the Zustand store (`useCamStore`). This is verified by inspecting the store's state exposed on the `window` object during tests (non-production builds only).
 
@@ -42,6 +42,6 @@ This suite is responsible for visual regression testing. It ensures the applicat
 
 ## Key Testing Strategies
 
-- **API Interaction**: Tests directly interact with API endpoints (e.g., POSTing to `/api/camera`) to set up preconditions or verify backend integration.
+- **API Interaction**: Tests directly interact with API endpoints (e.g., POSTing to `/api/events`) to set up preconditions or verify backend integration.
 - **Client-Side State Verification**: For state managed by Zustand, tests access the store's state (exposed on `window.__camStore` in non-production environments) to confirm that client-side logic and event handling are working as expected.
 - **Focus on Core User Experience**: The tests aim to cover critical paths that impact the user's ability to see and interact with the shared environment.

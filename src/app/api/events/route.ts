@@ -1,4 +1,7 @@
-import { subscribe, unsubscribe } from "@/lib/sseStore";
+import { NextRequest, NextResponse } from "next/server";
+
+import { EventSchema } from "@/lib/domainTypes";
+import { broadcast, setCamera, subscribe, unsubscribe } from "@/lib/sseStore";
 
 export const runtime = "nodejs";
 
@@ -31,4 +34,35 @@ export const GET = async () => {
       Connection: "keep-alive",
     },
   });
+};
+
+export const POST = async (req: NextRequest) => {
+  let payload;
+  try {
+    payload = await req.json();
+  } catch {
+    return NextResponse.json(
+      { error: "Invalid JSON payload" },
+      { status: 400 },
+    );
+  }
+
+  const parsedEvent = EventSchema.safeParse(payload);
+
+  if (!parsedEvent.success) {
+    return NextResponse.json(
+      { error: "Invalid event payload", details: parsedEvent.error.flatten() },
+      { status: 400 },
+    );
+  }
+
+  const event = parsedEvent.data;
+
+  if (event.type === "cameraUpdate") {
+    setCamera(event.id, event.p);
+  } else if (event.type === "keyboard") {
+    broadcast(event);
+  }
+
+  return NextResponse.json({ ok: true });
 };

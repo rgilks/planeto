@@ -15,11 +15,15 @@ Planeto simulates a cluster of planetoids. Users (Watchers) observe the scene. K
 
 ```mermaid
 flowchart TD
-    A[User] -- presses key --> B{Keyboard Event}
-    B -- to local UI --> C[Symbol Displayed Locally]
-    B -- POST /api/game-events --> D[Server]
-    D -- SSE /api/game-events --> E[Other Users]
-    E -- see symbol --> F[Symbol Displayed Remotely]
+    A[User Input (Keyboard)] --> B{Client-Side Logic}
+    B -- POST /api/events --> D[Server]
+    D -- SSE /api/events --> E[Other Users]
+    E --> F[Display Remote Glyphs]
+
+    G[User Movement] --> H{Client-Side Logic}
+    H[User Camera] -- POST /api/events --> D
+    D -- SSE /api/events --> E
+    E --> I[Display Remote Cameras]
 
     G[Planetoids] -- physics simulation --> G
     G -- rendered --> A
@@ -47,12 +51,12 @@ flowchart TD
 - **Keyboard Input (Glyphs)**:
   - `KeyboardHandler` captures `keydown` events.
   - Input stored in `useKeyboardStore` (Zustand).
-  - `Scene3D.tsx` observes store; on change, POSTs `{id, key}` to `/api/game-events`.
-  - `/api/game-events` (server) validates and broadcasts via SSE to all connected clients (except sender).
+  - `Scene3D.tsx` observes store; on change, POSTs `{type: "keyboard", id, key}` to `/api/events`.
+  - `/api/events` (server) validates and broadcasts via SSE to all connected clients.
   - Remote clients receive glyphs via SSE and display them using `RemoteEyes.tsx`.
 - **Camera Position Sharing**:
-  - `useCameraPublisher` hook sends local camera position to `/api/camera` (POST) periodically or on significant movement.
-  - `/api/camera` (server) updates camera state in `sseStore`.
+  - `useCameraPublisher` hook sends local camera position to `/api/events` (POST) periodically or on significant movement.
+  - `/api/events` (server) updates camera state in `sseStore`.
   - `sseStore` broadcasts updated camera positions (`{id, p, t}`) via `/api/events` (SSE) to all clients.
   - Remote clients receive camera updates and render them using `RemoteEyes.tsx`.
   - `sseStore` periodically purges stale camera data.

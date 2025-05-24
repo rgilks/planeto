@@ -1,8 +1,13 @@
 import { test, expect } from "@playwright/test";
 
 test("has title and receives initial event data", async ({ page, request }) => {
-  const postData = { id: "testCam", p: [1, 2, 3] };
-  const postResponse = await request.post("/api/camera", { data: postData });
+  const postData = {
+    type: "cameraUpdate",
+    id: "test-camera",
+    p: [1, 2, 3],
+    t: Date.now(),
+  };
+  const postResponse = await request.post("/api/events", { data: postData });
   expect(postResponse.ok()).toBeTruthy();
 
   await page.goto("/");
@@ -15,11 +20,11 @@ test("has title and receives initial event data", async ({ page, request }) => {
         const camData = await page.evaluate(() => {
           // @ts-expect-error - accessing debug store
           const storeState = window.__camStore?.getState();
-          return storeState?.cams?.testCam;
+          return storeState?.cams?.["test-camera"];
         });
         return JSON.stringify(camData?.p) === JSON.stringify([1, 2, 3]);
       },
-      { timeout: 5000 },
+      { timeout: 5000 }
     )
     .toBe(true);
 });

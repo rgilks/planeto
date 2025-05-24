@@ -8,6 +8,7 @@ import { createNoise2D } from "simplex-noise";
 import * as THREE from "three";
 
 import { SYMBOLS } from "../../lib/domain/keyboard";
+import { EventSchema } from "../../lib/domainTypes";
 import { useKeyboardStore } from "../../lib/store/keyboardStore";
 
 import { RemoteEyes } from "./RemoteEyes";
@@ -92,7 +93,6 @@ const seededRandom = (seed: number) => {
 };
 
 const randomRadius = () => {
-  // More extreme power-law: most small, a few huge
   const min = 0.3,
     max = 8,
     alpha = 3.2;
@@ -115,7 +115,6 @@ const generateBumpMap = (seed: number) => {
     for (let x = 0; x < size; x++) {
       const nx = x / size - 0.5;
       const ny = y / size - 0.5;
-      // Multi-octave noise for richer features
       let n = 0;
       let amp = 1;
       let freq = 1;
@@ -189,7 +188,7 @@ const CameraPublisher = ({ id }: { id: string }) => {
   return null;
 };
 
-const THROTTLE_MS = 100; // Max 10 events per second
+const THROTTLE_MS = 100;
 
 const Scene3D = () => {
   const [bumpMaps, setBumpMaps] = useState<THREE.Texture[] | null>(null);
@@ -206,10 +205,21 @@ const Scene3D = () => {
   const throttleTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    const es = new EventSource("/api/game-events");
+    const es = new EventSource("/api/events");
     es.onmessage = (e) => {
-      const { id, key } = JSON.parse(e.data);
-      setRemoteKey(id, key);
+      try {
+        const rawData = JSON.parse(e.data);
+        const parsedEvent = EventSchema.safeParse(rawData);
+
+        if (parsedEvent.success && parsedEvent.data.type === "keyboard") {
+          const { id, key } = parsedEvent.data;
+          if (id !== myId.current) {
+            setRemoteKey(id, key);
+          }
+        }
+      } catch {
+        // console.error("Error processing SSE message:", e.data);
+      }
     };
     return () => es.close();
   }, [setRemoteKey]);
@@ -219,13 +229,17 @@ const Scene3D = () => {
 
     const now = Date.now();
     const timeSinceLastSend = now - lastSentTimeRef.current;
-    const currentLastInput = lastInput; // Capture current value for the closure
+    const currentLastInput = lastInput;
 
     const sendEvent = () => {
-      fetch("/api/game-events", {
+      fetch("/api/events", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: myId.current, key: currentLastInput.key }),
+        body: JSON.stringify({
+          type: "keyboard",
+          id: myId.current,
+          key: currentLastInput.key,
+        }),
       });
       lastSentTimeRef.current = Date.now();
     };

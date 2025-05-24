@@ -77,10 +77,10 @@ Allows clients to send keyboard inputs to the server, which then broadcasts them
 ### Client-Side Event Sender (`src/app/components/Scene3D.tsx`)
 
 - `useEffect` hook in `Scene3D` subscribes to `lastInput` changes from `useKeyboardStore`.
-- On `lastInput` change, sends a `fetch` POST to `/api/game-events`.
+- On `lastInput` change, sends a `fetch` POST to `/api/events`.
 - Payload: `{ id: myId.current, key: lastInput.key }` (`myId.current` is a unique `nanoid`).
 
-### Server-Side Receiver & SSE Broadcaster (`src/app/api/game-events/route.ts`)
+### Server-Side Receiver & SSE Broadcaster (`src/app/api/events/route.ts`)
 
 - **`POST` Handler**:
   - Receives JSON payload (`{ id, key }`).
@@ -92,15 +92,5 @@ Allows clients to send keyboard inputs to the server, which then broadcasts them
 
 ## Bandwidth and Cost Optimization
 
-- **Camera Data (`/api/events` & `/api/camera`):**
-  - **Conditional Publishing**: `useCameraPublisher` sends full position data only if position changes or 20s pass since last full update. No other pings are sent.
-  - **Server-Side Purging**: `sseStore` purges camera data inactive for >60s.
-  - **Ping Removal**: Client-side explicit pings removed; server relies on periodic/movement-triggered updates.
-- **Game Events (`/api/game-events`):**
-  - **Key Repeat Ignored**: Client ignores `keydown` events where `event.repeat` is true.
-- **General SSE Practices:**
-  - JSON payloads (compact for structured data).
-  - SSE connections kept alive; data sent only on changes/new inputs.
-  - New camera event subscribers receive only current active camera states.
-
-These strategies minimize data transfer, reducing server load and bandwidth costs for the public application.
+- **Camera Data (`/api/events`):**
+  - **Conditional Publishing**: `useCameraPublisher`
