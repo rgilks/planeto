@@ -2,8 +2,7 @@ import { RigidBody, RapierRigidBody } from "@react-three/rapier";
 import { createRef } from "react";
 import * as THREE from "three";
 
-import { getGeometry } from "@components/geometryUtils";
-import { Moon as MoonComponent } from "@components/Moon";
+import { Moon } from "@components/Moon";
 
 import type { Planet } from "@/domain";
 
@@ -13,6 +12,15 @@ interface PlanetarySystemProps {
   planets: Planet[];
   planetRefs: React.MutableRefObject<RigidBodyRef[]>;
 }
+
+export const getGeometry = (
+  type: "sphere" | "lowpoly" | "oblate",
+  radius: number,
+): React.ReactNode => {
+  if (type === "lowpoly") return <icosahedronGeometry args={[radius, 1]} />;
+  if (type === "oblate") return <sphereGeometry args={[radius, 24, 16]} />;
+  return <sphereGeometry args={[radius, 32, 32]} />;
+};
 
 export const PlanetarySystem = ({
   planets,
@@ -108,7 +116,7 @@ export const PlanetarySystem = ({
               )}
               {!isSun &&
                 planet.moons?.map((moonData, mi) => (
-                  <MoonComponent key={mi} moon={moonData} />
+                  <Moon key={mi} moon={moonData} />
                 ))}
             </group>
           </RigidBody>

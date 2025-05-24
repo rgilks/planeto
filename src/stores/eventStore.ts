@@ -145,6 +145,7 @@ export const useEventStore = create<EventStoreState & EventStoreActions>()(
       set((state) => {
         state.lastError = "EventSource connection error";
         state.isConnected = false;
+        state.eventSourceInstance = null;
       });
     },
   })),
