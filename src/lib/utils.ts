@@ -55,33 +55,35 @@ export const randomRadius = (): number => {
   );
 };
 
-export const generateBumpMap = (seed: number): THREE.CanvasTexture | null => {
-  const size = 128;
-  const noise2D = createNoise2D(seededRandom(seed));
-  const canvas = document.createElement("canvas");
-  canvas.width = size;
-  canvas.height = size;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return null;
-  for (let y = 0; y < size; y++) {
-    for (let x = 0; x < size; x++) {
-      const nx = x / size - 0.5;
-      const ny = y / size - 0.5;
-      let n = 0;
-      let amp = 1;
-      let freq = 1;
-      for (let o = 0; o < 5; o++) {
-        n += amp * noise2D(nx * freq * 4, ny * freq * 4);
-        amp *= 0.5;
-        freq *= 2;
-      }
-      n = n / 2.5;
-      const v = Math.floor((n + 1) * 0.5 * 255);
-      ctx.fillStyle = `rgb(${v},${v},${v})`;
-      ctx.fillRect(x, y, 1, 1);
-    }
+export const generateBumpMap = (): THREE.Texture | null => {
+  if (typeof window === "undefined") {
+    return null;
   }
-  return new THREE.CanvasTexture(canvas);
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
+  if (!ctx) {
+    return null;
+  }
+
+  canvas.width = 512;
+  canvas.height = 512;
+
+  ctx.fillStyle = "black";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  ctx.fillStyle = "white";
+  for (let i = 0; i < 10000; i++) {
+    const x = Math.random() * canvas.width;
+    const y = Math.random() * canvas.height;
+    const size = Math.random() * 2;
+    ctx.fillRect(x, y, size, size);
+  }
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  texture.repeat.set(1, 1);
+  return texture;
 };
 
 export const generateColorMap = (
@@ -127,4 +129,36 @@ export const generateColorMap = (
     }
   }
   return new THREE.CanvasTexture(canvas);
+};
+
+export const roundVec3 = (
+  v: [number, number, number],
+): [number, number, number] =>
+  v.map((n) => Math.round(n * 100) / 100) as [number, number, number];
+
+export const VEC3_EPSILON = 0.001;
+
+export const areVec3sEqual = (
+  a: Readonly<[number, number, number]> | undefined,
+  b: Readonly<[number, number, number]>,
+): boolean => {
+  if (!a) {
+    return false;
+  }
+
+  for (let i = 0; i < 3; i++) {
+    const valA = a[i];
+    const valB = b[i];
+
+    if (Number.isNaN(valA) && Number.isNaN(valB)) {
+      continue;
+    }
+    if (Number.isNaN(valA) || Number.isNaN(valB)) {
+      return false;
+    }
+    if (Math.abs(valA - valB) >= VEC3_EPSILON) {
+      return false;
+    }
+  }
+  return true;
 };
