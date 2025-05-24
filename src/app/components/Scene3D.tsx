@@ -14,8 +14,8 @@ import { EventSchema } from "../../lib/domainTypes/event";
 import { useKeyboardStore } from "../../lib/store/keyboardStore";
 import { generateBumpMap } from "../../lib/utils";
 
+import { Moon as MoonComponent } from "./Moon";
 import { RemoteEyes } from "./RemoteEyes";
-import { Moon as MoonComponent } from "./scene3d/Moon";
 
 import type { State as KeyboardState } from "../../lib/store/keyboardStore";
 
