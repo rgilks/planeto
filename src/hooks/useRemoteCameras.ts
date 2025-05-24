@@ -44,7 +44,6 @@ export const useCamStore = create(
 );
 
 if (typeof window !== "undefined" && process.env.NODE_ENV !== "production") {
-  // @ts-expect-error - for debugging purposes
   window.__camStore = useCamStore;
 }
 

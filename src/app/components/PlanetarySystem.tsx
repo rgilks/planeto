@@ -2,10 +2,10 @@ import { RigidBody, RapierRigidBody } from "@react-three/rapier";
 import { createRef } from "react";
 import * as THREE from "three";
 
-import { Moon as MoonComponent } from "./Moon";
-import { getGeometry } from "./utils/geometryUtils";
+import { Moon as MoonComponent } from "@components/Moon";
+import { getGeometry } from "@components/utils/geometryUtils";
 
-import type { Planet } from "../../lib/domainTypes/planet";
+import type { Planet } from "@/lib/domainTypes/planet";
 
 type RigidBodyRef = React.RefObject<RapierRigidBody | null>;
 

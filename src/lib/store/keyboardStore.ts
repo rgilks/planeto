@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 
-import { KeyboardInput } from "../domain/keyboard";
+import { KeyboardInput } from "@/lib/domain/keyboard";
 
 type RemoteKey = { key: string; ts: number };
 
@@ -32,7 +32,6 @@ export const useKeyboardStore = create<State>()(
 );
 
 if (typeof window !== "undefined" && process.env.NODE_ENV !== "production") {
-  // @ts-expect-error - for debugging purposes
   window.__keyboardStore = useKeyboardStore;
 }
 

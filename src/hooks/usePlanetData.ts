@@ -8,11 +8,11 @@ import {
   randomColor,
   randomRadius,
   seededRandom,
-} from "../lib/utils"; // Adjusted path
+} from "@/lib/utils";
 
-import type { Planet, Moon as MoonType } from "../lib/domainTypes/planet"; // Adjusted path
+import type { Planet, Moon as MoonType } from "@/lib/domainTypes/planet";
 
-export const G = 1; // Export G
+export const G = 1;
 
 export const usePlanetData = (bumpMaps: THREE.Texture[] | null): Planet[] => {
   const [planets, setPlanets] = useState<Planet[]>([]);
@@ -26,7 +26,7 @@ export const usePlanetData = (bumpMaps: THREE.Texture[] | null): Planet[] => {
 
     const sunData = (() => {
       const radius = centralRadius * 2;
-      const mass = Math.pow(radius, 3) * (8 + Math.random() * 2) * 2; // Reverted sun mass
+      const mass = Math.pow(radius, 3) * (8 + Math.random() * 2) * 2;
       const baseColor = "gold";
       const altColor = "white";
       const seed = Math.random() * 10000;

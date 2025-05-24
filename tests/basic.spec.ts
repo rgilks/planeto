@@ -48,7 +48,6 @@ test.describe("Multi-User Event Synchronization", () => {
     // User 2 verifies receiving the camera update
     const receivedOnPage2 = await pollForCondition(page2, async () => {
       const camData = await page2.evaluate((id) => {
-        // @ts-expect-error - accessing debug store
         const storeState = window.__camStore?.getState();
         return storeState?.cams?.[id];
       }, user1CamId);
@@ -79,7 +78,6 @@ test.describe("Multi-User Event Synchronization", () => {
       page2,
       async () => {
         const keyData = await page2.evaluate((id) => {
-          // @ts-expect-error - accessing debug store
           const storeState = window.__keyboardStore?.getState();
           return storeState?.remoteKeys?.[id];
         }, user1KeyboardId);
@@ -97,7 +95,6 @@ test.describe("Multi-User Event Synchronization", () => {
       page2,
       async () => {
         const remoteKeys = await page2.evaluate(() => {
-          // @ts-expect-error - accessing debug store
           const storeState = window.__keyboardStore?.getState();
           return storeState?.remoteKeys as
             | Record<string, { key: string; ts: number }>
@@ -132,7 +129,6 @@ test("original: has title and receives initial event data", async ({
     page,
     async () => {
       const camData = await page.evaluate(() => {
-        // @ts-expect-error - accessing debug store
         const storeState = window.__camStore?.getState();
         return storeState?.cams?.["test-camera"];
       });

@@ -1,8 +1,8 @@
 import { useEffect, RefObject } from "react";
 
-import { G } from "./usePlanetData"; // Adjusted path (sibling hook)
+import { G } from "@/hooks/usePlanetData";
 
-import type { Planet } from "../lib/domainTypes/planet"; // Adjusted path
+import type { Planet } from "@/lib/domainTypes/planet";
 import type { RapierRigidBody } from "@react-three/rapier";
 
 type RigidBodyRef = RefObject<RapierRigidBody | null>;
@@ -32,7 +32,7 @@ export const usePhysicsSimulation = (
 
       if (allRefsReady) {
         for (let i = 0; i < planets.length; i++) {
-          const planetRef = planetRefs.current![i]; // Known to be non-null due to allRefsReady
+          const planetRef = planetRefs.current![i];
           const currentPlanet = planets[i];
 
           if (!planetRef.current || currentPlanet.id === "sun") {
@@ -51,7 +51,7 @@ export const usePhysicsSimulation = (
           for (let j = 0; j < planets.length; j++) {
             if (i === j) continue;
 
-            const otherPlanetRef = planetRefs.current![j]; // Known to be non-null
+            const otherPlanetRef = planetRefs.current![j];
             const otherPlanet = planets[j];
 
             if (!otherPlanetRef.current) {
@@ -69,7 +69,6 @@ export const usePhysicsSimulation = (
             if (distSq === 0) continue;
             const dist = Math.sqrt(distSq);
 
-            // Re-add this check from the likely "great awhile back" state
             if (
               currentPlanet.radius &&
               otherPlanet.radius &&
@@ -96,12 +95,11 @@ export const usePhysicsSimulation = (
     if (planets.length > 0) {
       frameId = requestAnimationFrame(step);
     } else {
-      // Ensure frame is cancelled if planets array becomes empty
       if (frameId !== undefined) cancelAnimationFrame(frameId);
     }
 
     return () => {
       if (frameId !== undefined) cancelAnimationFrame(frameId);
     };
-  }, [planets, planetRefs]); // planetRefs object itself is stable, G is a constant from outside.
+  }, [planets, planetRefs]);
 };

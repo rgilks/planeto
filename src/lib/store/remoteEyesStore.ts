@@ -9,7 +9,7 @@ import {
   INITIAL_SCALE,
   TARGET_SCALE,
   FADE_DURATION,
-} from "../domain/eye";
+} from "@/lib/domain/eye";
 
 type RemoteEyesState = {
   managedEyes: Record<string, EyeState>;
@@ -26,7 +26,7 @@ type RemoteEyesActions = {
 };
 
 export const useRemoteEyesStore = create<RemoteEyesState & RemoteEyesActions>()(
-  immer((set /* get is unused */) => ({
+  immer((set) => ({
     managedEyes: {},
 
     syncEyes: (cams, myId, baseShaderMaterial) =>
