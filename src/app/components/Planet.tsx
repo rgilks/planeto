@@ -1,15 +1,14 @@
 import { RigidBody, RapierRigidBody } from "@react-three/rapier";
 import * as THREE from "three";
 
+import DarkSun from "@components/DarkSun";
 import { Moon } from "@components/Moon";
 
-import type { Planet as PlanetType } from "@/domain"; // Renamed to avoid conflict with component name
-
-type RigidBodyRef = React.RefObject<RapierRigidBody | null>;
+import type { Planet as PlanetType } from "@/domain";
 
 interface PlanetProps {
   planet: PlanetType;
-  planetRef: RigidBodyRef;
+  planetRef: React.RefObject<RapierRigidBody | null>;
 }
 
 const getGeometry = (
@@ -42,18 +41,12 @@ export const Planet = ({ planet, planetRef }: PlanetProps) => {
       angularVelocity={planet.angularVelocity}
       angularDamping={0}
     >
-      <group>
-        <mesh
-          castShadow={false}
-          receiveShadow={false}
-          scale={isSun ? 1.1 : 1}
-          renderOrder={999}
-          visible={isSun}
-        >
-          {getGeometry(planet.geometryType, planet.radius)}
-          {isSun ? (
-            <meshBasicMaterial color={"#fffbe6"} transparent opacity={0.95} />
-          ) : (
+      {planet.isDarkSun ? (
+        <DarkSun radius={planet.radius} />
+      ) : (
+        <group>
+          <mesh castShadow={true} receiveShadow={true}>
+            {getGeometry(planet.geometryType, planet.radius)}
             <meshStandardMaterial
               color={"white"}
               emissive={planet.color}
@@ -64,44 +57,46 @@ export const Planet = ({ planet, planetRef }: PlanetProps) => {
               metalness={planet.metalness}
               roughness={planet.roughness}
             />
-          )}
-        </mesh>
-        {!isSun &&
-          planet.atmosphereLayers?.map((layer, idx) => (
-            <mesh key={idx} castShadow receiveShadow>
-              <sphereGeometry args={[planet.radius * layer.scale, 32, 32]} />
-              <meshPhysicalMaterial
-                color={layer.color}
+          </mesh>
+          {!isSun &&
+            planet.atmosphereLayers?.map((layer, idx) => (
+              <mesh key={idx} castShadow receiveShadow>
+                <sphereGeometry args={[planet.radius * layer.scale, 32, 32]} />
+                <meshPhysicalMaterial
+                  color={layer.color}
+                  transparent
+                  opacity={layer.opacity * 0.5}
+                  transmission={0.7}
+                  thickness={0.4}
+                  roughness={0.7}
+                  metalness={0.08}
+                  depthWrite={false}
+                  blending={
+                    layer.additive
+                      ? THREE.AdditiveBlending
+                      : THREE.NormalBlending
+                  }
+                />
+              </mesh>
+            ))}
+          {!isSun && planet.hasRing && (
+            <mesh rotation={[Math.PI / 2, 0, 0]} castShadow receiveShadow>
+              <ringGeometry args={[planet.ringInner, planet.ringOuter, 64]} />
+              <meshBasicMaterial
+                color={planet.ringColor}
                 transparent
-                opacity={layer.opacity * 0.5}
-                transmission={0.7}
-                thickness={0.4}
-                roughness={0.7}
-                metalness={0.08}
-                depthWrite={false}
-                blending={
-                  layer.additive ? THREE.AdditiveBlending : THREE.NormalBlending
-                }
+                opacity={0.38}
+                side={THREE.DoubleSide}
+                blending={THREE.AdditiveBlending}
               />
             </mesh>
-          ))}
-        {!isSun && planet.hasRing && (
-          <mesh rotation={[Math.PI / 2, 0, 0]} castShadow receiveShadow>
-            <ringGeometry args={[planet.ringInner, planet.ringOuter, 64]} />
-            <meshBasicMaterial
-              color={planet.ringColor}
-              transparent
-              opacity={0.38}
-              side={THREE.DoubleSide}
-              blending={THREE.AdditiveBlending}
-            />
-          </mesh>
-        )}
-        {!isSun &&
-          planet.moons?.map((moonData, mi) => (
-            <Moon key={mi} moon={moonData} />
-          ))}
-      </group>
+          )}
+          {!isSun &&
+            planet.moons?.map((moonData, mi) => (
+              <Moon key={mi} moon={moonData} />
+            ))}
+        </group>
+      )}
     </RigidBody>
   );
 };

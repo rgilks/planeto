@@ -40,6 +40,7 @@ export const PlanetSchema = z.object({
   atmosphereLayers: z.array(AtmosphereLayerSchema),
   geometryType: z.enum(["sphere", "lowpoly", "oblate"]),
   angularVelocity: z.tuple([z.number(), z.number(), z.number()]),
+  isDarkSun: z.boolean().optional(),
 });
 
 export type Planet = z.infer<typeof PlanetSchema>;

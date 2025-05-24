@@ -27,8 +27,8 @@ export const usePlanetData = (bumpMaps: THREE.Texture[] | null): Planet[] => {
     const sunData = (() => {
       const radius = centralRadius * 2;
       const mass = Math.pow(radius, 3) * (8 + Math.random() * 2) * 2;
-      const baseColor = "gold";
-      const altColor = "white";
+      const baseColor = "#200020";
+      const altColor = "#400040";
       const seed = Math.random() * 10000;
       const bumpMap = bumpMaps[Math.floor(Math.random() * bumpMaps.length)];
       const colorMap = generateColorMap(seed, baseColor, altColor);
@@ -70,6 +70,7 @@ export const usePlanetData = (bumpMaps: THREE.Texture[] | null): Planet[] => {
         atmosphereLayers,
         geometryType,
         angularVelocity,
+        isDarkSun: true,
       };
     })();
 

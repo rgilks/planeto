@@ -32,15 +32,15 @@ const CanvasContent = ({ myId }: { myId: string }) => {
     <>
       <EffectComposer>
         <Bloom
-          luminanceThreshold={0.25}
-          luminanceSmoothing={0.8}
-          intensity={0.35}
+          luminanceThreshold={0.05}
+          luminanceSmoothing={0.2}
+          intensity={0.5}
         />
       </EffectComposer>
       <group>
         <ambientLight intensity={0.08} />
         <Eyes myId={myId} />
-        <directionalLight
+        {/* <directionalLight
           position={[100, 100, 100]}
           intensity={6}
           color={"#fffbe6"}
@@ -55,7 +55,7 @@ const CanvasContent = ({ myId }: { myId: string }) => {
           shadow-camera-top={1000}
           shadow-camera-bottom={-1000}
           target-position={[0, 0, 0]}
-        />
+        /> */}
       </group>
       <OrbitControls
         enablePan={false}
