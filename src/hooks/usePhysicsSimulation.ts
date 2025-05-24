@@ -9,89 +9,99 @@ type RigidBodyRef = RefObject<RapierRigidBody | null>;
 
 export const usePhysicsSimulation = (
   planets: Planet[],
-  planetRefs: RefObject<RigidBodyRef[]>, // Ref to the array of refs
+  planetRefs: RefObject<RigidBodyRef[]>,
 ): void => {
   useEffect(() => {
-    let frame: number;
+    let frameId: number | undefined = undefined;
 
     const step = () => {
+      let allRefsReady = false;
       if (
-        planets.length === 0 ||
-        !planetRefs.current ||
-        planetRefs.current.length === 0
-      )
-        return;
-
-      for (let i = 0; i < planetRefs.current.length; i++) {
-        const planetRef = planetRefs.current[i];
-        const currentPlanet = planets[i];
-
-        if (
-          !planetRef?.current ||
-          typeof planetRef.current.translation !== "function" ||
-          !currentPlanet
-        ) {
-          continue;
+        planets.length > 0 &&
+        planetRefs.current &&
+        planetRefs.current.length === planets.length
+      ) {
+        allRefsReady = true;
+        for (let i = 0; i < planets.length; i++) {
+          if (!planetRefs.current[i] || !planetRefs.current[i].current) {
+            allRefsReady = false;
+            break;
+          }
         }
+      }
 
-        const planetPos = planetRef.current.translation();
-        if (!planetPos || currentPlanet.id === "sun") {
-          continue;
-        }
+      if (allRefsReady) {
+        for (let i = 0; i < planets.length; i++) {
+          const planetRef = planetRefs.current![i]; // Known to be non-null due to allRefsReady
+          const currentPlanet = planets[i];
 
-        let fx = 0;
-        let fy = 0;
-        let fz = 0;
-
-        for (let j = 0; j < planetRefs.current.length; j++) {
-          if (i === j) continue;
-
-          const otherPlanetRef = planetRefs.current[j];
-          const otherPlanet = planets[j];
-
-          if (
-            !otherPlanetRef?.current ||
-            typeof otherPlanetRef.current.translation !== "function" ||
-            !otherPlanet
-          ) {
+          if (!planetRef.current || currentPlanet.id === "sun") {
             continue;
           }
 
-          const otherPos = otherPlanetRef.current.translation();
-          if (!otherPos) continue;
+          const planetPos = planetRef.current.translation();
+          if (!planetPos) {
+            continue;
+          }
 
-          const dx = otherPos.x - planetPos.x;
-          const dy = otherPos.y - planetPos.y;
-          const dz = otherPos.z - planetPos.z;
-          const distSq = dx * dx + dy * dy + dz * dz;
+          let fx = 0;
+          let fy = 0;
+          let fz = 0;
 
-          if (distSq === 0) continue; // Avoid division by zero if planets are at the exact same spot
-          const dist = Math.sqrt(distSq);
+          for (let j = 0; j < planets.length; j++) {
+            if (i === j) continue;
 
-          if (dist < currentPlanet.radius * 2) continue;
+            const otherPlanetRef = planetRefs.current![j]; // Known to be non-null
+            const otherPlanet = planets[j];
 
-          const forceMag = (G * otherPlanet.mass * currentPlanet.mass) / distSq;
-          fx += (dx / dist) * forceMag;
-          fy += (dy / dist) * forceMag;
-          fz += (dz / dist) * forceMag;
+            if (!otherPlanetRef.current) {
+              continue;
+            }
+
+            const otherPos = otherPlanetRef.current.translation();
+            if (!otherPos) continue;
+
+            const dx = otherPos.x - planetPos.x;
+            const dy = otherPos.y - planetPos.y;
+            const dz = otherPos.z - planetPos.z;
+            const distSq = dx * dx + dy * dy + dz * dz;
+
+            if (distSq === 0) continue;
+            const dist = Math.sqrt(distSq);
+
+            // Re-add this check from the likely "great awhile back" state
+            if (
+              currentPlanet.radius &&
+              otherPlanet.radius &&
+              dist < currentPlanet.radius + otherPlanet.radius
+            )
+              continue;
+
+            const forceMag =
+              (G * otherPlanet.mass * currentPlanet.mass) / distSq;
+            fx += (dx / dist) * forceMag;
+            fy += (dy / dist) * forceMag;
+            fz += (dz / dist) * forceMag;
+          }
+
+          planetRef.current.applyImpulse(
+            { x: fx * 0.016, y: fy * 0.016, z: fz * 0.016 },
+            true,
+          );
         }
-
-        planetRef.current.applyImpulse(
-          { x: fx * 0.016, y: fy * 0.016, z: fz * 0.016 },
-          true,
-        );
       }
-      frame = requestAnimationFrame(step);
+      frameId = requestAnimationFrame(step);
     };
 
-    if (
-      planets.length > 0 &&
-      planetRefs.current &&
-      planetRefs.current.length > 0
-    ) {
-      frame = requestAnimationFrame(step);
+    if (planets.length > 0) {
+      frameId = requestAnimationFrame(step);
+    } else {
+      // Ensure frame is cancelled if planets array becomes empty
+      if (frameId !== undefined) cancelAnimationFrame(frameId);
     }
 
-    return () => cancelAnimationFrame(frame);
-  }, [planets, planetRefs]);
+    return () => {
+      if (frameId !== undefined) cancelAnimationFrame(frameId);
+    };
+  }, [planets, planetRefs]); // planetRefs object itself is stable, G is a constant from outside.
 };

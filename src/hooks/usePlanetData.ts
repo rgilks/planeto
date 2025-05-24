@@ -24,67 +24,70 @@ export const usePlanetData = (bumpMaps: THREE.Texture[] | null): Planet[] => {
     const sizeMultiplier = 7;
     const centralRadius = 8.5 + Math.random() * 1.5;
 
-    const generatePlanets = (): Planet[] => [
-      (() => {
-        const radius = centralRadius * 2;
-        const mass = Math.pow(radius, 3) * (8 + Math.random() * 2) * 2;
-        const baseColor = "gold";
-        const altColor = "white";
-        const seed = Math.random() * 10000;
-        const bumpMap = bumpMaps[Math.floor(Math.random() * bumpMaps.length)];
-        const colorMap = generateColorMap(seed, baseColor, altColor);
-        const metalness = 0.7;
-        const roughness = 0.2;
-        const ringColor = blendColor(baseColor, altColor, 0.8);
-        const ringInner = radius * 1.3;
-        const ringOuter = ringInner + radius * 0.3;
-        const generatedMoons: MoonType[] = [];
-        const atmosphereColor = blendColor(baseColor, "white", 0.7);
-        const atmosphereLayers = [
-          {
-            color: atmosphereColor,
-            opacity: 0.5,
-            scale: 1.18,
-            additive: true,
-          },
-        ];
-        const geometryType = "sphere" as const;
-        const angularVelocity: [number, number, number] = [0, 0.1, 0];
+    const sunData = (() => {
+      const radius = centralRadius * 2;
+      const mass = Math.pow(radius, 3) * (8 + Math.random() * 2) * 2; // Reverted sun mass
+      const baseColor = "gold";
+      const altColor = "white";
+      const seed = Math.random() * 10000;
+      const bumpMap = bumpMaps[Math.floor(Math.random() * bumpMaps.length)];
+      const colorMap = generateColorMap(seed, baseColor, altColor);
+      const metalness = 0.7;
+      const roughness = 0.2;
+      const ringColor = blendColor(baseColor, altColor, 0.8);
+      const ringInner = radius * 1.3;
+      const ringOuter = ringInner + radius * 0.3;
+      const generatedMoons: MoonType[] = [];
+      const atmosphereColor = blendColor(baseColor, "white", 0.7);
+      const atmosphereLayers = [
+        {
+          color: atmosphereColor,
+          opacity: 0.5,
+          scale: 1.18,
+          additive: true,
+        },
+      ];
+      const geometryType = "sphere" as const;
+      const angularVelocity: [number, number, number] = [0, 0.1, 0];
 
-        return {
-          mass,
-          radius,
-          position: [0, 0, 0] as [number, number, number],
-          velocity: [0, 0, 0] as [number, number, number],
-          color: blendColor(baseColor, altColor, 0.7),
-          id: "sun",
-          bumpMap,
-          colorMap,
-          metalness,
-          roughness,
-          hasRing: false,
-          ringColor,
-          ringInner,
-          ringOuter,
-          moons: generatedMoons,
-          atmosphereColor,
-          atmosphereLayers,
-          geometryType,
-          angularVelocity,
-        };
-      })(),
+      return {
+        mass,
+        radius,
+        position: [0, 0, 0] as [number, number, number],
+        velocity: [0, 0, 0] as [number, number, number],
+        color: blendColor(baseColor, altColor, 0.7),
+        id: "sun",
+        bumpMap,
+        colorMap,
+        metalness,
+        roughness,
+        hasRing: false,
+        ringColor,
+        ringInner,
+        ringOuter,
+        moons: generatedMoons,
+        atmosphereColor,
+        atmosphereLayers,
+        geometryType,
+        angularVelocity,
+      };
+    })();
+
+    const generatePlanets = (): Planet[] => [
+      sunData,
       ...Array.from({ length: N - 1 }).map(() => {
         const radius = randomRadius() * sizeMultiplier;
         const mass = Math.pow(radius, 3) * (6 + Math.random() * 2);
         const angle = Math.random() * 2 * Math.PI;
-        const r = Math.random() * 60 + 20;
+        const r = Math.random() * 60 + 40;
         const z = (Math.random() - 0.5) * (Math.random() * 18 + 2);
         const x = r * Math.cos(angle);
         const y = r * Math.sin(angle);
-        const vMag = 5 * Math.sqrt((G * 50) / r);
+        const vMag =
+          (Math.sqrt((G * sunData.mass) / r) * (0.8 + Math.random() * 0.4)) / 4;
         const vx = -vMag * Math.sin(angle);
         const vy = vMag * Math.cos(angle);
-        const vz = (Math.random() - 0.5) * 0.5 * (radius < 1.2 ? 1 : 0.2);
+        const vz = (Math.random() - 0.5) * 0.1 * vMag;
         const seed = Math.random() * 10000;
         const noise2D = createNoise2D(seededRandom(seed));
         const band = Math.abs(noise2D(Math.sin(angle), Math.cos(angle)));
