@@ -1,8 +1,8 @@
 import { useEffect, RefObject } from "react";
 
-import { G } from "./usePlanetData"; // Assuming G is exported from here
+import { G } from "./usePlanetData"; // Adjusted path (sibling hook)
 
-import type { Planet } from "../../../lib/domainTypes/planet";
+import type { Planet } from "../lib/domainTypes/planet"; // Adjusted path
 import type { RapierRigidBody } from "@react-three/rapier";
 
 type RigidBodyRef = RefObject<RapierRigidBody | null>;
@@ -68,9 +68,7 @@ export const usePhysicsSimulation = (
           if (distSq === 0) continue; // Avoid division by zero if planets are at the exact same spot
           const dist = Math.sqrt(distSq);
 
-          // Collision check (simple radius check)
-          // if (dist < currentPlanet.radius + otherPlanet.radius) continue; // More accurate collision
-          if (dist < currentPlanet.radius * 2) continue; // Original check
+          if (dist < currentPlanet.radius * 2) continue;
 
           const forceMag = (G * otherPlanet.mass * currentPlanet.mass) / distSq;
           fx += (dx / dist) * forceMag;

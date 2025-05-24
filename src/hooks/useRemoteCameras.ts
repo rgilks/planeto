@@ -8,7 +8,7 @@ import {
   EventSchema,
   CameraUpdateType,
   Vec3Schema,
-} from "../../lib/domainTypes/event";
+} from "../lib/domainTypes/event"; // Adjusted path
 
 type Vec3 = z.infer<typeof Vec3Schema>;
 

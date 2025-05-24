@@ -8,9 +8,9 @@ import {
   randomColor,
   randomRadius,
   seededRandom,
-} from "./utils";
+} from "../app/components/scene3d/utils"; // Adjusted path
 
-import type { Planet, Moon as MoonType } from "../../../lib/domainTypes/planet";
+import type { Planet, Moon as MoonType } from "../lib/domainTypes/planet"; // Adjusted path
 
 export const G = 1; // Export G
 
@@ -81,7 +81,7 @@ export const usePlanetData = (bumpMaps: THREE.Texture[] | null): Planet[] => {
         const z = (Math.random() - 0.5) * (Math.random() * 18 + 2);
         const x = r * Math.cos(angle);
         const y = r * Math.sin(angle);
-        const vMag = 5 * Math.sqrt((G * 50) / r); // Assuming G is accessible or passed in
+        const vMag = 5 * Math.sqrt((G * 50) / r);
         const vx = -vMag * Math.sin(angle);
         const vy = vMag * Math.cos(angle);
         const vz = (Math.random() - 0.5) * 0.5 * (radius < 1.2 ? 1 : 0.2);

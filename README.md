@@ -58,14 +58,10 @@ flowchart LR
     C --> C2[components/]
     C2 --> C2s[scene3d/]
     C2s --> C2s1[Moon.tsx]
-    C2s --> C2s2[usePlanetData.ts]
-    C2s --> C2s3[usePhysicsSimulation.ts]
     C2s --> C2s4[utils.tsx]
     C2 --> C21[KeyboardDisplay.tsx]
     C2 --> C22[RemoteEyes.tsx]
     C2 --> C23[Scene3D.tsx] \n(Orchestrates 3D scene, \nuses hooks for data & physics)
-    C2 --> C24[useCameraPublisher.ts]
-    C2 --> C25[useRemoteCameras.ts]
     C --> C3[globals.css]
     C --> C4[favicon.ico]
     C --> C5[layout.tsx]
@@ -74,6 +70,11 @@ flowchart LR
     D --> D1[domain/keyboard.ts]
     D --> D2[sseStore.ts]
     D --> D3[store/keyboardStore.ts]
+    B --> H[hooks/]
+    H --> H1[usePlanetData.ts]
+    H --> H2[usePhysicsSimulation.ts]
+    H --> H3[useCameraPublisher.ts]
+    H --> H4[useRemoteCameras.ts]
 ```
 
 _The void is deep. The structure is ever-shifting, but this is its current form._
@@ -88,7 +89,7 @@ _The void is deep. The structure is ever-shifting, but this is its current form.
 
 ## Extending the Mystery
 
-- To birth new planetoids, alter the genesis logic in `src/app/components/scene3d/usePlanetData.ts`.
+- To birth new planetoids, alter the genesis logic in `src/hooks/usePlanetData.ts`.
 - To change the glyphs, edit the `SYMBOLS` array in `src/lib/domain/keyboard.ts`.
 
 ## License

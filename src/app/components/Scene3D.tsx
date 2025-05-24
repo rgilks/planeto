@@ -6,16 +6,16 @@ import { nanoid } from "nanoid";
 import { useRef, useEffect, createRef, useState } from "react";
 import * as THREE from "three";
 
+import { useCameraPublisher } from "../../hooks/useCameraPublisher";
+import { usePhysicsSimulation } from "../../hooks/usePhysicsSimulation";
+import { usePlanetData } from "../../hooks/usePlanetData";
 import { SYMBOLS } from "../../lib/domain/keyboard";
 import { EventSchema } from "../../lib/domainTypes/event";
 import { useKeyboardStore } from "../../lib/store/keyboardStore";
 
 import { RemoteEyes } from "./RemoteEyes";
 import { Moon as MoonComponent } from "./scene3d/Moon";
-import { usePhysicsSimulation } from "./scene3d/usePhysicsSimulation";
-import { usePlanetData } from "./scene3d/usePlanetData";
 import { generateBumpMap, getGeometry } from "./scene3d/utils";
-import { useCameraPublisher } from "./useCameraPublisher";
 
 import type { State as KeyboardState } from "../../lib/store/keyboardStore";
 
@@ -56,7 +56,12 @@ const Scene3D = () => {
           }
         }
       } catch {
-        // console.error("Error processing SSE message:", e.data);
+        // console.error(
+        //   "Error processing SSE message. Data:",
+        //   e.data,
+        //   "Error:",
+        //   error
+        // );
       }
     };
     return () => es.close();
@@ -91,7 +96,7 @@ const Scene3D = () => {
     } else {
       throttleTimeoutRef.current = setTimeout(
         sendEvent,
-        THROTTLE_MS - timeSinceLastSend,
+        THROTTLE_MS - timeSinceLastSend
       );
     }
 
