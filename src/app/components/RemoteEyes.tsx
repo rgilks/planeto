@@ -12,8 +12,10 @@ import { useRemoteCameras } from "./useRemoteCameras";
 
 const EYE_RADIUS = 8;
 const SUN_POS = new Vector3(0, 0, 0);
-
 const GREEN = "#00FF41";
+const EYE_TEXTURE_PATH = "/eye.jpg";
+const POSITION_UPDATE_THRESHOLD = 0.00001;
+const TEXT_FADE_DURATION_MS = 2000;
 
 const getSymbol = (key: string) => {
   const code = key.codePointAt(0) || 0;
@@ -45,7 +47,7 @@ const fragmentShader = `
 export const RemoteEyes = ({ myId }: { myId: string }) => {
   const refs = useRef<Record<string, Mesh | Group>>({});
   const cams = useRemoteCameras();
-  const eyeTexture = useLoader(TextureLoader, "/eye.jpg");
+  const eyeTexture = useLoader(TextureLoader, EYE_TEXTURE_PATH);
   const remoteKeys = useKeyboardStore((s) => s.remoteKeys);
 
   const managedEyes = useRemoteEyesStore((s) => s.managedEyes);
@@ -86,7 +88,10 @@ export const RemoteEyes = ({ myId }: { myId: string }) => {
 
       if (!group) continue;
 
-      if (group.position.manhattanDistanceTo(eye.position) > 0.00001) {
+      if (
+        group.position.manhattanDistanceTo(eye.position) >
+        POSITION_UPDATE_THRESHOLD
+      ) {
         group.position.copy(eye.position);
       }
       group.lookAt(SUN_POS);
@@ -116,7 +121,7 @@ export const RemoteEyes = ({ myId }: { myId: string }) => {
           </mesh>
           {remoteKeys[eye.id] &&
             remoteKeys[eye.id].key &&
-            Date.now() - remoteKeys[eye.id].ts < 2000 && (
+            Date.now() - remoteKeys[eye.id].ts < TEXT_FADE_DURATION_MS && (
               <Text
                 position={[0, EYE_RADIUS + 6, 0]}
                 fontSize={10}
@@ -125,7 +130,9 @@ export const RemoteEyes = ({ myId }: { myId: string }) => {
                 anchorY="middle"
                 fillOpacity={
                   eye.opacity *
-                  (1 - (Date.now() - remoteKeys[eye.id].ts) / 2000)
+                  (1 -
+                    (Date.now() - remoteKeys[eye.id].ts) /
+                      TEXT_FADE_DURATION_MS)
                 }
                 outlineColor="black"
                 outlineWidth={0.25}
