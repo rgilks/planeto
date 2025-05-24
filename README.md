@@ -60,7 +60,7 @@ flowchart LR
     C2s --> C2s1[Moon.tsx]
     C2s --> C2s4[utils.tsx]
     C2 --> C21[SymbolDisplay.tsx]
-    C2 --> C22[RemoteEyes.tsx]
+    C2 --> C22[Eyes.tsx]
     C2 --> C23[Scene3D.tsx] \n(Orchestrates 3D scene, \nuses hooks for data & physics)
     C --> C3[globals.css]
     C --> C4[favicon.ico]
@@ -72,12 +72,12 @@ flowchart LR
     B --> E[stores/]
     E --> E1[sseStore.ts]
     E --> E2[symbolStore.ts]
-    E --> E3[remoteEyesStore.ts]
+    E --> E3[eyesStore.ts]
     B --> H[hooks/]
     H --> H1[usePlanetData.ts]
     H --> H2[usePhysicsSimulation.ts]
     H --> H3[useEyePublisher.ts]
-    H --> H4[useRemoteEyes.ts]
+    H --> H4[useEyes.ts]
 ```
 
 _The void is deep. The structure is ever-shifting, but this is its current form._
@@ -110,7 +110,7 @@ When a watcher presses a key, a vast green glyph (from an alien alphabet) appear
 - State: Zustand (`src/stores/symbolStore.ts`)
 - Schema: Zod (`src/lib/domain/symbol.ts`)
 - Ritual: `src/app/page.tsx` (captures non-repeated keydown events)
-- Manifestation: `src/app/components/SymbolDisplay.tsx` (your glyph), `src/app/components/RemoteEyes.tsx` (others' glyphs)
+- Manifestation: `src/app/components/SymbolDisplay.tsx` (your glyph), `src/app/components/Eyes.tsx` (others' glyphs)
 - To alter the glyphs or their color, change the relevant components.
 
 ---

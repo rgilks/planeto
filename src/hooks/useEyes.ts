@@ -11,7 +11,7 @@ type Vec3 = z.infer<typeof Vec3Schema>;
 const STALE_THRESHOLD_MS = 30000;
 const CLEANUP_INTERVAL_MS = 5000;
 
-export const useRemoteEyes = () => {
+export const useEyes = () => {
   const connectToEventSource = useEventStore((s) => s.connect);
   const subscribeToEyeUpdates = useEventStore((s) => s.subscribeEyeUpdates);
   const eventSourceConnected = useEventStore((s) => s.isConnected);

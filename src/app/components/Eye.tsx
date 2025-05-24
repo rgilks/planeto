@@ -4,7 +4,7 @@ import React from "react";
 import { Group, Vector3 } from "three";
 
 import { SYMBOLS } from "@/domain";
-import { ManagedEye } from "@/stores/remoteEyesStore";
+import { ManagedEye } from "@/stores/eyesStore";
 import { RemoteKeyState } from "@/stores/symbolStore";
 
 const EYE_RADIUS = 8;
@@ -16,20 +16,20 @@ const getSymbol = (key: string) => {
   return SYMBOLS[code % SYMBOLS.length];
 };
 
-interface RemoteEyeProps {
+interface EyeProps {
   eye: ManagedEye;
   remoteKey?: RemoteKeyState["remoteKeys"][string];
   groupRef: (el: Group | null) => void;
   position?: Vector3;
 }
 
-export const RemoteEye = ({
+export const Eye = ({
   eye,
   remoteKey,
   groupRef,
   position,
   ...props
-}: RemoteEyeProps) => {
+}: EyeProps) => {
   return (
     <group ref={groupRef} position={position || eye.position} {...props}>
       <mesh>

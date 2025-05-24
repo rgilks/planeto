@@ -16,8 +16,8 @@ import {
 } from "@/hooks";
 import { generateBumpMap } from "@/lib/utils";
 import { useSymbolStore } from "@/stores/symbolStore";
+import { Eyes } from "@components/Eyes";
 import { Planet } from "@components/Planet";
-import { RemoteEyes } from "@components/RemoteEyes";
 
 import type { State as SymbolState } from "@/stores/symbolStore";
 
@@ -38,7 +38,7 @@ const CanvasContent = ({ myId }: { myId: string }) => {
       </EffectComposer>
       <group>
         <ambientLight intensity={0.08} />
-        <RemoteEyes myId={myId} />
+        <Eyes myId={myId} />
         <directionalLight
           position={[100, 100, 100]}
           intensity={6}

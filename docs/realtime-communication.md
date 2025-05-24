@@ -36,11 +36,11 @@ This document outlines Planeto's real-time communication architecture, designed 
 - `sseStore.setEye(id, p)` updates the eye's position and timestamp in the `eyes` map.
 - `sseStore.broadcast(event)` then sends the `EyeUpdateEvent` to all connected SSE clients.
 
-**Client-Side Receiving (`src/app/components/useRemoteEyes.ts`)**:
+**Client-Side Receiving (`src/app/components/useEyes.ts`)**:
 
-- The `useRemoteEyes` hook establishes an SSE connection to `GET /api/events`.
+- The `useEyes` hook establishes an SSE connection to `GET /api/events`.
 - It listens for `EyeUpdateEvent` messages.
-- Received eye data updates a Zustand store (`useCamStore`), making remote eye positions available to the UI (e.g., for rendering remote user representations like `RemoteEyes`).
+- Received eye data updates a Zustand store (`useCamStore`), making remote eye positions available to the UI (e.g., for rendering remote user representations like `Eyes`).
 - Stale eye data is periodically removed from the client-side store.
 
 ### 2. Symbol Event Sharing
@@ -91,5 +91,5 @@ For applications where minimizing latency is the absolute top priority (over cos
 - **Server State/SSE Logic**: `src/lib/sseStore.ts`
 - **Event Definitions**: `src/lib/domain.ts`
 - **Eye Publishing (Client)**: `src/app/components/useEyePublisher.ts`
-- **Eye Receiving (Client)**: `src/app/components/useRemoteEyes.ts` & `src/lib/store/camStore.ts` (implicitly, via `useRemoteEyes`)
+- **Eye Receiving (Client)**: `src/app/components/useEyes.ts` & `src/lib/store/camStore.ts` (implicitly, via `useEyes`)
 - **Symbol Logic (Client)**: `src/app/components/Scene3D.tsx`, `src/lib/store/symbolStore.ts`

@@ -3,11 +3,11 @@ import { useFrame, useLoader } from "@react-three/fiber";
 import { useRef, useEffect, useMemo } from "react";
 import { Mesh, Vector3, Group, TextureLoader, ShaderMaterial } from "three";
 
-import { useRemoteEyes } from "@/hooks/useRemoteEyes";
-import { useRemoteEyesStore } from "@/stores/remoteEyesStore";
+import { useEyes } from "@/hooks/useEyes";
+import { useEyesStore } from "@/stores/eyesStore";
 import { useSymbolStore } from "@/stores/symbolStore";
 
-import { RemoteEye } from "./RemoteEye";
+import { Eye } from "./Eye";
 
 const SUN_POS = new Vector3(0, 0, 0);
 const EYE_TEXTURE_PATH = "/eye.jpg";
@@ -35,15 +35,15 @@ const fragmentShader = `
   }
 `;
 
-export const RemoteEyes = ({ myId }: { myId: string }) => {
+export const Eyes = ({ myId }: { myId: string }) => {
   const refs = useRef<Record<string, Mesh | Group>>({});
-  const eyes = useRemoteEyes();
+  const eyes = useEyes();
   const eyeTexture = useLoader(TextureLoader, EYE_TEXTURE_PATH);
   const remoteKeys = useSymbolStore((s) => s.remoteKeys);
 
-  const managedEyes = useRemoteEyesStore((s) => s.managedEyes);
-  const syncEyes = useRemoteEyesStore((s) => s.syncEyes);
-  const updateEyeAnimations = useRemoteEyesStore((s) => s.updateEyeAnimations);
+  const managedEyes = useEyesStore((s) => s.managedEyes);
+  const syncEyes = useEyesStore((s) => s.syncEyes);
+  const updateEyeAnimations = useEyesStore((s) => s.updateEyeAnimations);
 
   const baseShaderMaterial = useMemo(
     () =>
@@ -99,7 +99,7 @@ export const RemoteEyes = ({ myId }: { myId: string }) => {
   return (
     <>
       {Object.values(managedEyes).map((eye) => (
-        <RemoteEye
+        <Eye
           key={eye.id}
           eye={eye}
           remoteKey={remoteKeys[eye.id]}
