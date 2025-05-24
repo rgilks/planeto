@@ -40,7 +40,7 @@ const CanvasContent = ({ myId }: { myId: string }) => {
       <group>
         <ambientLight intensity={0.08} />
         <Eyes myId={myId} />
-        {/* <directionalLight
+        <directionalLight
           position={[100, 100, 100]}
           intensity={6}
           color={"#fffbe6"}
@@ -55,7 +55,7 @@ const CanvasContent = ({ myId }: { myId: string }) => {
           shadow-camera-top={1000}
           shadow-camera-bottom={-1000}
           target-position={[0, 0, 0]}
-        /> */}
+        />
       </group>
       <OrbitControls
         enablePan={false}
