@@ -4,7 +4,7 @@ const pollForCondition = async (
   page: Page,
   conditionFn: () => Promise<boolean>,
   timeout = 5000,
-  pollInterval = 100
+  pollInterval = 100,
 ) => {
   const startTime = Date.now();
   while (Date.now() - startTime < timeout) {
@@ -84,9 +84,31 @@ test.describe("Multi-User Event Synchronization", () => {
           return storeState?.remoteKeys?.[id];
         }, user1KeyboardId);
         return keyData?.key === user1Key;
-      }
+      },
     );
     expect(keyboardEventReceivedOnPage2).toBe(true);
+  });
+
+  test("full client-side keyboard event synchronization", async () => {
+    await page1.locator("body").focus(); // Ensure page1 is focused to receive keyboard input
+    await page1.keyboard.press("h");
+
+    const clientSideKeyboardEventReceived = await pollForCondition(
+      page2,
+      async () => {
+        const remoteKeys = await page2.evaluate(() => {
+          // @ts-expect-error - accessing debug store
+          const storeState = window.__keyboardStore?.getState();
+          return storeState?.remoteKeys as
+            | Record<string, { key: string; ts: number }>
+            | undefined;
+        });
+        return Object.values(remoteKeys || {}).some(
+          (entry) => entry.key === "h",
+        );
+      },
+    );
+    expect(clientSideKeyboardEventReceived).toBe(true);
   });
 });
 

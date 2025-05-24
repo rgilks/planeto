@@ -1,0 +1,129 @@
+import { test, expect } from "@playwright/test";
+
+const API_ENDPOINT = "/api/events";
+
+test.describe("API Robustness - POST /api/events", () => {
+  test("should return 400 for empty payload", async ({ request }) => {
+    const response = await request.post(API_ENDPOINT, { data: {} });
+    expect(response.status()).toBe(400);
+  });
+
+  test("should return 400 for missing 'type' field", async ({ request }) => {
+    const response = await request.post(API_ENDPOINT, {
+      data: { id: "test", key: "g" },
+    });
+    expect(response.status()).toBe(400);
+  });
+
+  test("should return 400 for invalid 'type' field", async ({ request }) => {
+    const response = await request.post(API_ENDPOINT, {
+      data: { type: "invalidType", id: "test" },
+    });
+    expect(response.status()).toBe(400);
+  });
+
+  test.describe("Keyboard Event Validation", () => {
+    test("should return 400 for missing 'id' in keyboard event", async ({
+      request,
+    }) => {
+      const response = await request.post(API_ENDPOINT, {
+        data: { type: "keyboard", key: "g" },
+      });
+      expect(response.status()).toBe(400);
+    });
+
+    test("should return 400 for missing 'key' in keyboard event", async ({
+      request,
+    }) => {
+      const response = await request.post(API_ENDPOINT, {
+        data: { type: "keyboard", id: "test" },
+      });
+      expect(response.status()).toBe(400);
+    });
+
+    test("should return 200 for valid keyboard event", async ({ request }) => {
+      const response = await request.post(API_ENDPOINT, {
+        data: { type: "keyboard", id: "test-valid", key: "g" },
+      });
+      expect(response.ok()).toBeTruthy();
+    });
+  });
+
+  test.describe("Camera Update Event Validation", () => {
+    test("should return 400 for missing 'id' in camera event", async ({
+      request,
+    }) => {
+      const response = await request.post(API_ENDPOINT, {
+        data: { type: "cameraUpdate", p: [1, 2, 3], t: Date.now() },
+      });
+      expect(response.status()).toBe(400);
+    });
+
+    test("should return 400 for missing 'p' in camera event", async ({
+      request,
+    }) => {
+      const response = await request.post(API_ENDPOINT, {
+        data: { type: "cameraUpdate", id: "test", t: Date.now() },
+      });
+      expect(response.status()).toBe(400);
+    });
+
+    test("should return 400 for 'p' not an array in camera event", async ({
+      request,
+    }) => {
+      const response = await request.post(API_ENDPOINT, {
+        data: {
+          type: "cameraUpdate",
+          id: "test",
+          p: "not-an-array",
+          t: Date.now(),
+        },
+      });
+      expect(response.status()).toBe(400);
+    });
+
+    test("should return 400 for 'p' not an array of 3 numbers", async ({
+      request,
+    }) => {
+      const response = await request.post(API_ENDPOINT, {
+        data: { type: "cameraUpdate", id: "test", p: [1, 2], t: Date.now() },
+      });
+      expect(response.status()).toBe(400);
+    });
+
+    test("should return 400 for 'p' with non-number elements", async ({
+      request,
+    }) => {
+      const response = await request.post(API_ENDPOINT, {
+        data: {
+          type: "cameraUpdate",
+          id: "test",
+          p: [1, "a", 3],
+          t: Date.now(),
+        },
+      });
+      expect(response.status()).toBe(400);
+    });
+
+    test("should return 400 for missing 't' in camera event", async ({
+      request,
+    }) => {
+      const response = await request.post(API_ENDPOINT, {
+        data: { type: "cameraUpdate", id: "test", p: [1, 2, 3] },
+      });
+      expect(response.status()).toBe(400);
+    });
+
+    test("should return 200 for valid camera event", async ({ request }) => {
+      const response = await request.post(API_ENDPOINT, {
+        data: {
+          type: "cameraUpdate",
+          id: "test-valid-cam",
+          p: [1, 2, 3],
+          t: Date.now(),
+        },
+      });
+      expect(response.ok()).toBeTruthy();
+    });
+  });
+});
