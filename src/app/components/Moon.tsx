@@ -1,7 +1,7 @@
 import { useRef, useEffect } from "react";
 import * as THREE from "three";
 
-import type { Moon as MoonType } from "../../lib/domain";
+import type { Moon as MoonType } from "../../domain";
 
 export const Moon = ({ moon }: { moon: MoonType }) => {
   const ref = useRef<THREE.Mesh>(null);

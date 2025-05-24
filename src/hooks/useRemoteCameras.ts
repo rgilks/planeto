@@ -4,7 +4,7 @@ import { z } from "zod";
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 
-import { EventSchema, CameraUpdateType, Vec3Schema } from "@/lib/domain";
+import { EventSchema, CameraUpdateType, Vec3Schema } from "@/domain";
 
 type Vec3 = z.infer<typeof Vec3Schema>;
 

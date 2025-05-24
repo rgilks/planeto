@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { EventSchema } from "@/lib/domain";
 import {
   broadcast,
   setCamera,
   subscribe,
   unsubscribe,
-} from "@/stores/sseStore";
+} from "@/app/api/events/sseStore";
+import { EventSchema } from "@/domain";
 
 export const GET = async () => {
   const encoder = new TextEncoder();

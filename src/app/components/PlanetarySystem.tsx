@@ -5,7 +5,7 @@ import * as THREE from "three";
 import { getGeometry } from "@components/geometryUtils";
 import { Moon as MoonComponent } from "@components/Moon";
 
-import type { Planet } from "@/lib/domain";
+import type { Planet } from "@/domain";
 
 type RigidBodyRef = React.RefObject<RapierRigidBody | null>;
 
