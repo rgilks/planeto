@@ -15,6 +15,7 @@ import {
   useEyePositionReporting,
 } from "@/hooks";
 import { generateBumpMap } from "@/lib/utils";
+import { usePhysicsStore } from "@/stores/physicsStore";
 import { useSymbolStore } from "@/stores/symbolStore";
 import { Eyes } from "@components/Eyes";
 import { Planet } from "@components/Planet";
@@ -78,6 +79,9 @@ const Scene = () => {
   const myId = useRef(nanoid(6));
 
   const setLastInput = useSymbolStore((s: SymbolState) => s.setLastInput);
+  const disableGravityTemporarily = usePhysicsStore(
+    (s) => s.disableGravityTemporarily,
+  );
 
   useEventSource(myId);
   useInputThrottle(myId);
@@ -129,6 +133,7 @@ const Scene = () => {
         const randomSymbol =
           SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)];
         setLastInput({ key: randomSymbol });
+        disableGravityTemporarily(2000);
       }}
     >
       <CanvasContent myId={myId.current} />

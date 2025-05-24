@@ -1,6 +1,7 @@
 import { useEffect, RefObject } from "react";
 
 import { G } from "@/hooks/usePlanetData";
+import { usePhysicsStore } from "@/stores/physicsStore";
 
 import type { Planet } from "@/domain";
 import type { RapierRigidBody } from "@react-three/rapier";
@@ -11,6 +12,8 @@ export const usePhysicsSimulation = (
   planets: Planet[],
   planetRefs: RefObject<RigidBodyRef[]>,
 ): void => {
+  const isGravityDisabled = usePhysicsStore((s) => s.isGravityDisabled);
+
   useEffect(() => {
     let frameId: number | undefined = undefined;
 
@@ -36,6 +39,12 @@ export const usePhysicsSimulation = (
           const currentPlanet = planets[i];
 
           if (!planetRef.current || currentPlanet.id === "sun") {
+            continue;
+          }
+
+          if (isGravityDisabled) {
+            planetRef.current.resetForces(true);
+            planetRef.current.resetTorques(true);
             continue;
           }
 
@@ -101,5 +110,5 @@ export const usePhysicsSimulation = (
     return () => {
       if (frameId !== undefined) cancelAnimationFrame(frameId);
     };
-  }, [planets, planetRefs]);
+  }, [planets, planetRefs, isGravityDisabled]);
 };
