@@ -3,7 +3,7 @@ import { Canvas, useThree } from "@react-three/fiber";
 import { EffectComposer, Bloom } from "@react-three/postprocessing";
 import { Physics, RapierRigidBody } from "@react-three/rapier";
 import { nanoid } from "nanoid";
-import { useRef, useEffect, useState } from "react";
+import { useRef, useEffect, useState, createRef } from "react";
 import * as THREE from "three";
 
 import { SYMBOLS } from "@/domain";
@@ -16,7 +16,7 @@ import {
 } from "@/hooks";
 import { generateBumpMap } from "@/lib/utils";
 import { useSymbolStore } from "@/stores/symbolStore";
-import { PlanetarySystem } from "@components/PlanetarySystem";
+import { Planet } from "@components/Planet";
 import { RemoteEyes } from "@components/RemoteEyes";
 
 import type { State as SymbolState } from "@/stores/symbolStore";
@@ -102,7 +102,6 @@ const Scene3D = () => {
     const y = r * Math.sin(phi) * Math.sin(theta);
     const z = r * Math.cos(phi);
     return [x, y, z] as [number, number, number];
-    return [0, 0, 150];
   };
 
   if (!bumpMaps || planets.length === 0) {
@@ -134,7 +133,16 @@ const Scene3D = () => {
     >
       <CanvasContent myId={myId.current} />
       <Physics gravity={[0, 0, 0]}>
-        <PlanetarySystem planets={planets} planetRefs={planetRefs} />
+        {planets.map((planet, i) => {
+          if (!planetRefs.current[i]) planetRefs.current[i] = createRef();
+          return (
+            <Planet
+              key={planet.id}
+              planet={planet}
+              planetRef={planetRefs.current[i]}
+            />
+          );
+        })}
       </Physics>
     </Canvas>
   );
