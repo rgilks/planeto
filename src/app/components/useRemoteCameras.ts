@@ -8,7 +8,7 @@ import {
   EventSchema,
   CameraUpdateType,
   Vec3Schema,
-} from "../../lib/domainTypes";
+} from "../../lib/domainTypes/event";
 
 type Vec3 = z.infer<typeof Vec3Schema>;
 

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { EventSchema } from "@/lib/domainTypes";
+import { EventSchema } from "@/lib/domainTypes/event";
 import { broadcast, setCamera, subscribe, unsubscribe } from "@/lib/sseStore";
 
 export const GET = async () => {

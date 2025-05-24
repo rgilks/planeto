@@ -8,50 +8,18 @@ import { createNoise2D } from "simplex-noise";
 import * as THREE from "three";
 
 import { SYMBOLS } from "../../lib/domain/keyboard";
-import { EventSchema } from "../../lib/domainTypes";
+import { EventSchema } from "../../lib/domainTypes/event";
 import { useKeyboardStore } from "../../lib/store/keyboardStore";
 
 import { RemoteEyes } from "./RemoteEyes";
 import { useCameraPublisher } from "./useCameraPublisher";
 
+import type { Planet, Moon } from "../../lib/domainTypes/planet";
 import type { State as KeyboardState } from "../../lib/store/keyboardStore";
 
 const G = 1;
 
 type RigidBodyRef = React.RefObject<RapierRigidBody | null>;
-
-type Planet = {
-  mass: number;
-  radius: number;
-  position: [number, number, number];
-  velocity: [number, number, number];
-  color: string;
-  id: string;
-  bumpMap: THREE.Texture;
-  colorMap: THREE.Texture;
-  metalness: number;
-  roughness: number;
-  hasRing: boolean;
-  ringColor: string;
-  ringInner: number;
-  ringOuter: number;
-  moons: {
-    radius: number;
-    color: string;
-    orbitRadius: number;
-    orbitSpeed: number;
-    phase: number;
-  }[];
-  atmosphereColor: string;
-  atmosphereLayers: {
-    color: string;
-    opacity: number;
-    scale: number;
-    additive?: boolean;
-  }[];
-  geometryType: "sphere" | "lowpoly" | "oblate";
-  angularVelocity: [number, number, number];
-};
 
 const blendColor = (color1: string, color2: string, t: number) => {
   const c1 = new THREE.Color(color1);
@@ -280,7 +248,7 @@ const Scene3D = () => {
     const N = 20;
     const sizeMultiplier = 7;
     const centralRadius = 8.5 + Math.random() * 1.5;
-    const planetsArr = [
+    const planetsArr: Planet[] = [
       (() => {
         const radius = centralRadius * 2;
         const mass = Math.pow(radius, 3) * (8 + Math.random() * 2) * 2;
@@ -294,7 +262,7 @@ const Scene3D = () => {
         const ringColor = blendColor(baseColor, altColor, 0.8);
         const ringInner = radius * 1.3;
         const ringOuter = ringInner + radius * 0.3;
-        const moons: Planet["moons"] = [];
+        const generatedMoons: Moon[] = [];
         const atmosphereColor = blendColor(baseColor, "white", 0.7);
         const atmosphereLayers = [
           {
@@ -321,7 +289,7 @@ const Scene3D = () => {
           ringColor,
           ringInner,
           ringOuter,
-          moons,
+          moons: generatedMoons,
           atmosphereColor,
           atmosphereLayers,
           geometryType,
@@ -364,7 +332,7 @@ const Scene3D = () => {
           : Math.random() < 0.12
             ? 1
             : 0;
-        const moons = Array.from({ length: moonCount }, (_, mi) => ({
+        const generatedMoons = Array.from({ length: moonCount }, (_, mi) => ({
           radius: radius * (0.12 + Math.random() * 0.09),
           color: randomColor(),
           orbitRadius: radius * (2.2 + Math.random() * 1.5 + mi * 0.7),
@@ -429,7 +397,7 @@ const Scene3D = () => {
           ringColor,
           ringInner,
           ringOuter,
-          moons,
+          moons: generatedMoons,
           atmosphereColor,
           atmosphereLayers,
           geometryType,
@@ -669,7 +637,7 @@ const Scene3D = () => {
   );
 };
 
-const Moon = ({ moon }: { moon: Planet["moons"][0] }) => {
+const Moon = ({ moon }: { moon: Moon }) => {
   const ref = useRef<THREE.Mesh>(null);
   useEffect(() => {
     let frame: number;
