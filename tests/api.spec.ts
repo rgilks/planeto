@@ -49,31 +49,31 @@ test.describe("API Robustness - POST /api/events", () => {
     });
   });
 
-  test.describe("Camera Update Event Validation", () => {
-    test("should return 400 for missing 'id' in camera event", async ({
+  test.describe("Eye Update Event Validation", () => {
+    test("should return 400 for missing 'id' in eye event", async ({
       request,
     }) => {
       const response = await request.post(API_ENDPOINT, {
-        data: { type: "cameraUpdate", p: [1, 2, 3], t: Date.now() },
+        data: { type: "eyeUpdate", p: [1, 2, 3], t: Date.now() },
       });
       expect(response.status()).toBe(400);
     });
 
-    test("should return 400 for missing 'p' in camera event", async ({
+    test("should return 400 for missing 'p' in eye event", async ({
       request,
     }) => {
       const response = await request.post(API_ENDPOINT, {
-        data: { type: "cameraUpdate", id: "test", t: Date.now() },
+        data: { type: "eyeUpdate", id: "test", t: Date.now() },
       });
       expect(response.status()).toBe(400);
     });
 
-    test("should return 400 for 'p' not an array in camera event", async ({
+    test("should return 400 for 'p' not an array in eye event", async ({
       request,
     }) => {
       const response = await request.post(API_ENDPOINT, {
         data: {
-          type: "cameraUpdate",
+          type: "eyeUpdate",
           id: "test",
           p: "not-an-array",
           t: Date.now(),
@@ -86,7 +86,7 @@ test.describe("API Robustness - POST /api/events", () => {
       request,
     }) => {
       const response = await request.post(API_ENDPOINT, {
-        data: { type: "cameraUpdate", id: "test", p: [1, 2], t: Date.now() },
+        data: { type: "eyeUpdate", id: "test", p: [1, 2], t: Date.now() },
       });
       expect(response.status()).toBe(400);
     });
@@ -96,7 +96,7 @@ test.describe("API Robustness - POST /api/events", () => {
     }) => {
       const response = await request.post(API_ENDPOINT, {
         data: {
-          type: "cameraUpdate",
+          type: "eyeUpdate",
           id: "test",
           p: [1, "a", 3],
           t: Date.now(),
@@ -105,19 +105,19 @@ test.describe("API Robustness - POST /api/events", () => {
       expect(response.status()).toBe(400);
     });
 
-    test("should return 400 for missing 't' in camera event", async ({
+    test("should return 400 for missing 't' in eye event", async ({
       request,
     }) => {
       const response = await request.post(API_ENDPOINT, {
-        data: { type: "cameraUpdate", id: "test", p: [1, 2, 3] },
+        data: { type: "eyeUpdate", id: "test", p: [1, 2, 3] },
       });
       expect(response.status()).toBe(400);
     });
 
-    test("should return 200 for valid camera event", async ({ request }) => {
+    test("should return 200 for valid eye event", async ({ request }) => {
       const response = await request.post(API_ENDPOINT, {
         data: {
-          type: "cameraUpdate",
+          type: "eyeUpdate",
           id: "test-valid-cam",
           p: [1, 2, 3],
           t: Date.now(),

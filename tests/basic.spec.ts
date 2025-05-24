@@ -32,16 +32,16 @@ test.describe("Multi-User Event Synchronization", () => {
     await expect(page2).toHaveTitle(/Planeto/);
   });
 
-  test("synchronizes camera updates between two users", async ({ request }) => {
+  test("synchronizes eye updates between two users", async ({ request }) => {
     const user1CamId = "user1-cam-test";
     const user1CamPos: [number, number, number] = [10, 20, 30];
 
     // Allow page2 a moment to fully initialize its event listeners
     await page2.waitForTimeout(500);
 
-    // User 1 posts a camera update
+    // User 1 posts a eye update
     const postData = {
-      type: "cameraUpdate",
+      type: "eyeUpdate",
       id: user1CamId,
       p: user1CamPos,
       t: Date.now(),
@@ -49,7 +49,7 @@ test.describe("Multi-User Event Synchronization", () => {
     const postResponse = await request.post("/api/events", { data: postData });
     expect(postResponse.ok()).toBeTruthy();
 
-    // User 2 verifies receiving the camera update
+    // User 2 verifies receiving the eye update
     const receivedOnPage2 = await pollForCondition(page2, async () => {
       const camData = await page2.evaluate((id) => {
         const storeState = window.__camStore?.getState();
@@ -116,8 +116,8 @@ test("original: has title and receives initial event data", async ({
   request,
 }) => {
   const postData = {
-    type: "cameraUpdate",
-    id: "test-camera",
+    type: "eyeUpdate",
+    id: "test-eye",
     p: [1, 2, 3],
     t: Date.now(),
   };
@@ -132,7 +132,7 @@ test("original: has title and receives initial event data", async ({
     async () => {
       const camData = await page.evaluate(() => {
         const storeState = window.__camStore?.getState();
-        return storeState?.cams?.["test-camera"];
+        return storeState?.cams?.["test-eye"];
       });
       return JSON.stringify(camData?.p) === JSON.stringify([1, 2, 3]);
     },

@@ -2,13 +2,13 @@ import { useEffect, useRef } from "react";
 
 import { roundVec3, areVec3sEqual } from "@/lib/utils";
 
-import type { CameraUpdateType } from "@/domain";
+import type { EyeUpdateType } from "@/domain";
 import type { Camera } from "@react-three/fiber";
 
 const FORCE_POSITION_UPDATE_INTERVAL_MS = 20000;
 const LOCAL_INTERVAL_MS = 2000;
 
-export const useCameraPositionReporting = (
+export const useEyePositionReporting = (
   myId: string,
   camera: Camera | undefined,
 ) => {
@@ -29,8 +29,8 @@ export const useCameraPositionReporting = (
       camera.position.z,
     ];
     const initialPositionRounded = roundVec3(initialPositionRaw);
-    const initialPayload: CameraUpdateType = {
-      type: "cameraUpdate",
+    const initialPayload: EyeUpdateType = {
+      type: "eyeUpdate",
       id: myId,
       p: initialPositionRounded,
       t: Date.now(),
@@ -57,8 +57,8 @@ export const useCameraPositionReporting = (
         forcePositionUpdateCounterRef.current >= checksPerForcePositionUpdate;
 
       if (positionActuallyChanged || isTimeForForcePositionUpdate) {
-        const payload: CameraUpdateType = {
-          type: "cameraUpdate",
+        const payload: EyeUpdateType = {
+          type: "eyeUpdate",
           id: myId,
           p: currentPositionRounded,
           t: Date.now(),

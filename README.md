@@ -19,7 +19,7 @@
 - Arcane controls: zoom, rotate, peer deeper
 - Multiplayer: your glyphs are seen by other eyes, and theirs by you
 - Immutable domain, defined by Zod
-- **Efficient presence:** Camera sends a lightweight ping if it hasn't moved, so your eye remains visible without unnecessary data
+- **Efficient presence:** Eye sends a lightweight ping if it hasn't moved, so your eye remains visible without unnecessary data
 
 ## The Dance of Matter
 
@@ -76,8 +76,8 @@ flowchart LR
     B --> H[hooks/]
     H --> H1[usePlanetData.ts]
     H --> H2[usePhysicsSimulation.ts]
-    H --> H3[useCameraPublisher.ts]
-    H --> H4[useRemoteCameras.ts]
+    H --> H3[useEyePublisher.ts]
+    H --> H4[useRemoteEyes.ts]
 ```
 
 _The void is deep. The structure is ever-shifting, but this is its current form._
@@ -115,15 +115,17 @@ When a watcher presses a key, a vast green glyph (from an alien alphabet) appear
 
 ---
 
-### Efficient Real-Time Communication (Camera & Events)
+### Efficient Real-Time Communication (Eye & Events)
 
-This project uses Server-Sent Events (SSE) to share camera positions and game events (like symbol inputs) in near real-time among all connected users. Significant effort has been made to minimize bandwidth and server load:
+This project uses Server-Sent Events (SSE) to share eye positions and game events (like symbol inputs) in near real-time among all connected users. Significant effort has been made to minimize bandwidth and server load:
 
-- **Camera Presence**: Your camera's position is sent to the server when you first connect and then only when it significantly changes. If your camera remains idle, its data is automatically purged from the server after a short period (currently ~4 seconds of inactivity) to keep the active user list fresh and reduce unnecessary data retention. If you move again, your camera will reappear to others.
+- **Eye Presence**: Your eye's position is sent to the server when you first connect and then only when it significantly changes. If your eye remains idle, its data is automatically purged from the server after a short period (currently ~4 seconds of inactivity) to keep the active user list fresh and reduce unnecessary data retention. If you move again, your eye will reappear to others.
 - **Symbol Events**: Only distinct key presses are sent to the server; repeated events from holding a key down are ignored on the client-side before transmission.
-- **Server-Side Logic**: The server manages lists of active cameras and event subscribers, efficiently broadcasting updates only when necessary.
+- **Server-Side Logic**: The server manages lists of active eyes and event subscribers, efficiently broadcasting updates only when necessary.
 
 For a detailed technical explanation of the real-time architecture and bandwidth optimization strategies, please see [`docs/realtime-communication.md`](./docs/realtime-communication.md).
+
+For details on the 3D camera setup, see [`docs/camera-setup.md`](./docs/camera-setup.md).
 
 ## Progressive Web App (PWA)
 
@@ -184,5 +186,5 @@ For more detailed deployment and configuration information, see `docs/deployment
 
 ### API Endpoints
 
-- `POST /api/events`: Receives event data (e.g., symbol events, camera updates).
+- `POST /api/events`: Receives event data (e.g., symbol events, eye updates).
 - `GET /api/events`: Subscribes to a server-sent event stream for real-time updates.

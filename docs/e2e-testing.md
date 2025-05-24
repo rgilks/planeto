@@ -28,13 +28,13 @@ This suite focuses on core application functionality related to real-time events
 
 - **Single User Test**:
   - Verifies the application page loads and has the correct title (`/`).
-  - Checks that a client can successfully POST camera data to the `/api/events` endpoint.
+  - Checks that a client can successfully POST eye data to the `/api/events` endpoint.
   - Ensures the client-side `EventSource` connection to `/api/events` is established upon page load.
-  - Confirms that initial camera data (posted in the test) is received by the client via the EventSource and correctly updates the Zustand store (`useCamStore`).
-- **Multi-User Camera Synchronization**:
+  - Confirms that initial eye data (posted in the test) is received by the client via the EventSource and correctly updates the Zustand store (`useCamStore`).
+- **Multi-User Eye Synchronization**:
   - Simulates two users (two browser pages).
-  - User1 posts a camera update via API call.
-  - User2 verifies it receives this camera update in its `useCamStore`.
+  - User1 posts a eye update via API call.
+  - User2 verifies it receives this eye update in its `useCamStore`.
 - **Multi-User Symbol Synchronization (API-driven)**:
   - Simulates two users.
   - User1 posts a symbol event via API call.
@@ -52,8 +52,8 @@ This suite directly tests the `/api/events` POST endpoint for resilience against
   - Empty payload.
   - Missing or invalid `type` field.
   - For `symbol` events: missing `id` or `key`.
-  - For `cameraUpdate` events: missing `id`, `p`, `t`, or `p` having an incorrect structure (e.g., not an array, wrong number of elements, non-numeric elements).
-- Confirms that the API returns a `200 OK` status for valid symbol and camera update events.
+  - For `eyeUpdate` events: missing `id`, `p`, `t`, or `p` having an incorrect structure (e.g., not an array, wrong number of elements, non-numeric elements).
+- Confirms that the API returns a `200 OK` status for valid symbol and eye update events.
 
 ### 3. Visual Snapshot Tests (`tests/visual-snapshot.spec.ts`)
 

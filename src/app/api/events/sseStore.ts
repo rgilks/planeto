@@ -1,17 +1,17 @@
 import { z } from "zod";
 
-import { CameraUpdateType, EventType, Vec3Schema } from "@/domain";
+import { EyeUpdateType, EventType, Vec3Schema } from "@/domain";
 
 export type Vec3 = z.infer<typeof Vec3Schema>;
 
 type Writer = { write: (data: string) => void; closed: boolean };
 
-const cameras = new Map<string, CameraUpdateType>();
+const eyes = new Map<string, EyeUpdateType>();
 const subs = new Set<Writer>();
 
-export const setCamera = (id: string, p: Vec3): void => {
-  const msg: CameraUpdateType = { type: "cameraUpdate", id, p, t: Date.now() };
-  cameras.set(id, msg);
+export const setEye = (id: string, p: Vec3): void => {
+  const msg: EyeUpdateType = { type: "eyeUpdate", id, p, t: Date.now() };
+  eyes.set(id, msg);
   broadcast(msg);
 };
 
@@ -38,14 +38,14 @@ export const broadcast = (msg: EventType): void => {
 
 export const subscribe = (w: Writer): void => {
   subs.add(w);
-  for (const cam of cameras.values()) {
+  for (const cam of eyes.values()) {
     try {
       w.write(`data:${JSON.stringify(cam)}
 
 `);
     } catch (error) {
       console.error(
-        `Failed to write initial camera data to SSE subscriber. Removing subscriber.`,
+        `Failed to write initial eye data to SSE subscriber. Removing subscriber.`,
         error,
       );
       subs.delete(w);
@@ -56,8 +56,8 @@ export const subscribe = (w: Writer): void => {
 
 export const purgeStale = (maxAge = 30000): void => {
   const now = Date.now();
-  for (const [id, cam] of cameras) {
-    if (now - cam.t > maxAge) cameras.delete(id);
+  for (const [id, cam] of eyes) {
+    if (now - cam.t > maxAge) eyes.delete(id);
   }
 };
 

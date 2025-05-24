@@ -6,18 +6,18 @@ This document provides a high-level technical summary of the Planeto application
 
 - **Rendering**: React Three Fiber (`@react-three/fiber`) and Drei (`@react-three/drei`) for 3D scene rendering in React.
 - **Physics**: Rapier (`@react-three/rapier`) for physics simulation (e.g., gravity, collisions).
-- **State Management**: Zustand for global client-side state (e.g., symbol inputs, remote camera data).
+- **State Management**: Zustand for global client-side state (e.g., symbol inputs, remote eye data).
 - **Data Validation**: Zod for defining and validating data schemas (e.g., API event payloads).
 - **Language**: TypeScript.
 - **Framework**: Next.js (App Router).
 
 ## Architecture Summary
 
-Planeto simulates a 3D environment with planetoids. Users can observe the scene and see representations of other connected users. Symbol inputs from users are translated into symbols, which are displayed locally and broadcast to other users. Camera positions are also shared. All real-time events are channelled through a single server endpoint (`/api/events`).
+Planeto simulates a 3D environment with planetoids. Users can observe the scene and see representations of other connected users. Symbol inputs from users are translated into symbols, which are displayed locally and broadcast to other users. Eye positions are also shared. All real-time events are channelled through a single server endpoint (`/api/events`).
 
-Client-side logic handles user inputs (symbol, camera movements) and sends them as `SymbolEvent` or `CameraUpdateEvent` types to the server via HTTP POST. The server validates these events, updates its state if necessary (e.g., for camera positions in `sseStore`), and then broadcasts the events to all connected clients using Server-Sent Events (SSE).
+Client-side logic handles user inputs (symbol, eye movements) and sends them as `SymbolEvent` or `EyeUpdateEvent` types to the server via HTTP POST. The server validates these events, updates its state if necessary (e.g., for eye positions in `sseStore`), and then broadcasts the events to all connected clients using Server-Sent Events (SSE).
 
-Clients also establish an SSE connection to the same `/api/events` endpoint to receive these broadcasts. Received events are then used to update the local client-side state (managed by Zustand stores) and render remote user activity (e.g., displaying another user's camera position or their typed symbol).
+Clients also establish an SSE connection to the same `/api/events` endpoint to receive these broadcasts. Received events are then used to update the local client-side state (managed by Zustand stores) and render remote user activity (e.g., displaying another user's eye position or their typed symbol).
 
 The physics simulation for planetoids is handled client-side using Rapier and rendered by Three.js.
 
@@ -25,24 +25,24 @@ The physics simulation for planetoids is handled client-side using Rapier and re
 
 - **`src/app/components/Scene3D.tsx`**: The main 3D scene component.
   - Responsible for orchestrating the 3D environment, including setting up the Canvas, lighting, and core visual elements.
-  - Renders the local user's camera controls (`OrbitControls`) and remote user representations via `RemoteEyes`.
+  - Renders the local user's eye controls (`OrbitControls`) and remote user representations via `RemoteEyes`.
   - Delegates planet data generation to the `usePlanetData` hook and physics simulation to the `usePhysicsSimulation` hook.
-  - Initiates sending of local symbol events and camera position updates.
+  - Initiates sending of local symbol events and eye position updates.
   - Establishes an SSE connection to receive events from other users.
   - Utilizes helper functions from `src/app/components/scene3d/utils.tsx` for tasks like geometry definition.
   - Uses `src/app/components/scene3d/Moon.tsx` for rendering planetary moons.
-- **`src/app/components/RemoteEyes.tsx`**: Renders representations of other users' cameras ("eyes").
+- **`src/app/components/RemoteEyes.tsx`**: Renders representations of other users' eyes ("eyes").
   - Displays symbols/glyphs based on recent symbol inputs from remote users, positioned near their respective "eye".
 - **`src/app/components/SymbolDisplay.tsx`**: Displays the local user's most recently typed symbol in a fixed overlay on their screen.
 - **`src/app/page.tsx`**: Main application page, integrating `Scene3D` and `SymbolDisplay`.
 - **`src/lib/store/`**: Zustand stores for managing client-side state:
   - `useSymbolStore.ts`: Manages local and remote symbol inputs/symbols.
-  - `useCamStore.ts`: Manages data for remote cameras, populated by `useRemoteCameras.ts`.
+  - `useCamStore.ts`: Manages data for remote eyes, populated by `useRemoteEyes.ts`.
 - **`src/app/api/events/route.ts`**: The sole backend API route.
-  - Handles `POST` requests for incoming `SymbolEvent` and `CameraUpdateEvent` data.
+  - Handles `POST` requests for incoming `SymbolEvent` and `EyeUpdateEvent` data.
   - Manages `GET` requests for establishing Server-Sent Event (SSE) connections.
-- **`src/lib/sseStore.ts`**: Server-side logic for managing SSE subscribers and storing/broadcasting camera state.
-- **`src/lib/domain.ts`**: Zod schemas defining `SymbolEvent` and `CameraUpdateEvent` structures.
+- **`src/lib/sseStore.ts`**: Server-side logic for managing SSE subscribers and storing/broadcasting eye state.
+- **`src/lib/domain.ts`**: Zod schemas defining `SymbolEvent` and `EyeUpdateEvent` structures.
 
 ## Data Flow Summaries
 
@@ -58,19 +58,19 @@ The physics simulation for planetoids is handled client-side using Rapier and re
   - The server (`/api/events/route.ts`) validates and broadcasts this event via SSE to all connected clients.
   - Remote clients receive these `SymbolEvent`s via their SSE connection in `Scene3D.tsx`.
   - `useSymbolStore` on remote clients is updated with the key press from the other user.
-  - `RemoteEyes.tsx` on remote clients observes `useSymbolStore` and displays the received symbol near the originating user's camera representation.
-- **Camera Position Sharing**:
-  - `useCameraPublisher.ts` (used within `Scene3D.tsx`, located in `src/hooks/useCameraPublisher.ts`) sends the local camera's position as a `CameraUpdateEvent` to `/api/events` (POST). This occurs periodically or on significant movement.
-  - The server (`/api/events/route.ts`) validates the event and uses `sseStore.ts` to update its record of that camera's position and timestamp.
-  - `sseStore.ts` then broadcasts the `CameraUpdateEvent` via SSE to all clients.
-  - Remote clients receive these updates via `useRemoteCameras.ts` (located in `src/hooks/useRemoteCameras.ts`), which populates `useCamStore.ts`.
-  - `RemoteEyes.tsx` uses `useCamStore` (via `useRemoteCameras`) to position the visual representations of remote users.
-  - The server-side `sseStore.ts` periodically purges stale camera data to save resources.
+  - `RemoteEyes.tsx` on remote clients observes `useSymbolStore` and displays the received symbol near the originating user's eye representation.
+- **Eye Position Sharing**:
+  - `useEyePublisher.ts` (used within `Scene3D.tsx`, located in `src/hooks/useEyePublisher.ts`) sends the local eye's position as a `EyeUpdateEvent` to `/api/events` (POST). This occurs periodically or on significant movement.
+  - The server (`/api/events/route.ts`) validates the event and uses `sseStore.ts` to update its record of that eye's position and timestamp.
+  - `sseStore.ts` then broadcasts the `EyeUpdateEvent` via SSE to all clients.
+  - Remote clients receive these updates via `useRemoteEyes.ts` (located in `src/hooks/useRemoteEyes.ts`), which populates `useCamStore.ts`.
+  - `RemoteEyes.tsx` uses `useCamStore` (via `useRemoteEyes`) to position the visual representations of remote users.
+  - The server-side `sseStore.ts` periodically purges stale eye data to save resources.
 
 ## Notes
 
 - **Coordinate System**: Standard 3D Cartesian coordinates are used.
 - **User Identification**: Users are identified by a unique string ID, typically generated client-side (e.g., using `nanoid`).
-- **Cost Optimization**: The architecture incorporates design choices (e.g., polling intervals for camera updates, use of `navigator.sendBeacon`, scale-to-zero server on Fly.io) that prioritize minimizing hosting costs and bandwidth, which may result in observable latencies. Refer to `docs/realtime-communication.md` for details.
+- **Cost Optimization**: The architecture incorporates design choices (e.g., polling intervals for eye updates, use of `navigator.sendBeacon`, scale-to-zero server on Fly.io) that prioritize minimizing hosting costs and bandwidth, which may result in observable latencies. Refer to `docs/realtime-communication.md` for details.
 
 For deeper dives into specific areas, please consult the other markdown documents in this `docs` folder.

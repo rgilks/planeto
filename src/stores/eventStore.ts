@@ -1,11 +1,11 @@
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 
-import { EventSchema, SymbolEventType, CameraUpdateType } from "@/domain/event";
+import { EventSchema, SymbolEventType, EyeUpdateType } from "@/domain/event";
 
 // Define listener types
 type SymbolEventListener = (event: SymbolEventType) => void;
-type CameraUpdateEventListener = (event: CameraUpdateType) => void;
+type EyeUpdateEventListener = (event: EyeUpdateType) => void;
 
 // Augment the Window interface for the debug store
 declare global {
@@ -20,7 +20,7 @@ interface EventStoreState {
   eventSourceInstance: EventSource | null;
   listeners: {
     symbol: SymbolEventListener[];
-    cameraUpdate: CameraUpdateEventListener[];
+    eyeUpdate: EyeUpdateEventListener[];
   };
 }
 
@@ -28,7 +28,7 @@ interface EventStoreActions {
   connect: () => void;
   disconnect: () => void;
   subscribeSymbolEvents: (callback: SymbolEventListener) => () => void;
-  subscribeCameraUpdates: (callback: CameraUpdateEventListener) => () => void;
+  subscribeEyeUpdates: (callback: EyeUpdateEventListener) => () => void;
   _handleMessage: (event: MessageEvent) => void;
   _handleError: (event: Event) => void;
 }
@@ -40,7 +40,7 @@ export const useEventStore = create<EventStoreState & EventStoreActions>()(
     eventSourceInstance: null,
     listeners: {
       symbol: [],
-      cameraUpdate: [],
+      eyeUpdate: [],
     },
 
     connect: () => {
@@ -87,14 +87,14 @@ export const useEventStore = create<EventStoreState & EventStoreActions>()(
       };
     },
 
-    subscribeCameraUpdates: (callback: CameraUpdateEventListener) => {
+    subscribeEyeUpdates: (callback: EyeUpdateEventListener) => {
       set((state) => {
-        state.listeners.cameraUpdate.push(callback);
+        state.listeners.eyeUpdate.push(callback);
       });
       return () => {
         set((state) => {
-          state.listeners.cameraUpdate = state.listeners.cameraUpdate.filter(
-            (cb: CameraUpdateEventListener) => cb !== callback,
+          state.listeners.eyeUpdate = state.listeners.eyeUpdate.filter(
+            (cb: EyeUpdateEventListener) => cb !== callback,
           );
         });
       };
@@ -111,9 +111,9 @@ export const useEventStore = create<EventStoreState & EventStoreActions>()(
             [...get().listeners.symbol].forEach((callback) =>
               callback(data as SymbolEventType),
             );
-          } else if (data.type === "cameraUpdate") {
-            [...get().listeners.cameraUpdate].forEach((callback) =>
-              callback(data as CameraUpdateType),
+          } else if (data.type === "eyeUpdate") {
+            [...get().listeners.eyeUpdate].forEach((callback) =>
+              callback(data as EyeUpdateType),
             );
           }
         } else {

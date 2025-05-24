@@ -10,16 +10,16 @@ export const SymbolEventSchema = z.object({
 });
 export type SymbolEventType = z.infer<typeof SymbolEventSchema>;
 
-export const CameraUpdateSchema = z.object({
-  type: z.literal("cameraUpdate"),
+export const EyeUpdateSchema = z.object({
+  type: z.literal("eyeUpdate"),
   id: z.string().min(1),
   p: Vec3Schema,
   t: z.number(),
 });
-export type CameraUpdateType = z.infer<typeof CameraUpdateSchema>;
+export type EyeUpdateType = z.infer<typeof EyeUpdateSchema>;
 
 export const EventSchema = z.discriminatedUnion("type", [
   SymbolEventSchema,
-  CameraUpdateSchema,
+  EyeUpdateSchema,
 ]);
 export type EventType = z.infer<typeof EventSchema>;

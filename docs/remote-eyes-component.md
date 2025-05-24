@@ -7,17 +7,17 @@ This document provides a detailed explanation of the `RemoteEyes.tsx` component,
 The primary purpose of the `RemoteEyes` component is to:
 
 1.  Render a visual representation (an "eye") for each remote user connected to the application.
-2.  Position and orient these "eyes" based on the camera data received from those users.
+2.  Position and orient these "eyes" based on the eye data received from those users.
 3.  Display symbols near each "eye" corresponding to the most recent key pressed by that remote user, with a visual fade-out effect.
 
 ## Key Functionality
 
 ### 1. Data Fetching and Management
 
-- **Remote Camera Data**: The component utilizes the `useRemoteCameras()` hook. This hook establishes a connection to the server (likely via Server-Sent Events) and provides a stream of camera position updates from other users.
+- **Remote Eye Data**: The component utilizes the `useRemoteEyes()` hook. This hook establishes a connection to the server (likely via Server-Sent Events) and provides a stream of eye position updates from other users.
 - **Remote Symbol Data**: It uses the `useSymbolStore` (a Zustand store) to access `remoteKeys`. This part of the store holds the latest key pressed by each remote user, along with a timestamp.
 - **Eye State Management**: The `useRemoteEyesStore` (another Zustand store) is central to managing the state of each visual "eye".
-  - `syncEyes`: This action is called within a `useEffect` hook. It's responsible for creating new eye instances when new remote users are detected (based on `cams` data from `useRemoteCameras`) and removing eye instances for users who are no longer present. It initializes each eye with a copy of the `baseShaderMaterial`.
+  - `syncEyes`: This action is called within a `useEffect` hook. It's responsible for creating new eye instances when new remote users are detected (based on `cams` data from `useRemoteEyes`) and removing eye instances for users who are no longer present. It initializes each eye with a copy of the `baseShaderMaterial`.
   - `updateEyeAnimations`: Called every frame via `useFrame`, this action updates properties like `opacity` and `scale` for each managed eye, allowing for animations (e.g., fading in/out).
   - `managedEyes`: This state within the store holds an object where keys are remote user IDs and values are objects representing the eye's current state (position, opacity, scale, material).
 
@@ -63,8 +63,8 @@ The primary purpose of the `RemoteEyes` component is to:
 - **`useSymbolStore`**:
   - Provides `remoteKeys`, which is a record of the last key pressed by each remote user and the timestamp of that press.
   - `RemoteEyes.tsx` reads this to display the appropriate symbol with a timed fade-out.
-- **`useRemoteCameras()` (hook)**:
-  - This custom hook is the source of remote camera data (positions).
+- **`useRemoteEyes()` (hook)**:
+  - This custom hook is the source of remote eye data (positions).
   - `RemoteEyes.tsx` uses this data (via `cams`) in its `useEffect` to trigger `syncEyes` in `useRemoteEyesStore`, which in turn updates the positions that `RemoteEyes.tsx` will render.
 
 ## Rendering Details in JSX
@@ -102,9 +102,9 @@ The primary purpose of the `RemoteEyes` component is to:
 
 ## Interactions and Dependencies
 
-- **`useRemoteCameras()`**: Essential for obtaining remote user camera positions, which dictates where eyes are placed.
+- **`useRemoteEyes()`**: Essential for obtaining remote user eye positions, which dictates where eyes are placed.
 - **`useSymbolStore`**: Provides the data for which symbol to display for each remote user.
-- **`useRemoteEyesStore`**: Acts as the intermediary, processing data from `useRemoteCameras` and managing the animated properties of the eyes that `RemoteEyes.tsx` renders.
+- **`useRemoteEyesStore`**: Acts as the intermediary, processing data from `useRemoteEyes` and managing the animated properties of the eyes that `RemoteEyes.tsx` renders.
 - **`SYMBOLS` (from `../../lib/domain/symbol`)**: An array of characters used to derive the visual symbol from a key press.
 
 This component is a crucial piece for multiplayer visibility, combining data from multiple sources to create a dynamic and informative representation of other users in the 3D environment.

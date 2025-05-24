@@ -2,7 +2,7 @@ import { z } from "zod";
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 
-import { CameraUpdateType, Vec3Schema } from "@/domain/event";
+import { EyeUpdateType, Vec3Schema } from "@/domain/event";
 
 type Vec3 = z.infer<typeof Vec3Schema>;
 
@@ -11,8 +11,8 @@ interface CamStoreState {
 }
 
 interface CamStoreActions {
-  setCamera: (cameraUpdate: CameraUpdateType) => void;
-  removeStaleCameras: (thresholdMs: number) => void;
+  setEye: (eyeUpdate: EyeUpdateType) => void;
+  removeStaleEyes: (thresholdMs: number) => void;
 }
 
 // Augment the Window interface for the debug store
@@ -25,11 +25,11 @@ declare global {
 export const useCamStore = create<CamStoreState & CamStoreActions>()(
   immer((set) => ({
     cams: {},
-    setCamera: (cameraUpdate) =>
+    setEye: (eyeUpdate) =>
       set((state) => {
-        state.cams[cameraUpdate.id] = { p: cameraUpdate.p, t: cameraUpdate.t };
+        state.cams[eyeUpdate.id] = { p: eyeUpdate.p, t: eyeUpdate.t };
       }),
-    removeStaleCameras: (thresholdMs) =>
+    removeStaleEyes: (thresholdMs) =>
       set((state) => {
         const now = Date.now();
         for (const id in state.cams) {

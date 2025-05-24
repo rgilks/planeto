@@ -8,7 +8,7 @@ All real-time events are handled through a single set of endpoints:
 
 - **`POST /api/events`**: This endpoint is used to send event data to the server.
 
-  - For `cameraUpdate` events, the server updates its internal state for the given camera ID and then broadcasts the event to subscribed clients.
+  - For `eyeUpdate` events, the server updates its internal state for the given eye ID and then broadcasts the event to subscribed clients.
   - For `symbol` events, the server directly broadcasts the event to subscribed clients.
 
   - **Request Body**: The request body should be a JSON object representing the event, adhering to one of the schemas below. The `type` field determines how the event is processed.
@@ -20,11 +20,11 @@ All real-time events are handled through a single set of endpoints:
         "key": "<string>" // The key that was pressed
       }
       ```
-    - **Camera Update Event**:
+    - **Eye Update Event**:
       ```json
       {
-        "type": "cameraUpdate",
-        "id": "<string>", // Unique identifier for the camera
+        "type": "eyeUpdate",
+        "id": "<string>", // Unique identifier for the eye
         "p": [<number>, <number>, <number>], // Position vector [x, y, z]
         "t": <number> // Timestamp of the update (milliseconds since epoch)
       }
@@ -37,4 +37,4 @@ All real-time events are handled through a single set of endpoints:
   - **Response Format**: `text/event-stream`
   - **Events**: Events are sent in the format `data: <JSON_EVENT_OBJECT>\n\n`. The `<JSON_EVENT_OBJECT>` will be one of the following types (as defined in the `POST /api/events` section):
     - Symbol Event
-    - Camera Update Event
+    - Eye Update Event

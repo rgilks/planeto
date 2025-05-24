@@ -2,7 +2,7 @@
 import { useMemo, useEffect } from "react";
 import { z } from "zod";
 
-import { CameraUpdateType, Vec3Schema } from "@/domain/event"; // Ensure path is correct
+import { EyeUpdateType, Vec3Schema } from "@/domain/event"; // Ensure path is correct
 import { useCamStore } from "@/stores/camStore";
 import { useEventStore } from "@/stores/eventStore";
 
@@ -11,15 +11,13 @@ type Vec3 = z.infer<typeof Vec3Schema>;
 const STALE_THRESHOLD_MS = 30000;
 const CLEANUP_INTERVAL_MS = 5000;
 
-export const useRemoteCameras = () => {
+export const useRemoteEyes = () => {
   const connectToEventSource = useEventStore((s) => s.connect);
-  const subscribeToCameraUpdates = useEventStore(
-    (s) => s.subscribeCameraUpdates,
-  );
+  const subscribeToEyeUpdates = useEventStore((s) => s.subscribeEyeUpdates);
   const eventSourceConnected = useEventStore((s) => s.isConnected);
 
-  const setCameraInStore = useCamStore((s) => s.setCamera);
-  const removeStaleCamerasInStore = useCamStore((s) => s.removeStaleCameras);
+  const setEyeInStore = useCamStore((s) => s.setEye);
+  const removeStaleEyesInStore = useCamStore((s) => s.removeStaleEyes);
   const camsFromStore = useCamStore((s) => s.cams);
 
   useEffect(() => {
@@ -29,25 +27,25 @@ export const useRemoteCameras = () => {
   }, [connectToEventSource, eventSourceConnected]);
 
   useEffect(() => {
-    const handleCameraUpdate = (event: CameraUpdateType) => {
+    const handleEyeUpdate = (event: EyeUpdateType) => {
       if (event.p) {
-        setCameraInStore(event);
+        setEyeInStore(event);
       }
     };
 
-    const unsubscribe = subscribeToCameraUpdates(handleCameraUpdate);
+    const unsubscribe = subscribeToEyeUpdates(handleEyeUpdate);
     return () => unsubscribe();
-  }, [subscribeToCameraUpdates, setCameraInStore]);
+  }, [subscribeToEyeUpdates, setEyeInStore]);
 
   useEffect(() => {
     const intervalId = setInterval(() => {
-      removeStaleCamerasInStore(STALE_THRESHOLD_MS);
+      removeStaleEyesInStore(STALE_THRESHOLD_MS);
     }, CLEANUP_INTERVAL_MS);
 
     return () => {
       clearInterval(intervalId);
     };
-  }, [removeStaleCamerasInStore]);
+  }, [removeStaleEyesInStore]);
 
   return useMemo(
     () =>

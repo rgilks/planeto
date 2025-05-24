@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { EventSchema } from "@/domain";
 
-import { broadcast, setCamera, subscribe, unsubscribe } from "./sseStore";
+import { broadcast, setEye, subscribe, unsubscribe } from "./sseStore";
 
 export const GET = async () => {
   const encoder = new TextEncoder();
@@ -57,8 +57,8 @@ export const POST = async (req: NextRequest) => {
 
   const event = parsedEvent.data;
 
-  if (event.type === "cameraUpdate") {
-    setCamera(event.id, event.p);
+  if (event.type === "eyeUpdate") {
+    setEye(event.id, event.p);
   } else if (event.type === "symbol") {
     broadcast(event);
   }

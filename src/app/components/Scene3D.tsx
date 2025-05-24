@@ -12,7 +12,7 @@ import {
   useInputThrottle,
   usePhysicsSimulation,
   usePlanetData,
-  useCameraPositionReporting,
+  useEyePositionReporting,
 } from "@/hooks";
 import { generateBumpMap } from "@/lib/utils";
 import { useSymbolStore } from "@/stores/symbolStore";
@@ -25,7 +25,7 @@ type RigidBodyRef = React.RefObject<RapierRigidBody | null>;
 
 const CanvasContent = ({ myId }: { myId: string }) => {
   const { camera } = useThree();
-  useCameraPositionReporting(myId, camera);
+  useEyePositionReporting(myId, camera);
 
   return (
     <>
@@ -94,7 +94,7 @@ const Scene3D = () => {
     setBumpMaps(maps);
   }, []);
 
-  const randomCameraPos = () => {
+  const randomEyePos = (): [number, number, number] => {
     const r = 80 + Math.random() * 80;
     const theta = Math.random() * 2 * Math.PI;
     const phi = Math.acos(2 * Math.random() - 1);
@@ -102,12 +102,13 @@ const Scene3D = () => {
     const y = r * Math.sin(phi) * Math.sin(theta);
     const z = r * Math.cos(phi);
     return [x, y, z] as [number, number, number];
+    return [0, 0, 150];
   };
 
   if (!bumpMaps || planets.length === 0) {
     return (
       <Canvas
-        camera={{ position: [0, 0, 120] }}
+        camera={{ position: [0, 0, 120], near: 0.1, far: 2000 }}
         style={{ width: "100%", height: "100%" }}
       >
         <color attach="background" args={["#000"]} />
@@ -122,7 +123,7 @@ const Scene3D = () => {
 
   return (
     <Canvas
-      camera={{ position: randomCameraPos() }}
+      camera={{ position: randomEyePos() }}
       style={{ width: "100%", height: "100%" }}
       shadows
       onDoubleClick={() => {

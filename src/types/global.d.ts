@@ -1,4 +1,4 @@
-import { useCamStore } from "@/hooks/useRemoteCameras";
+import { useCamStore } from "@/hooks/useRemoteEyes";
 import { useSymbolStore } from "@/stores/symbolStore";
 
 declare global {

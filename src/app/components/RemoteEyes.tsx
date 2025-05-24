@@ -5,7 +5,7 @@ import { useRef, useEffect, useMemo } from "react";
 import { Mesh, Vector3, Group, TextureLoader, ShaderMaterial } from "three";
 
 import { SYMBOLS } from "@/domain";
-import { useRemoteCameras } from "@/hooks/useRemoteCameras";
+import { useRemoteEyes } from "@/hooks/useRemoteEyes";
 import { useRemoteEyesStore } from "@/stores/remoteEyesStore";
 import { useSymbolStore } from "@/stores/symbolStore";
 
@@ -45,7 +45,7 @@ const fragmentShader = `
 
 export const RemoteEyes = ({ myId }: { myId: string }) => {
   const refs = useRef<Record<string, Mesh | Group>>({});
-  const cams = useRemoteCameras();
+  const cams = useRemoteEyes();
   const eyeTexture = useLoader(TextureLoader, EYE_TEXTURE_PATH);
   const remoteKeys = useSymbolStore((s) => s.remoteKeys);
 
