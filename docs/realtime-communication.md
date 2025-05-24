@@ -5,14 +5,14 @@ This document outlines Planeto's real-time communication architecture, designed 
 ## Core Architecture
 
 - **Single API Endpoint (`/api/events`)**:
-  - **`POST /api/events`**: Clients send `EyeUpdate` or `SymbolEvent` data to this endpoint.
-  - **`GET /api/events`**: Clients establish an SSE connection to receive real-time events broadcast by the server.
-- **Server-Side Logic (`src/lib/sseStore.ts`)**:
-  - Manages a map of current eye positions (`eyes`).
-  - Maintains a set of active SSE subscribers (`subs`).
+  - **`POST /api/events`**: Clients send `EyeUpdateEvent` or `SymbolEvent` data to this endpoint.
+  - **`GET /api/events`**: Clients establish an SSE connection via `useEventSource` to receive real-time events broadcast by the server.
+- **Server-Side Logic (`src/app/api/events/sseStore.ts`)**: (Or a similar module within `src/app/api/events/`)
+  - Manages a map of current eye positions.
+  - Maintains a set of active SSE subscribers.
   - Broadcasts received and processed events to all subscribers.
   - Periodically purges stale eye data.
-- **Event Schemas (`src/lib/domain.ts`)**: Zod schemas define the structure for `EyeUpdateEvent` and `SymbolEvent`.
+- **Event Schemas (`src/domain/index.ts`)**: Zod schemas define the structure for `EyeUpdateEvent`, `SymbolEvent`, and other domain types.
 
 ## Event Flows
 
@@ -20,76 +20,72 @@ This document outlines Planeto's real-time communication architecture, designed 
 
 **Goal**: Allow clients to see other users' eye movements.
 
-**Client-Side Publishing (`src/app/components/useEyePublisher.ts`)**:
+**Client-Side Publishing (`src/hooks/useEyePositionReporting.ts`)**:
 
-- A React hook (`useEyePublisher`) captures the local eye's position from `three.js`.
+- The `useEyePositionReporting` hook captures the local camera's position from `three.js` (via `useThree` in `CanvasContent`).
 - **Sending Data**:
-  - An initial eye position is sent on component mount.
-  - Periodically (every 2 seconds):
-    - If the eye position has changed significantly (epsilon comparison), the new position is sent.
-    - A full position update is forcibly sent every 20 seconds, regardless of change, to ensure eventual consistency.
-  - Data is transmitted as a `EyeUpdateType` event to `POST /api/events` using `navigator.sendBeacon()`. This method is chosen for its ability to reliably send data during page unload and to minimize impact on other network requests, though it can be lower priority.
+  - An initial eye position might be sent on setup.
+  - Periodically (throttled, e.g., every 500ms as in the hook):
+    - If the camera position has changed significantly, the new position is sent.
+  - Data is transmitted as an `EyeUpdateEvent` to `POST /api/events` using `fetch`.
 
-**Server-Side Handling (`src/app/api/events/route.ts` & `src/lib/sseStore.ts`)**:
+**Server-Side Handling (`src/app/api/events/route.ts` & `src/app/api/events/sseStore.ts`)**:
 
 - The `POST` handler validates the `EyeUpdateEvent`.
-- `sseStore.setEye(id, p)` updates the eye's position and timestamp in the `eyes` map.
-- `sseStore.broadcast(event)` then sends the `EyeUpdateEvent` to all connected SSE clients.
+- The server-side store (e.g., `sseStore.ts`) updates the eye's position and timestamp.
+- The store then broadcasts the `EyeUpdateEvent` to all connected SSE clients.
 
-**Client-Side Receiving (`src/app/components/useEyes.ts`)**:
+**Client-Side Receiving (`src/hooks/useEventSource.ts` & `src/stores/useCamStore.ts`)**:
 
-- The `useEyes` hook establishes an SSE connection to `GET /api/events`.
+- The `useEventSource` hook (used in `Scene.tsx`) establishes an SSE connection to `GET /api/events`.
 - It listens for `EyeUpdateEvent` messages.
-- Received eye data updates a Zustand store (`useCamStore`), making remote eye positions available to the UI (e.g., for rendering remote user representations like `Eyes`).
-- Stale eye data is periodically removed from the client-side store.
+- Received eye data updates a Zustand store (e.g., `useCamStore.ts` or potentially `useSymbolStore.ts` if consolidated), making remote eye positions available to the UI (e.g., for rendering remote user representations in `Eyes.tsx`).
+- Stale eye data might be handled by the server-side purging or client-side logic.
 
 ### 2. Symbol Event Sharing
 
 **Goal**: Allow clients to react to symbol inputs from other users.
 
-**Client-Side Input & Publishing (`src/app/components/Scene.tsx` & `src/lib/store/symbolStore.ts`)**:
+**Client-Side Input & Publishing (`src/app/components/Scene.tsx` & `src/stores/symbolStore.ts`)**:
 
-- An event listener (implicitly via `SymbolControls` or a direct listener, managed by `useSymbolControls` from `@react-three/drei` or similar, eventually updating `useSymbolStore`) captures key presses.
-- To avoid spamming, only non-repeating key presses are processed.
-- The `lastInput` in `useSymbolStore` (Zustand) is updated.
-- An effect in `Scene.tsx` observes `lastInput`. When it changes:
-  - A `SymbolEventType` payload (including a unique client `id` and the `key`) is created.
-  - This payload is sent via `fetch` to `POST /api/events`.
-  - Sends are throttled (e.g., every 100ms) to manage send frequency.
+- User interactions (e.g., a double-click in `Scene.tsx`) trigger an update to `lastInput` in `useSymbolStore` (Zustand).
+- An effect or handler observes `lastInput`. When it changes:
+  - A `SymbolEvent` payload (including a unique client `id` and the `key`) is created.
+  - This payload is sent via `fetch` to `POST /api/events` (throttled by `useInputThrottle`).
 
-**Server-Side Handling (`src/app/api/events/route.ts` & `src/lib/sseStore.ts`)**:
+**Server-Side Handling (`src/app/api/events/route.ts` & `src/app/api/events/sseStore.ts`)**:
 
 - The `POST` handler validates the `SymbolEvent`.
-- `sseStore.broadcast(event)` immediately sends the `SymbolEvent` to all connected SSE clients. (Note: Symbol events are not persistently stored on the server in `sseStore` beyond broadcasting).
+- The server-side store (e.g., `sseStore.ts`) immediately broadcasts the `SymbolEvent` to all connected SSE clients.
 
-**Client-Side Receiving (`src/app/components/Scene.tsx` & `src/lib/store/symbolStore.ts`)**:
+**Client-Side Receiving (`src/hooks/useEventSource.ts` & `src/stores/symbolStore.ts`)**:
 
-- The same SSE connection established for eye updates (in `Scene.tsx` or a shared hook) also receives `SymbolEvent` messages.
-- If the event `id` does not match the local client's `id`, `setRemoteKey(id, key)` is called in `useSymbolStore` to store the remote key press.
-- UI components can then react to changes in `remoteKeys`.
+- The same SSE connection managed by `useEventSource` also receives `SymbolEvent` messages.
+- If the event `id` does not match the local client's `id`, `setRemoteKey` (or a similar action) is called in `useSymbolStore` to store the remote key press.
+- UI components like `Eyes.tsx` can then react to changes in `useSymbolStore` to display symbols for remote users.
 
 ## Bandwidth and Latency Considerations
 
-The "real-time" nature of this system is subject to various factors affecting latency. It's important to note that certain delays are an **accepted consequence of design choices aimed at minimizing hosting costs and bandwidth usage** for this public, unauthenticated application.
+The "real-time" nature of this system is subject to various factors affecting latency. It's important to note that certain delays are an **accepted consequence of design choices aimed at minimizing hosting costs and bandwidth usage**.
 
-- **Network Conditions**: User's internet speed, ping to the server (London).
-- **Server Load & Processing**: The single `256mb` VM on Fly.io handles all requests and SSE connections. High load could increase processing time. The choice of a small, single VM that can scale to zero is a primary cost-saving measure.
-- **Client-Side Throttling/Polling (Deliberate for Cost/Bandwidth)**:
-  - Eye updates are inherently delayed by the 2-second polling interval and the 20-second forced updates in `useEyePublisher`. This is a **deliberate trade-off to significantly reduce the volume of eye data sent**, thus lowering bandwidth and server processing load.
-  - Symbol events are throttled (e.g., 100ms) on the client before sending, balancing responsiveness with server load.
-- **`navigator.sendBeacon()` for Eye Updates (Deliberate for Cost/Reliability)**: While beneficial for sending data reliably without blocking other requests and during page unload, `sendBeacon` requests are often treated as lower priority by the browser. This choice prioritizes data delivery and reduced client-side performance impact over achieving the lowest possible latency for eye updates, aligning with cost-saving goals by ensuring data isn't lost and doesn't overwhelm a small server.
+- **Network Conditions**: User's internet speed, ping to the server.
+- **Server Load & Processing**: The server infrastructure (e.g., Fly.io VM) handles all requests and SSE connections.
+- **Client-Side Throttling/Polling**:
+  - Eye updates are throttled by `useEyePositionReporting` (e.g., 500ms).
+  - Symbol event submissions are throttled by `useInputThrottle` (e.g., 100ms).
 - **SSE Connection Stability**: Frequent SSE disconnects/reconnects would delay message delivery.
 - **Client-Side Rendering**: Time taken for clients to process incoming SSE messages and update their UI.
 
-**Understanding Observed Delays in Context of Design**: If delays are observed, it's crucial to view them through the lens of these cost-optimization strategies. The system is not designed for sub-second, high-frequency updates for all event types due to these explicit choices.
+**Understanding Observed Delays in Context of Design**: If delays are observed, it's crucial to view them through the lens of these optimization strategies. The system is not designed for ultra-low latency for all event types due to these explicit choices.
 
-For applications where minimizing latency is the absolute top priority (over costs and architectural simplicity), alternative technologies like WebSockets might be considered. The current HTTP/SSE approach is tailored for simplicity, robustness for intermittent sending, and cost-effectiveness on platforms like Fly.io with auto-scaling to zero.
+Alternative technologies like WebSockets might be considered for applications requiring minimal latency above all else.
 
 ## Key Files Summary
 
 - **API Route**: `src/app/api/events/route.ts`
-- **Server State/SSE Logic**: `src/lib/sseStore.ts`
-- **Event Definitions**: `src/lib/domain.ts`
-- **Eye Publishing (Client)**: `src/app/components/useEyePublisher.ts`
-- **Eye Receiving (Client)**: `src/app/components/useEyes.ts` & `src/lib/store/camStore.ts` (implicitly, via `useEyes`)
-- **Symbol Logic (Client)**: `src/app/components/Scene.tsx`, `src/lib/store/symbolStore.ts`
+- **Server State/SSE Logic**: `src/app/api/events/sseStore.ts` (or similar within the API directory)
+- **Event Definitions**: `src/domain/index.ts`
+- **Eye Publishing (Client)**: `src/hooks/useEyePositionReporting.ts`
+- **Symbol Input Throttling (Client)**: `src/hooks/useInputThrottle.ts`
+- **SSE Event Handling (Client)**: `src/hooks/useEventSource.ts`
+- **Client State Management**: `src/stores/symbolStore.ts`, `src/stores/useCamStore.ts` (verify `useCamStore` usage)

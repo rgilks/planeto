@@ -1,6 +1,6 @@
-# SSE Store (`src/stores/sseStore.ts`)
+# SSE Store (`src/app/api/events/sseStore.ts`)
 
-The `sseStore.ts` module is responsible for managing Server-Sent Events (SSE) connections and broadcasting events to connected clients. It plays a crucial role in the real-time communication features of Planeto, such as synchronizing eye positions and symbol events.
+The `sseStore.ts` module (located within the `src/app/api/events/` directory or a similar server-side path) is responsible for managing Server-Sent Events (SSE) connections and broadcasting events to connected clients. It plays a crucial role in the real-time communication features of Planeto, such as synchronizing eye positions and symbol events.
 
 ## Key Responsibilities
 
@@ -11,7 +11,7 @@ The `sseStore.ts` module is responsible for managing Server-Sent Events (SSE) co
 
 ## Core Functions
 
-- `setEye(id: string, p: Vec3)`: Updates the eye position for a given user ID and broadcasts this update to all subscribers.
+- `setEye(id: string, p: Vec3)`: Updates the eye position for a given user ID. (Broadcasting is typically handled by a separate call to `broadcast` or implicitly if `setEye` also triggers it).
 - `broadcast(msg: EventType)`: Sends a generic event message to all subscribers. This is used for events like symbol inputs.
 - `subscribe(writer: Writer)`: Adds a new subscriber (client connection) to the list. It also sends the current state of all eyes to the new subscriber.
 - `unsubscribe(writer: Writer)`: Removes a subscriber from the list, typically when a client disconnects.
@@ -19,8 +19,8 @@ The `sseStore.ts` module is responsible for managing Server-Sent Events (SSE) co
 
 ## Data Structures
 
-- `eyes`: A `Map` storing the last known `EyeUpdateType` for each user ID.
-- `subs`: A `Set` storing `Writer` objects, where each `Writer` represents an active SSE connection to a client. The `Writer` object has:
+- `eyes`: A `Map` storing the last known `EyeUpdateType` (or its core data like position and timestamp) for each user ID. This type definition comes from `@/domain`.
+- `subs`: A `Set` storing `Writer` objects (or equivalent stream writers), where each represents an active SSE connection to a client. The `Writer` object would typically have:
   - `write: (data: string) => void`: A function to send data to the client.
   - `closed: boolean`: A flag indicating if the connection is closed.
 
@@ -34,7 +34,7 @@ An interval timer is set up within the module to call `purgeStale` every 10 seco
 
 ## Integration
 
-The `sseStore` is primarily used by the API route `src/app/api/events/route.ts`:
+The `sseStore` (or its equivalent functionality if integrated directly into the route handler) is primarily used by the API route `src/app/api/events/route.ts`:
 
 - The `GET` handler in the route uses `subscribe` and `unsubscribe` to manage client connections for the SSE stream.
 - The `POST` handler uses `setEye` (for eye updates) and `broadcast` (for other events like symbol inputs) to push data to connected clients via the store.

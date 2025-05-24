@@ -51,33 +51,112 @@ Behold the lattice of the void, where every glyph and watcher finds its place:
 
 ```mermaid
 flowchart LR
-    A[planeto/] --> B[src/]
-    B --> C[app/]
-    C --> C1[api/]
-    C1 --> C12[events/route.ts]
-    C --> C2[components/]
-    C2 --> C2s[scene/]
-    C2s --> C2s1[Moon.tsx]
-    C2s --> C2s4[utils.tsx]
-    C2 --> C21[SymbolDisplay.tsx]
-    C2 --> C22[Eyes.tsx]
-    C2 --> C23[Scene.tsx] \n(Orchestrates 3D scene, \nuses hooks for data & physics)
-    C --> C3[globals.css]
-    C --> C4[favicon.ico]
-    C --> C5[layout.tsx]
-    C --> C6[page.tsx]
-    B --> D[lib/]
-    D --> D1[domain/symbol.ts]
-    D --> D3[store/symbolStore.ts]
-    B --> E[stores/]
-    E --> E1[sseStore.ts]
-    E --> E2[symbolStore.ts]
-    E --> E3[eyesStore.ts]
-    B --> H[hooks/]
-    H --> H1[usePlanetData.ts]
-    H --> H2[usePhysicsSimulation.ts]
-    H --> H3[useEyePublisher.ts]
-    H --> H4[useEyes.ts]
+    subgraph PlanetoProject [planeto/]
+        direction LR
+        subgraph SrcDir [src/]
+            direction TB
+            subgraph AppDir [app/]
+                direction TB
+                AppPage[page.tsx] --> SceneComp
+                Layout[layout.tsx]
+
+                subgraph ApiDir [api/]
+                    direction TB
+                    EventsApi[events/route.ts] --> ServerLogic[/sseStore.ts/]
+                end
+
+                subgraph ComponentsDir [components/]
+                    direction TB
+                    SceneComp[Scene.tsx] --> CanvasContent
+                    CanvasContent --> EyesComp
+                    CanvasContent --> PlanetComp
+                    CanvasContent --> OrbitControls
+                    EyesComp[Eyes.tsx]
+                    SymbolDisplayComp[SymbolDisplay.tsx]
+                    PlanetComp[Planet.tsx]
+                end
+            end
+
+            subgraph DomainDir [domain/]
+                direction TB
+                DomainIndex[index.ts \n(Zod Schemas, SYMBOLS)]
+            end
+
+            subgraph HooksDir [hooks/]
+                direction TB
+                EventSourceHook[useEventSource.ts]
+                InputThrottleHook[useInputThrottle.ts]
+                PhysicsSimHook[usePhysicsSimulation.ts]
+                PlanetDataHook[usePlanetData.ts]
+                EyeReportHook[useEyePositionReporting.ts]
+                EyesHook[useEyes.ts]
+            end
+
+            subgraph StoresDir [stores/]
+                direction TB
+                EventStore[eventStore.ts]
+                EyeStore[eyeStore.ts]
+                EyesVisualStore[eyesStore.ts \n(Visual Animation State)]
+                SymbolStore[symbolStore.ts]
+            end
+
+            subgraph LibDir [lib/]
+                direction TB
+                Utils[utils.ts \n(e.g., generateBumpMap)]
+            end
+        end
+
+        Readme[README.md]
+        PackageJson[package.json]
+        NextConfig[next.config.ts]
+        Dockerfile[Dockerfile]
+        FlyToml[fly.toml]
+        TsConfig[tsconfig.json]
+
+        subgraph DocsDir [docs/]
+            direction TB
+            TechOverview[technical-overview.md]
+            RealtimeComm[realtime-communication.md]
+            ApiDoc[api.md]
+            DeploymentDoc[deployment-flyio.md]
+            EyesDoc[remote-eyes-component.md]
+            CameraDoc[camera-setup.md]
+            E2EDoc[e2e-testing.md]
+            SSEServerDoc[sse-store.md]
+        end
+    end
+
+    %% Relationships
+    SceneComp --> PlanetDataHook
+    SceneComp --> PhysicsSimHook
+    SceneComp --> InputThrottleHook
+    SceneComp --> EventSourceHook
+    SceneComp --> SymbolStore
+    CanvasContent --> EyeReportHook
+    EyesComp --> EyesHook
+    EyesComp --> SymbolStore
+    EyesComp --> EyesVisualStore
+    EyesHook --> EventStore
+    EyesHook --> EyeStore
+    EventSourceHook --> EventStore
+    EventSourceHook --> SymbolStore %% For incoming remote symbols
+    EventSourceHook --> EyeStore %% For incoming remote eye updates
+    EventsApi --> DomainIndex
+    SymbolStore --> DomainIndex
+    PlanetDataHook --> Utils
+    EyeReportHook --> EventsApi
+    %% Symbol trigger/display flow
+    SceneComp -.-> SymbolStore %% onDblClick updates lastInput
+    SymbolDisplayComp -.-> SymbolStore %% reads lastInput
+    InputThrottleHook -.-> EventsApi %% sends throttled symbol event
+
+    %% Data flow for remote eyes visual
+    EventsApi -- EyeUpdateEvent --> EventSourceHook
+    EventSourceHook -- EyeUpdateEvent --> EyeStore
+    EyesHook -- reads --> EyeStore
+    EyesComp -- uses data from --> EyesHook
+    EyesComp -- uses visual state from --> EyesVisualStore
+    EyesVisualStore -- syncs with data from --> EyesHook
 ```
 
 _The void is deep. The structure is ever-shifting, but this is its current form._
@@ -93,7 +172,7 @@ _The void is deep. The structure is ever-shifting, but this is its current form.
 ## Extending the Mystery
 
 - To birth new planetoids, alter the genesis logic in `src/hooks/usePlanetData.ts`.
-- To change the glyphs, edit the `SYMBOLS` array in `src/lib/domain/symbol.ts`.
+- To change the glyphs, edit the `SYMBOLS` array in `src/domain/index.ts` (or the file where `SYMBOLS` is defined within `src/domain/`).
 
 ## License
 
@@ -105,11 +184,11 @@ MIT (for those who care for such things)
 
 ## Glyphic Exchange
 
-When a watcher presses a key, a vast green glyph (from an alien alphabet) appears in the bottom-right. This glyph is not the key, but a symbol mapped from it. Only the glyphs of other eyes are seen in the void; your own glyph is for your gaze alone. Glyphs are broadcast instantly to all who watch. Repeated key events from holding a key down are now ignored to save bandwidth.
+When a watcher double-clicks, a vast green glyph (from an alien alphabet) appears in the bottom-right of their screen. This glyph is not the key, but a symbol mapped from a randomly chosen one. Only the glyphs of other eyes are seen in the void; your own glyph is for your gaze alone. Glyphs are broadcast instantly to all who watch.
 
 - State: Zustand (`src/stores/symbolStore.ts`)
-- Schema: Zod (`src/lib/domain/symbol.ts`)
-- Ritual: `src/app/page.tsx` (captures non-repeated keydown events)
+- Schema: Zod (`src/domain/index.ts` or relevant file within `src/domain/`)
+- Trigger: `src/app/components/Scene.tsx` (onDoubleClick event)
 - Manifestation: `src/app/components/SymbolDisplay.tsx` (your glyph), `src/app/components/Eyes.tsx` (others' glyphs)
 - To alter the glyphs or their color, change the relevant components.
 
@@ -119,9 +198,8 @@ When a watcher presses a key, a vast green glyph (from an alien alphabet) appear
 
 This project uses Server-Sent Events (SSE) to share eye positions and game events (like symbol inputs) in near real-time among all connected users. Significant effort has been made to minimize bandwidth and server load:
 
-- **Eye Presence**: Your eye's position is sent to the server when you first connect and then only when it significantly changes. If your eye remains idle, its data is automatically purged from the server after a short period (currently ~4 seconds of inactivity) to keep the active user list fresh and reduce unnecessary data retention. If you move again, your eye will reappear to others.
-- **Symbol Events**: Only distinct key presses are sent to the server; repeated events from holding a key down are ignored on the client-side before transmission.
-- **Server-Side Logic**: The server manages lists of active eyes and event subscribers, efficiently broadcasting updates only when necessary.
+- **Eye Presence**: Your eye's position is sent to the server when you first connect and then periodically when it changes (throttled by `useEyePositionReporting`). If your eye remains idle, its data is automatically purged from the server after a period of inactivity (e.g., 30 seconds as configured in `useEyes.ts` and server-side logic) to keep the active user list fresh. If you move again, your eye will reappear to others.
+- **Symbol Events**: Symbol events are triggered by specific actions (e.g., double-click) and are throttled by `useInputThrottle` before transmission.
 
 For a detailed technical explanation of the real-time architecture and bandwidth optimization strategies, please see [`docs/realtime-communication.md`](./docs/realtime-communication.md).
 
@@ -137,7 +215,7 @@ Key PWA features implemented:
 - **Service Worker**: `next-pwa` automatically generates a service worker for caching and offline capabilities.
 - **Icons**: App icons are provided in `public/icons/`.
 
-For more details on the PWA setup, see `docs/pwa-configuration.md`.
+For more details on the PWA setup, refer to the `next-pwa` documentation and the project's `next.config.ts`.
 
 ## Deployment on Fly.io
 
@@ -186,5 +264,4 @@ For more detailed deployment and configuration information, see `docs/deployment
 
 ### API Endpoints
 
-- `POST /api/events`: Receives event data (e.g., symbol events, eye updates).
-- `GET /api/events`: Subscribes to a server-sent event stream for real-time updates.
+For details on API endpoints, please refer to [`docs/api.md`](./docs/api.md).

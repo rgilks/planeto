@@ -30,18 +30,18 @@ This suite focuses on core application functionality related to real-time events
   - Verifies the application page loads and has the correct title (`/`).
   - Checks that a client can successfully POST eye data to the `/api/events` endpoint.
   - Ensures the client-side `EventSource` connection to `/api/events` is established upon page load.
-  - Confirms that initial eye data (posted in the test) is received by the client via the EventSource and correctly updates the Zustand store (`useCamStore`).
+  - Confirms that initial eye data (posted in the test) is received by the client via the EventSource and correctly updates the relevant Zustand store (e.g., `useEyeStore` for raw data, or state derived from it for `useEyesStore` which manages visual rendering).
 - **Multi-User Eye Synchronization**:
   - Simulates two users (two browser pages).
-  - User1 posts a eye update via API call.
-  - User2 verifies it receives this eye update in its `useCamStore`.
+  - User1 posts an eye update via API call.
+  - User2 verifies it receives this eye update in its `useEyeStore` (or the derived state in `useEyesStore`).
 - **Multi-User Symbol Synchronization (API-driven)**:
   - Simulates two users.
   - User1 posts a symbol event via API call.
   - User2 verifies it receives this symbol event in its `useSymbolStore`.
 - **Multi-User Symbol Synchronization (Full Client-Side Flow)**:
   - Simulates two users.
-  - User1 simulates a physical key press on its page.
+  - User1 simulates a physical key press on its page (e.g., using `page.keyboard.press('Enter')`).
   - User2 verifies it receives the corresponding symbol event in its `useSymbolStore`, testing the full client-to-client pathway.
 
 ### 2. API Robustness Tests (`tests/api.spec.ts`)
@@ -70,7 +70,7 @@ Note: For automated visual regression testing where Playwright compares the scre
 
 - **Multi-Page Simulation**: For multi-user tests, Playwright's ability to create multiple browser contexts and pages is used to simulate distinct client instances.
 - **Direct API Interaction**: Some tests directly interact with API endpoints (e.g., POSTing to `/api/events`) using `request.post()` to set up preconditions or verify backend responses and validation logic.
-- **Full Client-Side Event Simulation**: Tests simulate actual user interactions like symbol presses (`page.symbol.press()`) to verify the entire event pipeline from client input to server broadcast and reception by other clients.
-- **Client-Side State Verification**: For state managed by Zustand, tests access the store's state (exposed on `window.__eyeStore` and `window.__symbolStore` in non-production environments) to confirm that client-side logic and event handling are working as expected.
+- **Full Client-Side Event Simulation**: Tests simulate actual user interactions like key presses (e.g., `page.keyboard.press('Enter')`) to verify the entire event pipeline from client input to server broadcast and reception by other clients.
+- **Client-Side State Verification**: For state managed by Zustand, tests access the store's state (exposed on `window.__eyeStore` and `window.__symbolStore`, and potentially `window.__eyesStore` for visual state, in non-production environments) to confirm that client-side logic and event handling are working as expected.
 - **Polling Helper**: A custom `pollForCondition` function is used to gracefully wait for asynchronous operations (like SSE message reception and state updates) to complete before making assertions.
 - **Focus on Core User Experience and Robustness**: The tests aim to cover critical paths that impact the user's ability to see and interact with the shared environment, as well as the API's ability to handle invalid data gracefully.

@@ -1,6 +1,6 @@
 # API Documentation
 
-This document outlines the API endpoints for the Planeto application.
+This document outlines the API endpoints for the Planeto application. The event structures are formally defined using Zod schemas in `src/domain/index.ts` (or the relevant path within the domain directory).
 
 ## Event Handling
 

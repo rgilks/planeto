@@ -12,29 +12,38 @@ The primary purpose of the `Eyes` component is to:
 
 ## Key Functionality
 
-### 1. Data Fetching and Management
+### 1. Data Sources and Management
 
-- **Remote Eye Data**: The component utilizes the `useEyes()` hook. This hook establishes a connection to the server (likely via Server-Sent Events) and provides a stream of eye position updates from other users.
-- **Remote Symbol Data**: It uses the `useSymbolStore` (a Zustand store) to access `remoteKeys`. This part of the store holds the latest key pressed by each remote user, along with a timestamp.
-- **Eye State Management**: The `useEyesStore` (another Zustand store) is central to managing the state of each visual "eye".
-  - `syncEyes`: This action is called within a `useEffect` hook. It's responsible for creating new eye instances when new remote users are detected (based on `cams` data from `useEyes`) and removing eye instances for users who are no longer present. It initializes each eye with a copy of the `baseShaderMaterial`.
-  - `updateEyeAnimations`: Called every frame via `useFrame`, this action updates properties like `opacity` and `scale` for each managed eye, allowing for animations (e.g., fading in/out).
-  - `managedEyes`: This state within the store holds an object where keys are remote user IDs and values are objects representing the eye's current state (position, opacity, scale, material).
+- **Remote Eye Data Stream (`useEyes()` hook)**:
+  - The `Eyes` component calls the `useEyes()` hook (from `src/hooks/useEyes.ts`).
+  - This hook is responsible for:
+    - Ensuring a connection to the server-side event stream (via `useEventStore`).
+    - Subscribing to `EyeUpdateEvent` messages from this stream.
+    - Storing the raw position (`p`) and timestamp (`t`) of each remote eye in `useEyeStore` (from `src/stores/eyeStore.ts`).
+    - Periodically removing stale entries from `useEyeStore`.
+    - Returning a simple, memoized array of current remote eye data: `[id, position]`.
+- **Visual Eye State Management (`useEyesStore`)**:
+  - The `Eyes` component uses `useEyesStore` (from `src/stores/eyesStore.ts`) to manage the state of each _visual_ "eye" being rendered.
+  - `syncEyes`: This action is called within a `useEffect` hook in `Eyes.tsx` whenever the data from `useEyes()` changes. It synchronizes `useEyesStore.managedEyes` with the current remote eye data. It creates new eye instances for new remote users (initializing them with a copy of `baseShaderMaterial` and setting them to an "appearing" state) and marks eyes for users who are no longer present as "disappearing". It also updates the `targetPosition` for existing eyes.
+  - `updateEyeAnimations`: Called every frame via `useFrame` in `Eyes.tsx`, this action updates animation properties like `opacity`, `scale`, and smoothly interpolates `position` towards `targetPosition` for each eye in `managedEyes`. Eyes that complete their "disappearing" animation are removed.
+  - `managedEyes`: This state within `useEyesStore` holds an object where keys are remote user IDs and values are `EyeState` objects (containing position, opacity, scale, status, material).
+- **Remote Symbol Data (`useSymbolStore`)**:
+  - The component uses `useSymbolStore` (from `src/stores/symbolStore.ts`) to access `remoteKeys`. This part of the store holds the latest key pressed by each remote user, along with a timestamp.
 
 ### 2. Rendering "Eyes"
 
-- For each entry in `managedEyes`, a `<group>` is rendered. This group serves as a container for the eye mesh and the text symbol.
-- **Ref Management**: A `refs.current` object (a `useRef` hook) maps remote user IDs to their corresponding Three.js `Group` or `Mesh` object in the scene. This allows for direct manipulation of these objects in the `useFrame` loop.
+- For each entry in `useEyesStore.managedEyes`, a `<group>` is rendered. This group serves as a container for the eye mesh and the text symbol.
+- **Ref Management**: A `refs.current` object (a `useRef` hook in `Eyes.tsx`) maps remote user IDs to their corresponding Three.js `Group` object in the scene. This allows for direct manipulation of these objects based on the animated state from `useEyesStore`.
 - **Positioning and Orientation**:
-  - In the `useFrame` loop, the `group.position` is updated to match `eye.position` from `managedEyes` if there's a difference (above `POSITION_UPDATE_THRESHOLD`).
+  - In the `useFrame` loop, the `group.position` is updated to match `eye.position` from `managedEyes[eye.id]` (which is being animated by `updateEyeAnimations`).
   - `group.lookAt(SUN_POS)` orients each eye to look towards a central point (`SUN_POS`, which is `0,0,0`).
 - **Scale and Opacity**:
-  - The `group.scale` is updated to match `eye.scale`.
-  - The `uOpacity` uniform of the eye's shader material is updated to match `eye.opacity`.
+  - The `group.scale` is updated to match `eye.scale` from `managedEyes[eye.id]`.
+  - The `uOpacity` uniform of the eye's shader material (`eye.material.uniforms.uOpacity.value`) is updated to match `eye.opacity` from `managedEyes[eye.id]`.
 
 ### 3. Shader Material
 
-- A `baseShaderMaterial` is created using `useMemo` with `ShaderMaterial`. This material is used for all eye meshes.
+- A `baseShaderMaterial` is created in `Eyes.tsx` using `useMemo` with `ShaderMaterial`. This material is cloned for each eye instance by `useEyesStore`.
   - **Uniforms**:
     - `tex`: The eye texture loaded from `EYE_TEXTURE_PATH` (`/eye.jpg`).
     - `uOpacity`: A float controlling the overall opacity of the eye, animated via `useEyesStore`.
@@ -50,46 +59,53 @@ The primary purpose of the `Eyes` component is to:
 
 - If `remoteKeys[eye.id]` exists (meaning the remote user has pressed a key) and the timestamp `remoteKeys[eye.id].ts` is recent (within `TEXT_FADE_DURATION_MS`, e.g., 2000ms):
   - A `<Text>` component (from `@react-three/drei`) is rendered.
-  - `getSymbol(remoteKeys[eye.id].key)` converts the pressed key into a visual symbol from the `SYMBOLS` array.
+  - `getSymbol(remoteKeys[eye.id].key)` converts the pressed key into a visual symbol from the `SYMBOLS` array (from `@/domain`).
   - **Positioning**: The text is positioned slightly above the eye (`[0, EYE_RADIUS + 6, 0]`).
   - **Appearance**: `fontSize`, `color` (`GREEN`), `anchorX`, `anchorY`, `outlineColor`, `outlineWidth` are set for styling.
-  - **Opacity Animation**: `fillOpacity` is calculated based on the eye's opacity and the time elapsed since the key press, creating a fade-out effect for the symbol over `TEXT_FADE_DURATION_MS`.
+  - **Opacity Animation**: `fillOpacity` is calculated based on the eye's current opacity (from `managedEyes[eye.id].opacity`) and the time elapsed since the key press, creating a fade-out effect for the symbol over `TEXT_FADE_DURATION_MS`.
 
 ## State Management Integration
 
-- **`useEyesStore`**:
-  - Manages the creation, deletion, and animation properties (target opacity, scale) of the visual representations of remote users' eyes.
-  - The `useFrame` loop in `Eyes.tsx` reads from this store to update the Three.js objects.
-- **`useSymbolStore`**:
+- **`useEventStore` (from `src/stores/eventStore.ts`)**: (Indirectly used via `useEyes`)
+  - Manages the underlying SSE connection and dispatches raw events.
+- **`useEyeStore` (from `src/stores/eyeStore.ts`)**: (Used by `useEyes` hook)
+  - Stores the latest raw position and timestamp for each remote eye: `{ id: { p: Vec3, t: number } }`.
+  - Handles pruning of stale eye data.
+- **`useEyes()` hook (from `src/hooks/useEyes.ts`)**:
+  - Consumes data from `useEventStore` (via subscription) and updates `useEyeStore`.
+  - Provides `Eyes.tsx` with a clean list of active remote eye `[id, position]` data.
+- **`useEyesStore` (from `src/stores/eyesStore.ts`)**:
+  - Manages the _visual animation state_ of each eye: `managedEyes: { id: EyeState }`.
+  - `syncEyes` action processes data from `useEyes()` to add, update the target state of, or mark eyes for removal in `managedEyes`.
+  - `updateEyeAnimations` action (called in `useFrame`) animates the properties in `managedEyes` (position, opacity, scale) and removes fully faded-out eyes.
+- **`useSymbolStore` (from `src/stores/symbolStore.ts`)**:
   - Provides `remoteKeys`, which is a record of the last key pressed by each remote user and the timestamp of that press.
   - `Eyes.tsx` reads this to display the appropriate symbol with a timed fade-out.
-- **`useEyes()` (hook)**:
-  - This custom hook is the source of remote eye data (positions).
-  - `Eyes.tsx` uses this data (via `cams`) in its `useEffect` to trigger `syncEyes` in `useEyesStore`, which in turn updates the positions that `Eyes.tsx` will render.
 
 ## Rendering Details in JSX
 
 ```jsx
 <group
-  key={eye.id}
+  key={eye.id} // eye here refers to an entry from useEyesStore.managedEyes
   ref={(el) => { if (el) refs.current[eye.id] = el; }}
-  position={eye.position} // Initial position, updated in useFrame
+  // Position, scale, and material opacity are driven by useFrame updates from useEyesStore
 >
   <mesh>
     <sphereGeometry args={[EYE_RADIUS, 32, 32]} />
-    <primitive object={eye.material} attach="material" />
+    {/* eye.material is from useEyesStore.managedEyes[eye.id].material */}
+    <primitive object={managedEyes[eye.id]?.material} attach="material" />
   </mesh>
   {/* Conditional rendering of Text for remote key presses */}
   {remoteKeys[eye.id] && /* ... */ && (
-    <Text /* ... */ />
+    <Text fillOpacity={/* animated based on managedEyes[eye.id].opacity and time */} /* ... */ />
   )}
 </group>
 ```
 
 - Each eye is a `<group>` to allow combined transformations for the sphere and text.
 - The eye itself is a `<mesh>` with `sphereGeometry`.
-- `eye.material` (which is a clone of `baseShaderMaterial` potentially modified by `useEyesStore`) is attached using `<primitive object={eye.material} attach="material" />`.
-- The `<Text>` component for symbols is conditionally rendered within this group.
+- The material for the eye is taken from `managedEyes[eye.id].material` which is initialized and managed by `useEyesStore`.
+- The `<Text>` component for symbols is conditionally rendered within this group, with its opacity also influenced by the eye's animation state.
 
 ## Important Constants
 
@@ -97,14 +113,14 @@ The primary purpose of the `Eyes` component is to:
 - `SUN_POS = new Vector3(0, 0, 0)`: The point in space that all eyes look towards.
 - `GREEN = "#00FF41"`: Color for the displayed text symbols.
 - `EYE_TEXTURE_PATH = "/eye.jpg"`: Path to the eye texture image.
-- `POSITION_UPDATE_THRESHOLD = 0.00001`: Small value to prevent unnecessary position updates if the change is negligible.
 - `TEXT_FADE_DURATION_MS = 2000`: Duration (in milliseconds) over which the remote key press symbol fades out.
 
 ## Interactions and Dependencies
 
-- **`useEyes()`**: Essential for obtaining remote user eye positions, which dictates where eyes are placed.
+- **`useEyes()` hook**: Essential for obtaining remote user eye positions.
+- **`useEyeStore`**: Stores raw eye data, used by `useEyes()`.
+- **`useEyesStore`**: Manages the animated visual state of the eyes that `Eyes.tsx` renders.
 - **`useSymbolStore`**: Provides the data for which symbol to display for each remote user.
-- **`useEyesStore`**: Acts as the intermediary, processing data from `useEyes` and managing the animated properties of the eyes that `Eyes.tsx` renders.
-- **`SYMBOLS` (from `../../lib/domain/symbol`)**: An array of characters used to derive the visual symbol from a key press.
+- **`SYMBOLS` (from `@/domain`)**: An array of characters used to derive the visual symbol from a key press.
 
 This component is a crucial piece for multiplayer visibility, combining data from multiple sources to create a dynamic and informative representation of other users in the 3D environment.
