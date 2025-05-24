@@ -41,6 +41,11 @@ export const useCamStore = create(
   })),
 );
 
+if (typeof window !== "undefined" && process.env.NODE_ENV !== "production") {
+  // @ts-expect-error - for debugging purposes
+  window.__camStore = useCamStore;
+}
+
 const STALE_THRESHOLD_MS = 30000; // 30 seconds
 const CLEANUP_INTERVAL_MS = 5000; // 5 seconds
 
