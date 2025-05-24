@@ -12,10 +12,10 @@ import { usePlanetData } from "../../hooks/usePlanetData";
 import { SYMBOLS } from "../../lib/domain/keyboard";
 import { EventSchema } from "../../lib/domainTypes/event";
 import { useKeyboardStore } from "../../lib/store/keyboardStore";
+import { generateBumpMap } from "../../lib/utils";
 
 import { RemoteEyes } from "./RemoteEyes";
 import { Moon as MoonComponent } from "./scene3d/Moon";
-import { generateBumpMap, getGeometry } from "./scene3d/utils";
 
 import type { State as KeyboardState } from "../../lib/store/keyboardStore";
 
@@ -24,6 +24,15 @@ type RigidBodyRef = React.RefObject<RapierRigidBody | null>;
 const CameraPublisher = ({ id }: { id: string }) => {
   useCameraPublisher(id);
   return null;
+};
+
+export const getGeometry = (
+  type: "sphere" | "lowpoly" | "oblate",
+  radius: number,
+): React.ReactNode => {
+  if (type === "lowpoly") return <icosahedronGeometry args={[radius, 1]} />;
+  if (type === "oblate") return <sphereGeometry args={[radius, 24, 16]} />;
+  return <sphereGeometry args={[radius, 32, 32]} />;
 };
 
 const THROTTLE_MS = 100;
@@ -96,7 +105,7 @@ const Scene3D = () => {
     } else {
       throttleTimeoutRef.current = setTimeout(
         sendEvent,
-        THROTTLE_MS - timeSinceLastSend
+        THROTTLE_MS - timeSinceLastSend,
       );
     }
 

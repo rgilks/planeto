@@ -8,7 +8,7 @@ import {
   randomColor,
   randomRadius,
   seededRandom,
-} from "../app/components/scene3d/utils"; // Adjusted path
+} from "../lib/utils"; // Adjusted path
 
 import type { Planet, Moon as MoonType } from "../lib/domainTypes/planet"; // Adjusted path
 
