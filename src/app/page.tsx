@@ -2,17 +2,16 @@
 
 import { useEffect } from "react";
 
-import { useKeyboardStore } from "../stores/keyboardStore";
-
-import KeyboardDisplay from "./components/KeyboardDisplay";
-import Scene3D from "./components/Scene3D";
+import { useKeyboardStore } from "@/stores/keyboardStore";
+import KeyboardDisplay from "@components/KeyboardDisplay";
+import Scene3D from "@components/Scene3D";
 
 const KeyboardHandler = ({ children }: { children: React.ReactNode }) => {
   const setLastInput = useKeyboardStore((s) => s.setLastInput);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.repeat) return; // Ignore key repeats
+      if (e.repeat) return;
       setLastInput({ key: e.key });
     };
     window.addEventListener("keydown", handleKeyDown);

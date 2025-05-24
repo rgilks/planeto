@@ -1,11 +1,7 @@
-import { useKeyboardStore } from "../../stores/keyboardStore";
+import { SYMBOLS } from "@/domain";
+import { useKeyboardStore } from "@/stores/keyboardStore";
 
 const GREEN = "#00FF41";
-
-const SYMBOLS =
-  "☉☯☢☣☠☮☭☽☾☿♀♁♂♃♄♅♆♇♈♉♊♋♌♍♎♏♐♑♒♓♔♕♖♗♘♙♚♛♜♝♞♟♠♣♥♦♪♫☀☁☂☃☄★☆☇☈☉☊☋☌☍☎☏☑☒☓☚☛☜☝☞☟☠☡☢☣☤☥☦☧☨☩☪☫☬☭☮☯☸☹☺☻☼☽☾☿♀♁♂♃♄♅♆♇".split(
-    "",
-  );
 
 const getSymbol = (key: string) => {
   const code = key.codePointAt(0) || 0;

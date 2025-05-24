@@ -2,7 +2,7 @@
 import { useThree } from "@react-three/fiber";
 import { useEffect, useRef } from "react";
 
-import { CameraUpdateType } from "../domain"; // Adjusted path
+import { CameraUpdateType } from "@/domain";
 
 const FORCE_POSITION_UPDATE_INTERVAL_MS = 20000;
 

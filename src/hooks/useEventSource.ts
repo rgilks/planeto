@@ -1,9 +1,9 @@
 import { useEffect } from "react";
 
-import { EventSchema } from "../domain";
-import { useKeyboardStore } from "../stores/keyboardStore";
+import { EventSchema } from "@/domain";
+import { useKeyboardStore } from "@/stores/keyboardStore";
 
-import type { State as KeyboardState } from "../stores/keyboardStore";
+import type { State as KeyboardState } from "@/stores/keyboardStore";
 
 export const useEventSource = (myId: React.RefObject<string>) => {
   const setRemoteKey = useKeyboardStore((s: KeyboardState) => s.setRemoteKey);

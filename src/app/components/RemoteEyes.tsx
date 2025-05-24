@@ -4,10 +4,10 @@ import { useFrame, useLoader } from "@react-three/fiber";
 import { useRef, useEffect, useMemo } from "react";
 import { Mesh, Vector3, Group, TextureLoader, ShaderMaterial } from "three";
 
-import { SYMBOLS } from "../../domain";
-import { useRemoteCameras } from "../../hooks/useRemoteCameras";
-import { useKeyboardStore } from "../../stores/keyboardStore";
-import { useRemoteEyesStore } from "../../stores/remoteEyesStore";
+import { SYMBOLS } from "@/domain";
+import { useRemoteCameras } from "@/hooks/useRemoteCameras";
+import { useKeyboardStore } from "@/stores/keyboardStore";
+import { useRemoteEyesStore } from "@/stores/remoteEyesStore";
 
 const EYE_RADIUS = 8;
 const SUN_POS = new Vector3(0, 0, 0);
