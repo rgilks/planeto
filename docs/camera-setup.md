@@ -1,6 +1,6 @@
-# Camera Setup in Scene3D
+# Camera Setup in Scene
 
-The 3D scene (`Scene3D.tsx`) utilizes `@react-three/fiber` for rendering. The camera configuration is crucial for proper visualization.
+The 3D scene (`Scene.tsx`) utilizes `@react-three/fiber` for rendering. The camera configuration is crucial for proper visualization.
 
 ## Initialization
 

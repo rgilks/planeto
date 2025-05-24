@@ -56,12 +56,12 @@ flowchart LR
     C --> C1[api/]
     C1 --> C12[events/route.ts]
     C --> C2[components/]
-    C2 --> C2s[scene3d/]
+    C2 --> C2s[scene/]
     C2s --> C2s1[Moon.tsx]
     C2s --> C2s4[utils.tsx]
     C2 --> C21[SymbolDisplay.tsx]
     C2 --> C22[Eyes.tsx]
-    C2 --> C23[Scene3D.tsx] \n(Orchestrates 3D scene, \nuses hooks for data & physics)
+    C2 --> C23[Scene.tsx] \n(Orchestrates 3D scene, \nuses hooks for data & physics)
     C --> C3[globals.css]
     C --> C4[favicon.ico]
     C --> C5[layout.tsx]

@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 
 import { useSymbolStore } from "@/stores/symbolStore";
-import Scene3D from "@components/Scene3D";
+import Scene from "@components/Scene";
 import SymbolDisplay from "@components/Symbol";
 
 const SymbolHandler = ({ children }: { children: React.ReactNode }) => {
@@ -26,7 +26,7 @@ const HomePage = () => {
     <SymbolHandler>
       <main className="flex min-h-screen flex-col items-center justify-center bg-[#111119]">
         <div className="w-full h-screen">
-          <Scene3D />
+          <Scene />
         </div>
       </main>
       <SymbolDisplay />

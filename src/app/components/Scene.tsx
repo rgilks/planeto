@@ -71,7 +71,7 @@ const CanvasContent = ({ myId }: { myId: string }) => {
   );
 };
 
-const Scene3D = () => {
+const Scene = () => {
   const [bumpMaps, setBumpMaps] = useState<THREE.Texture[] | null>(null);
   const planets = usePlanetData(bumpMaps);
   const planetRefs = useRef<RigidBodyRef[]>([]);
@@ -148,4 +148,4 @@ const Scene3D = () => {
   );
 };
 
-export default Scene3D;
+export default Scene;

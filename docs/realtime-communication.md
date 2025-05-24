@@ -47,12 +47,12 @@ This document outlines Planeto's real-time communication architecture, designed 
 
 **Goal**: Allow clients to react to symbol inputs from other users.
 
-**Client-Side Input & Publishing (`src/app/components/Scene3D.tsx` & `src/lib/store/symbolStore.ts`)**:
+**Client-Side Input & Publishing (`src/app/components/Scene.tsx` & `src/lib/store/symbolStore.ts`)**:
 
 - An event listener (implicitly via `SymbolControls` or a direct listener, managed by `useSymbolControls` from `@react-three/drei` or similar, eventually updating `useSymbolStore`) captures key presses.
 - To avoid spamming, only non-repeating key presses are processed.
 - The `lastInput` in `useSymbolStore` (Zustand) is updated.
-- An effect in `Scene3D.tsx` observes `lastInput`. When it changes:
+- An effect in `Scene.tsx` observes `lastInput`. When it changes:
   - A `SymbolEventType` payload (including a unique client `id` and the `key`) is created.
   - This payload is sent via `fetch` to `POST /api/events`.
   - Sends are throttled (e.g., every 100ms) to manage send frequency.
@@ -62,9 +62,9 @@ This document outlines Planeto's real-time communication architecture, designed 
 - The `POST` handler validates the `SymbolEvent`.
 - `sseStore.broadcast(event)` immediately sends the `SymbolEvent` to all connected SSE clients. (Note: Symbol events are not persistently stored on the server in `sseStore` beyond broadcasting).
 
-**Client-Side Receiving (`src/app/components/Scene3D.tsx` & `src/lib/store/symbolStore.ts`)**:
+**Client-Side Receiving (`src/app/components/Scene.tsx` & `src/lib/store/symbolStore.ts`)**:
 
-- The same SSE connection established for eye updates (in `Scene3D.tsx` or a shared hook) also receives `SymbolEvent` messages.
+- The same SSE connection established for eye updates (in `Scene.tsx` or a shared hook) also receives `SymbolEvent` messages.
 - If the event `id` does not match the local client's `id`, `setRemoteKey(id, key)` is called in `useSymbolStore` to store the remote key press.
 - UI components can then react to changes in `remoteKeys`.
 
@@ -92,4 +92,4 @@ For applications where minimizing latency is the absolute top priority (over cos
 - **Event Definitions**: `src/lib/domain.ts`
 - **Eye Publishing (Client)**: `src/app/components/useEyePublisher.ts`
 - **Eye Receiving (Client)**: `src/app/components/useEyes.ts` & `src/lib/store/camStore.ts` (implicitly, via `useEyes`)
-- **Symbol Logic (Client)**: `src/app/components/Scene3D.tsx`, `src/lib/store/symbolStore.ts`
+- **Symbol Logic (Client)**: `src/app/components/Scene.tsx`, `src/lib/store/symbolStore.ts`
