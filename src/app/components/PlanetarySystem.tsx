@@ -2,8 +2,8 @@ import { RigidBody, RapierRigidBody } from "@react-three/rapier";
 import { createRef } from "react";
 import * as THREE from "three";
 
+import { getGeometry } from "@components/geometryUtils";
 import { Moon as MoonComponent } from "@components/Moon";
-import { getGeometry } from "@components/utils/geometryUtils";
 
 import type { Planet } from "@/lib/domainTypes/planet";
 

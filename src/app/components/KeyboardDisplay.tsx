@@ -1,4 +1,4 @@
-import { useKeyboardStore } from "../../lib/store/keyboardStore";
+import { useKeyboardStore } from "../../stores/keyboardStore";
 
 const GREEN = "#00FF41";
 

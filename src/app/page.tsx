@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 
-import { useKeyboardStore } from "../lib/store/keyboardStore";
+import { useKeyboardStore } from "../stores/keyboardStore";
 
 import KeyboardDisplay from "./components/KeyboardDisplay";
 import Scene3D from "./components/Scene3D";

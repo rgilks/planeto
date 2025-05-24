@@ -1,8 +1,8 @@
 import { useEffect, useRef } from "react";
 
-import { useKeyboardStore } from "../lib/store/keyboardStore";
+import { useKeyboardStore } from "../stores/keyboardStore";
 
-import type { State as KeyboardState } from "../lib/store/keyboardStore";
+import type { State as KeyboardState } from "../stores/keyboardStore";
 
 const THROTTLE_MS = 100;
 

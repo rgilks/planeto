@@ -9,44 +9,59 @@ type Writer = { write: (data: string) => void; closed: boolean };
 const cameras = new Map<string, CameraUpdateType>();
 const subs = new Set<Writer>();
 
-export const setCamera = (id: string, p: Vec3) => {
+export const setCamera = (id: string, p: Vec3): void => {
   const msg: CameraUpdateType = { type: "cameraUpdate", id, p, t: Date.now() };
   cameras.set(id, msg);
   broadcast(msg);
-
-  const cam = cameras.get(id);
-  if (cam) {
-    cam.t = Date.now();
-    cameras.set(id, cam);
-  }
 };
 
-export const broadcast = (msg: EventType) => {
-  const data = `data:${JSON.stringify(msg)}\n\n`;
+export const broadcast = (msg: EventType): void => {
+  const data = `data:${JSON.stringify(msg)}
+
+`;
   for (const w of subs) {
     if (w.closed) {
       subs.delete(w);
       continue;
     }
-    w.write(data);
+    try {
+      w.write(data);
+    } catch (error) {
+      console.error(
+        `Failed to write to SSE subscriber for event type ${msg.type}. Removing subscriber.`,
+        error,
+      );
+      subs.delete(w);
+    }
   }
 };
 
-export const subscribe = (w: Writer) => {
+export const subscribe = (w: Writer): void => {
   subs.add(w);
   for (const cam of cameras.values()) {
-    w.write(`data:${JSON.stringify(cam)}\n\n`);
+    try {
+      w.write(`data:${JSON.stringify(cam)}
+
+`);
+    } catch (error) {
+      console.error(
+        `Failed to write initial camera data to SSE subscriber. Removing subscriber.`,
+        error,
+      );
+      subs.delete(w); // Remove problematic subscriber
+      break; // Stop sending more data to this failed writer
+    }
   }
 };
 
-export const purgeStale = (maxAge = 30000) => {
+export const purgeStale = (maxAge = 30000): void => {
   const now = Date.now();
   for (const [id, cam] of cameras) {
     if (now - cam.t > maxAge) cameras.delete(id);
   }
 };
 
-export const unsubscribe = (w: Writer) => {
+export const unsubscribe = (w: Writer): void => {
   subs.delete(w);
 };
 

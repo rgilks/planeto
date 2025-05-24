@@ -11,13 +11,13 @@ import { useInputThrottle } from "@/hooks/useInputThrottle";
 import { usePhysicsSimulation } from "@/hooks/usePhysicsSimulation";
 import { usePlanetData } from "@/hooks/usePlanetData";
 import { SYMBOLS } from "@/lib/domain/keyboard";
-import { useKeyboardStore } from "@/lib/store/keyboardStore";
 import { generateBumpMap } from "@/lib/utils";
+import { useKeyboardStore } from "@/stores/keyboardStore";
 import { CameraPublisher } from "@components/CameraPublisher";
 import { PlanetarySystem } from "@components/PlanetarySystem";
 import { RemoteEyes } from "@components/RemoteEyes";
 
-import type { State as KeyboardState } from "@/lib/store/keyboardStore";
+import type { State as KeyboardState } from "@/stores/keyboardStore";
 
 type RigidBodyRef = React.RefObject<RapierRigidBody | null>;
 

@@ -6,8 +6,8 @@ import { Mesh, Vector3, Group, TextureLoader, ShaderMaterial } from "three";
 
 import { useRemoteCameras } from "../../hooks/useRemoteCameras";
 import { SYMBOLS } from "../../lib/domain/keyboard";
-import { useKeyboardStore } from "../../lib/store/keyboardStore";
-import { useRemoteEyesStore } from "../../lib/store/remoteEyesStore";
+import { useKeyboardStore } from "../../stores/keyboardStore";
+import { useRemoteEyesStore } from "../../stores/remoteEyesStore";
 
 const EYE_RADIUS = 8;
 const SUN_POS = new Vector3(0, 0, 0);

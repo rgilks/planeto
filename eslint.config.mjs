@@ -17,7 +17,6 @@ const eslintConfig = [
       import: importPlugin,
     },
     rules: {
-      "no-console": "warn",
       "import/order": [
         "warn",
         {
@@ -45,12 +44,6 @@ const eslintConfig = [
       "import/resolver": {
         typescript: {},
       },
-    },
-  },
-  {
-    files: ["src/app/api/**/*.ts"],
-    rules: {
-      "no-console": "off",
     },
   },
 ];
