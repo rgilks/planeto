@@ -1,35 +1,37 @@
+"use client";
 import { useEffect } from "react";
 
-import { EventSchema } from "@/domain";
+import { useEventStore } from "@/stores/eventStore";
 import { useKeyboardStore } from "@/stores/keyboardStore";
 
+import type { KeyboardEventType } from "@/domain/event"; // Ensure path and type name are correct
 import type { State as KeyboardState } from "@/stores/keyboardStore";
 
 export const useEventSource = (myId: React.RefObject<string>) => {
+  const connectToEventSource = useEventStore((s) => s.connect);
+  const subscribeToKeyboardEvents = useEventStore(
+    (s) => s.subscribeKeyboardEvents,
+  );
+  const eventSourceConnected = useEventStore((s) => s.isConnected);
+
   const setRemoteKey = useKeyboardStore((s: KeyboardState) => s.setRemoteKey);
 
   useEffect(() => {
-    const es = new EventSource("/api/events");
-    es.onmessage = (e) => {
-      try {
-        const rawData = JSON.parse(e.data);
-        const parsedEvent = EventSchema.safeParse(rawData);
+    // Attempt to connect to the EventSource when the hook mounts
+    // if not already connected.
+    if (!eventSourceConnected) {
+      connectToEventSource();
+    }
+  }, [connectToEventSource, eventSourceConnected]);
 
-        if (parsedEvent.success && parsedEvent.data.type === "keyboard") {
-          const { id, key } = parsedEvent.data;
-          if (id !== myId.current) {
-            setRemoteKey(id, key);
-          }
-        }
-      } catch (error) {
-        console.error(
-          "Error processing SSE message. Data:",
-          e.data,
-          "Error:",
-          error,
-        );
+  useEffect(() => {
+    const handleKeyboardEvent = (event: KeyboardEventType) => {
+      if (event.id !== myId.current) {
+        setRemoteKey(event.id, event.key);
       }
     };
-    return () => es.close();
-  }, [setRemoteKey, myId]);
+
+    const unsubscribe = subscribeToKeyboardEvents(handleKeyboardEvent);
+    return () => unsubscribe();
+  }, [subscribeToKeyboardEvents, myId, setRemoteKey]);
 };
