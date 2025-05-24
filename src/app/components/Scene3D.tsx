@@ -1,120 +1,38 @@
 import { OrbitControls } from "@react-three/drei";
 import { Canvas } from "@react-three/fiber";
 import { EffectComposer, Bloom } from "@react-three/postprocessing";
-import { Physics, RigidBody, RapierRigidBody } from "@react-three/rapier";
+import { Physics, RapierRigidBody } from "@react-three/rapier";
 import { nanoid } from "nanoid";
-import { useRef, useEffect, createRef, useState } from "react";
+import { useRef, useEffect, useState } from "react";
 import * as THREE from "three";
 
-import { useCameraPublisher } from "../../hooks/useCameraPublisher";
+import { useEventSource } from "../../hooks/useEventSource";
+import { useInputThrottle } from "../../hooks/useInputThrottle";
 import { usePhysicsSimulation } from "../../hooks/usePhysicsSimulation";
 import { usePlanetData } from "../../hooks/usePlanetData";
 import { SYMBOLS } from "../../lib/domain/keyboard";
-import { EventSchema } from "../../lib/domainTypes/event";
 import { useKeyboardStore } from "../../lib/store/keyboardStore";
 import { generateBumpMap } from "../../lib/utils";
 
-import { Moon as MoonComponent } from "./Moon";
+import { CameraPublisher } from "./CameraPublisher";
+import { PlanetarySystem } from "./PlanetarySystem";
 import { RemoteEyes } from "./RemoteEyes";
 
 import type { State as KeyboardState } from "../../lib/store/keyboardStore";
 
 type RigidBodyRef = React.RefObject<RapierRigidBody | null>;
 
-const CameraPublisher = ({ id }: { id: string }) => {
-  useCameraPublisher(id);
-  return null;
-};
-
-export const getGeometry = (
-  type: "sphere" | "lowpoly" | "oblate",
-  radius: number,
-): React.ReactNode => {
-  if (type === "lowpoly") return <icosahedronGeometry args={[radius, 1]} />;
-  if (type === "oblate") return <sphereGeometry args={[radius, 24, 16]} />;
-  return <sphereGeometry args={[radius, 32, 32]} />;
-};
-
-const THROTTLE_MS = 100;
-
 const Scene3D = () => {
   const [bumpMaps, setBumpMaps] = useState<THREE.Texture[] | null>(null);
   const planets = usePlanetData(bumpMaps);
   const planetRefs = useRef<RigidBodyRef[]>([]);
   const myId = useRef(nanoid(6));
-  const setRemoteKey = useKeyboardStore((s: KeyboardState) => s.setRemoteKey);
-  const lastInput = useKeyboardStore((s: KeyboardState) => s.lastInput);
+
   const setLastInput = useKeyboardStore((s: KeyboardState) => s.setLastInput);
 
-  const lastSentTimeRef = useRef(0);
-  const throttleTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
+  useEventSource(myId);
+  useInputThrottle(myId);
   usePhysicsSimulation(planets, planetRefs);
-
-  useEffect(() => {
-    const es = new EventSource("/api/events");
-    es.onmessage = (e) => {
-      try {
-        const rawData = JSON.parse(e.data);
-        const parsedEvent = EventSchema.safeParse(rawData);
-
-        if (parsedEvent.success && parsedEvent.data.type === "keyboard") {
-          const { id, key } = parsedEvent.data;
-          if (id !== myId.current) {
-            setRemoteKey(id, key);
-          }
-        }
-      } catch {
-        // console.error(
-        //   "Error processing SSE message. Data:",
-        //   e.data,
-        //   "Error:",
-        //   error
-        // );
-      }
-    };
-    return () => es.close();
-  }, [setRemoteKey]);
-
-  useEffect(() => {
-    if (!lastInput) return;
-
-    const now = Date.now();
-    const timeSinceLastSend = now - lastSentTimeRef.current;
-    const currentLastInput = lastInput;
-
-    const sendEvent = () => {
-      fetch("/api/events", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          type: "keyboard",
-          id: myId.current,
-          key: currentLastInput.key,
-        }),
-      });
-      lastSentTimeRef.current = Date.now();
-    };
-
-    if (throttleTimeoutRef.current) {
-      clearTimeout(throttleTimeoutRef.current);
-    }
-
-    if (timeSinceLastSend >= THROTTLE_MS) {
-      sendEvent();
-    } else {
-      throttleTimeoutRef.current = setTimeout(
-        sendEvent,
-        THROTTLE_MS - timeSinceLastSend,
-      );
-    }
-
-    return () => {
-      if (throttleTimeoutRef.current) {
-        clearTimeout(throttleTimeoutRef.current);
-      }
-    };
-  }, [lastInput]);
 
   useEffect(() => {
     const maps = [
@@ -192,104 +110,7 @@ const Scene3D = () => {
           target-position={[0, 0, 0]}
         />
         <Physics gravity={[0, 0, 0]}>
-          {planets.map((planet, i) => {
-            if (!planetRefs.current[i]) planetRefs.current[i] = createRef();
-            const isSun = planet.id === "sun";
-            let curPos = planet.position;
-            const ref = planetRefs.current[i];
-            if (ref?.current) {
-              const p = ref.current.translation();
-              curPos = [p.x, p.y, p.z];
-            }
-            return (
-              <RigidBody
-                key={planet.id}
-                ref={planetRefs.current[i]}
-                position={curPos}
-                mass={planet.mass}
-                type={isSun ? "fixed" : "dynamic"}
-                colliders="ball"
-                linearVelocity={planet.velocity}
-                angularVelocity={planet.angularVelocity}
-                angularDamping={0}
-              >
-                <group>
-                  <mesh
-                    castShadow={false}
-                    receiveShadow={false}
-                    scale={isSun ? 1.1 : 1}
-                    renderOrder={999}
-                    visible={isSun}
-                  >
-                    {getGeometry(planet.geometryType, planet.radius)}
-                    {isSun ? (
-                      <meshBasicMaterial
-                        color={"#fffbe6"}
-                        transparent
-                        opacity={0.95}
-                      />
-                    ) : (
-                      <meshStandardMaterial
-                        color={"white"}
-                        emissive={planet.color}
-                        emissiveIntensity={0.08}
-                        map={planet.colorMap}
-                        bumpMap={planet.bumpMap}
-                        bumpScale={3.5}
-                        metalness={planet.metalness}
-                        roughness={planet.roughness}
-                      />
-                    )}
-                  </mesh>
-                  {!isSun &&
-                    planet.atmosphereLayers?.map((layer, idx) => (
-                      <mesh key={idx} castShadow receiveShadow>
-                        <sphereGeometry
-                          args={[planet.radius * layer.scale, 32, 32]}
-                        />
-                        <meshPhysicalMaterial
-                          color={layer.color}
-                          transparent
-                          opacity={layer.opacity * 0.5}
-                          transmission={0.7}
-                          thickness={0.4}
-                          roughness={0.7}
-                          metalness={0.08}
-                          depthWrite={false}
-                          blending={
-                            layer.additive
-                              ? THREE.AdditiveBlending
-                              : THREE.NormalBlending
-                          }
-                        />
-                      </mesh>
-                    ))}
-                  {!isSun && planet.hasRing && (
-                    <mesh
-                      rotation={[Math.PI / 2, 0, 0]}
-                      castShadow
-                      receiveShadow
-                    >
-                      <ringGeometry
-                        args={[planet.ringInner, planet.ringOuter, 64]}
-                      />
-                      <meshBasicMaterial
-                        color={planet.ringColor}
-                        transparent
-                        opacity={0.38}
-                        side={THREE.DoubleSide}
-                        blending={THREE.AdditiveBlending}
-                      />
-                    </mesh>
-                  )}
-                  {!isSun &&
-                    planet.moons?.map((moonData, mi) => (
-                      <MoonComponent key={mi} moon={moonData} />
-                    ))}
-                </group>
-              </RigidBody>
-            );
-          })}
+          <PlanetarySystem planets={planets} planetRefs={planetRefs} />
         </Physics>
       </group>
       <OrbitControls
