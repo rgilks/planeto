@@ -24,6 +24,8 @@ type RemoteEyesActions = {
   removeEye: (id: string) => void;
 };
 
+export type { EyeState as ManagedEye };
+
 export const useRemoteEyesStore = create<RemoteEyesState & RemoteEyesActions>()(
   immer((set) => ({
     managedEyes: {},

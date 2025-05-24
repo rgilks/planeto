@@ -35,4 +35,4 @@ if (typeof window !== "undefined" && process.env.NODE_ENV !== "production") {
   window.__symbolStore = useSymbolStore;
 }
 
-export type { State };
+export type { State, State as RemoteKeyState };

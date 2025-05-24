@@ -1,25 +1,17 @@
 "use client";
-import { Text } from "@react-three/drei";
 import { useFrame, useLoader } from "@react-three/fiber";
 import { useRef, useEffect, useMemo } from "react";
 import { Mesh, Vector3, Group, TextureLoader, ShaderMaterial } from "three";
 
-import { SYMBOLS } from "@/domain";
 import { useRemoteEyes } from "@/hooks/useRemoteEyes";
 import { useRemoteEyesStore } from "@/stores/remoteEyesStore";
 import { useSymbolStore } from "@/stores/symbolStore";
 
-const EYE_RADIUS = 8;
+import { RemoteEye } from "./RemoteEye";
+
 const SUN_POS = new Vector3(0, 0, 0);
-const GREEN = "#00FF41";
 const EYE_TEXTURE_PATH = "/eye.jpg";
 const POSITION_UPDATE_THRESHOLD = 0.00001;
-const TEXT_FADE_DURATION_MS = 2000;
-
-const getSymbol = (key: string) => {
-  const code = key.codePointAt(0) || 0;
-  return SYMBOLS[code % SYMBOLS.length];
-};
 
 const vertexShader = `
   precision mediump float;
@@ -107,39 +99,14 @@ export const RemoteEyes = ({ myId }: { myId: string }) => {
   return (
     <>
       {Object.values(managedEyes).map((eye) => (
-        <group
+        <RemoteEye
           key={eye.id}
-          ref={(el) => {
+          eye={eye}
+          remoteKey={remoteKeys[eye.id]}
+          groupRef={(el) => {
             if (el) refs.current[eye.id] = el;
           }}
-          position={eye.position}
-        >
-          <mesh>
-            <sphereGeometry args={[EYE_RADIUS, 32, 32]} />
-            <primitive object={eye.material} attach="material" />
-          </mesh>
-          {remoteKeys[eye.id] &&
-            remoteKeys[eye.id].key &&
-            Date.now() - remoteKeys[eye.id].ts < TEXT_FADE_DURATION_MS && (
-              <Text
-                position={[0, EYE_RADIUS + 6, 0]}
-                fontSize={10}
-                color={GREEN}
-                anchorX="center"
-                anchorY="middle"
-                fillOpacity={
-                  eye.opacity *
-                  (1 -
-                    (Date.now() - remoteKeys[eye.id].ts) /
-                      TEXT_FADE_DURATION_MS)
-                }
-                outlineColor="black"
-                outlineWidth={0.25}
-              >
-                {getSymbol(remoteKeys[eye.id].key)}
-              </Text>
-            )}
-        </group>
+        />
       ))}
     </>
   );
