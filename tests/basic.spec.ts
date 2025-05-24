@@ -60,46 +60,44 @@ test.describe("Multi-User Event Synchronization", () => {
     expect(receivedOnPage2).toBe(true);
   });
 
-  test("synchronizes keyboard events between two users", async ({
-    request,
-  }) => {
-    const user1KeyboardId = "user1-key-test";
+  test("synchronizes symbol events between two users", async ({ request }) => {
+    const user1SymbolId = "user1-key-test";
     const user1Key = "g";
 
-    // User 1 posts a keyboard event
-    const keyboardEventData = {
-      type: "keyboard",
-      id: user1KeyboardId,
+    // User 1 posts a symbol event
+    const symbolEventData = {
+      type: "symbol",
+      id: user1SymbolId,
       key: user1Key,
     };
-    const keyboardPostResponse = await request.post("/api/events", {
-      data: keyboardEventData,
+    const symbolPostResponse = await request.post("/api/events", {
+      data: symbolEventData,
     });
-    expect(keyboardPostResponse.ok()).toBeTruthy();
+    expect(symbolPostResponse.ok()).toBeTruthy();
 
-    // User 2 verifies receiving the keyboard event
-    const keyboardEventReceivedOnPage2 = await pollForCondition(
+    // User 2 verifies receiving the symbol event
+    const symbolEventReceivedOnPage2 = await pollForCondition(
       page2,
       async () => {
         const keyData = await page2.evaluate((id) => {
-          const storeState = window.__keyboardStore?.getState();
+          const storeState = window.__symbolStore?.getState();
           return storeState?.remoteKeys?.[id];
-        }, user1KeyboardId);
+        }, user1SymbolId);
         return keyData?.key === user1Key;
       },
     );
-    expect(keyboardEventReceivedOnPage2).toBe(true);
+    expect(symbolEventReceivedOnPage2).toBe(true);
   });
 
-  test("full client-side keyboard event synchronization", async () => {
-    await page1.locator("body").focus(); // Ensure page1 is focused to receive keyboard input
+  test("full client-side symbol event synchronization", async () => {
+    await page1.locator("body").focus(); // Ensure page1 is focused to receive symbol input
     await page1.keyboard.press("h");
 
-    const clientSideKeyboardEventReceived = await pollForCondition(
+    const clientSideSymbolEventReceived = await pollForCondition(
       page2,
       async () => {
         const remoteKeys = await page2.evaluate(() => {
-          const storeState = window.__keyboardStore?.getState();
+          const storeState = window.__symbolStore?.getState();
           return storeState?.remoteKeys as
             | Record<string, { key: string; ts: number }>
             | undefined;
@@ -109,7 +107,7 @@ test.describe("Multi-User Event Synchronization", () => {
         );
       },
     );
-    expect(clientSideKeyboardEventReceived).toBe(true);
+    expect(clientSideSymbolEventReceived).toBe(true);
   });
 });
 

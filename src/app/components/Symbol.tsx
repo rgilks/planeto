@@ -1,5 +1,5 @@
 import { SYMBOLS } from "@/domain";
-import { useKeyboardStore } from "@/stores/keyboardStore";
+import { useSymbolStore } from "@/stores/symbolStore";
 
 const GREEN = "#00FF41";
 
@@ -8,8 +8,8 @@ const getSymbol = (key: string) => {
   return SYMBOLS[code % SYMBOLS.length];
 };
 
-const KeyboardDisplay = () => {
-  const lastInput = useKeyboardStore((s) => s.lastInput);
+const SymbolDisplay = () => {
+  const lastInput = useSymbolStore((s) => s.lastInput);
 
   if (!lastInput) return null;
 
@@ -33,4 +33,4 @@ const KeyboardDisplay = () => {
   );
 };
 
-export default KeyboardDisplay;
+export default SymbolDisplay;

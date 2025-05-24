@@ -1,10 +1,10 @@
 import { z } from "zod";
 
-export const KeyboardInputSchema = z.object({
+export const SymbolInputSchema = z.object({
   key: z.string().min(1),
 });
 
-export type KeyboardInput = z.infer<typeof KeyboardInputSchema>;
+export type SymbolInput = z.infer<typeof SymbolInputSchema>;
 
 export const SYMBOLS =
   "☉☯☢☣☠☮☭☽☾☿♀♁♂♃♄♅♆♇♈♉♊♋♌♍♎♏♐♑♒♓♔♕♖♗♘♙♚♛♜♝♞♟♠♣♥♦♪♫☀☁☂☃☄★☆☇☈☉☊☋☌☍☎☏☑☒☓☚☛☜☝☞☟☠☡☢☣☤☥☦☧☨☩☪☫☬☭☮☯☸☹☺☻☼☽☾☿♀♁♂♃♄♅♆♇".split(

@@ -3,12 +3,12 @@ import { z } from "zod";
 export const Vec3Schema = z.tuple([z.number(), z.number(), z.number()]);
 export type Vec3 = z.infer<typeof Vec3Schema>;
 
-export const KeyboardEventSchema = z.object({
-  type: z.literal("keyboard"),
+export const SymbolEventSchema = z.object({
+  type: z.literal("symbol"),
   id: z.string(),
   key: z.string().min(1),
 });
-export type KeyboardEventType = z.infer<typeof KeyboardEventSchema>;
+export type SymbolEventType = z.infer<typeof SymbolEventSchema>;
 
 export const CameraUpdateSchema = z.object({
   type: z.literal("cameraUpdate"),
@@ -19,7 +19,7 @@ export const CameraUpdateSchema = z.object({
 export type CameraUpdateType = z.infer<typeof CameraUpdateSchema>;
 
 export const EventSchema = z.discriminatedUnion("type", [
-  KeyboardEventSchema,
+  SymbolEventSchema,
   CameraUpdateSchema,
 ]);
 export type EventType = z.infer<typeof EventSchema>;

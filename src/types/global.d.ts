@@ -1,9 +1,9 @@
 import { useCamStore } from "@/hooks/useRemoteCameras";
-import { useKeyboardStore } from "@/stores/keyboardStore";
+import { useSymbolStore } from "@/stores/symbolStore";
 
 declare global {
   interface Window {
-    __keyboardStore?: typeof useKeyboardStore;
+    __symbolStore?: typeof useSymbolStore;
     __camStore?: typeof useCamStore;
   }
 }

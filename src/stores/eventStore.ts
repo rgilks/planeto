@@ -1,14 +1,10 @@
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 
-import {
-  EventSchema,
-  KeyboardEventType,
-  CameraUpdateType,
-} from "@/domain/event";
+import { EventSchema, SymbolEventType, CameraUpdateType } from "@/domain/event";
 
 // Define listener types
-type KeyboardEventListener = (event: KeyboardEventType) => void;
+type SymbolEventListener = (event: SymbolEventType) => void;
 type CameraUpdateEventListener = (event: CameraUpdateType) => void;
 
 // Augment the Window interface for the debug store
@@ -23,7 +19,7 @@ interface EventStoreState {
   lastError: string | null;
   eventSourceInstance: EventSource | null;
   listeners: {
-    keyboard: KeyboardEventListener[];
+    symbol: SymbolEventListener[];
     cameraUpdate: CameraUpdateEventListener[];
   };
 }
@@ -31,7 +27,7 @@ interface EventStoreState {
 interface EventStoreActions {
   connect: () => void;
   disconnect: () => void;
-  subscribeKeyboardEvents: (callback: KeyboardEventListener) => () => void;
+  subscribeSymbolEvents: (callback: SymbolEventListener) => () => void;
   subscribeCameraUpdates: (callback: CameraUpdateEventListener) => () => void;
   _handleMessage: (event: MessageEvent) => void;
   _handleError: (event: Event) => void;
@@ -43,7 +39,7 @@ export const useEventStore = create<EventStoreState & EventStoreActions>()(
     lastError: null,
     eventSourceInstance: null,
     listeners: {
-      keyboard: [],
+      symbol: [],
       cameraUpdate: [],
     },
 
@@ -78,14 +74,14 @@ export const useEventStore = create<EventStoreState & EventStoreActions>()(
       }
     },
 
-    subscribeKeyboardEvents: (callback: KeyboardEventListener) => {
+    subscribeSymbolEvents: (callback: SymbolEventListener) => {
       set((state) => {
-        state.listeners.keyboard.push(callback);
+        state.listeners.symbol.push(callback);
       });
       return () => {
         set((state) => {
-          state.listeners.keyboard = state.listeners.keyboard.filter(
-            (cb: KeyboardEventListener) => cb !== callback,
+          state.listeners.symbol = state.listeners.symbol.filter(
+            (cb: SymbolEventListener) => cb !== callback,
           );
         });
       };
@@ -111,9 +107,9 @@ export const useEventStore = create<EventStoreState & EventStoreActions>()(
 
         if (parsedEvent.success) {
           const data = parsedEvent.data;
-          if (data.type === "keyboard") {
-            [...get().listeners.keyboard].forEach((callback) =>
-              callback(data as KeyboardEventType),
+          if (data.type === "symbol") {
+            [...get().listeners.symbol].forEach((callback) =>
+              callback(data as SymbolEventType),
             );
           } else if (data.type === "cameraUpdate") {
             [...get().listeners.cameraUpdate].forEach((callback) =>

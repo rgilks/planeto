@@ -1,6 +1,6 @@
 # SSE Store (`src/stores/sseStore.ts`)
 
-The `sseStore.ts` module is responsible for managing Server-Sent Events (SSE) connections and broadcasting events to connected clients. It plays a crucial role in the real-time communication features of Planeto, such as synchronizing camera positions and keyboard events.
+The `sseStore.ts` module is responsible for managing Server-Sent Events (SSE) connections and broadcasting events to connected clients. It plays a crucial role in the real-time communication features of Planeto, such as synchronizing camera positions and symbol events.
 
 ## Key Responsibilities
 
@@ -12,7 +12,7 @@ The `sseStore.ts` module is responsible for managing Server-Sent Events (SSE) co
 ## Core Functions
 
 - `setCamera(id: string, p: Vec3)`: Updates the camera position for a given user ID and broadcasts this update to all subscribers.
-- `broadcast(msg: EventType)`: Sends a generic event message to all subscribers. This is used for events like keyboard inputs.
+- `broadcast(msg: EventType)`: Sends a generic event message to all subscribers. This is used for events like symbol inputs.
 - `subscribe(writer: Writer)`: Adds a new subscriber (client connection) to the list. It also sends the current state of all cameras to the new subscriber.
 - `unsubscribe(writer: Writer)`: Removes a subscriber from the list, typically when a client disconnects.
 - `purgeStale(maxAge?: number)`: Removes camera data for users whose information hasn't been updated within the `maxAge` (default 30 seconds). This is called automatically at a regular interval.
@@ -37,4 +37,4 @@ An interval timer is set up within the module to call `purgeStale` every 10 seco
 The `sseStore` is primarily used by the API route `src/app/api/events/route.ts`:
 
 - The `GET` handler in the route uses `subscribe` and `unsubscribe` to manage client connections for the SSE stream.
-- The `POST` handler uses `setCamera` (for camera updates) and `broadcast` (for other events like keyboard inputs) to push data to connected clients via the store.
+- The `POST` handler uses `setCamera` (for camera updates) and `broadcast` (for other events like symbol inputs) to push data to connected clients via the store.

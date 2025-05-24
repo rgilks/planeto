@@ -1,18 +1,18 @@
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 
-import { KeyboardInput } from "@/domain";
+import { SymbolInput } from "@/domain";
 
 type RemoteKey = { key: string; ts: number };
 
 type State = {
-  lastInput: KeyboardInput | null;
-  setLastInput: (input: KeyboardInput) => void;
+  lastInput: SymbolInput | null;
+  setLastInput: (input: SymbolInput) => void;
   remoteKeys: Record<string, RemoteKey>;
   setRemoteKey: (id: string, key: string) => void;
 };
 
-export const useKeyboardStore = create<State>()(
+export const useSymbolStore = create<State>()(
   immer((set) => ({
     lastInput: null,
     setLastInput: (input) =>
@@ -32,7 +32,7 @@ export const useKeyboardStore = create<State>()(
 );
 
 if (typeof window !== "undefined" && process.env.NODE_ENV !== "production") {
-  window.__keyboardStore = useKeyboardStore;
+  window.__symbolStore = useSymbolStore;
 }
 
 export type { State };

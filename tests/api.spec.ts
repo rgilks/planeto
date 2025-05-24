@@ -22,28 +22,28 @@ test.describe("API Robustness - POST /api/events", () => {
     expect(response.status()).toBe(400);
   });
 
-  test.describe("Keyboard Event Validation", () => {
-    test("should return 400 for missing 'id' in keyboard event", async ({
+  test.describe("Symbol Event Validation", () => {
+    test("should return 400 for missing 'id' in symbol event", async ({
       request,
     }) => {
       const response = await request.post(API_ENDPOINT, {
-        data: { type: "keyboard", key: "g" },
+        data: { type: "symbol", key: "g" },
       });
       expect(response.status()).toBe(400);
     });
 
-    test("should return 400 for missing 'key' in keyboard event", async ({
+    test("should return 400 for missing 'key' in symbol event", async ({
       request,
     }) => {
       const response = await request.post(API_ENDPOINT, {
-        data: { type: "keyboard", id: "test" },
+        data: { type: "symbol", id: "test" },
       });
       expect(response.status()).toBe(400);
     });
 
-    test("should return 200 for valid keyboard event", async ({ request }) => {
+    test("should return 200 for valid symbol event", async ({ request }) => {
       const response = await request.post(API_ENDPOINT, {
-        data: { type: "keyboard", id: "test-valid", key: "g" },
+        data: { type: "symbol", id: "test-valid", key: "g" },
       });
       expect(response.ok()).toBeTruthy();
     });

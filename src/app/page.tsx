@@ -2,12 +2,12 @@
 
 import { useEffect } from "react";
 
-import { useKeyboardStore } from "@/stores/keyboardStore";
-import KeyboardDisplay from "@components/KeyboardDisplay";
+import { useSymbolStore } from "@/stores/symbolStore";
 import Scene3D from "@components/Scene3D";
+import SymbolDisplay from "@components/Symbol";
 
-const KeyboardHandler = ({ children }: { children: React.ReactNode }) => {
-  const setLastInput = useKeyboardStore((s) => s.setLastInput);
+const SymbolHandler = ({ children }: { children: React.ReactNode }) => {
+  const setLastInput = useSymbolStore((s) => s.setLastInput);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -23,14 +23,14 @@ const KeyboardHandler = ({ children }: { children: React.ReactNode }) => {
 
 const HomePage = () => {
   return (
-    <KeyboardHandler>
+    <SymbolHandler>
       <main className="flex min-h-screen flex-col items-center justify-center bg-[#111119]">
         <div className="w-full h-screen">
           <Scene3D />
         </div>
       </main>
-      <KeyboardDisplay />
-    </KeyboardHandler>
+      <SymbolDisplay />
+    </SymbolHandler>
   );
 };
 

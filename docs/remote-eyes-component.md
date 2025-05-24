@@ -1,6 +1,6 @@
 # RemoteEyes Component (`src/app/components/RemoteEyes.tsx`)
 
-This document provides a detailed explanation of the `RemoteEyes.tsx` component, which is responsible for visualizing other users' presence and recent keyboard activity in the 3D scene.
+This document provides a detailed explanation of the `RemoteEyes.tsx` component, which is responsible for visualizing other users' presence and recent symbol activity in the 3D scene.
 
 ## Purpose
 
@@ -15,7 +15,7 @@ The primary purpose of the `RemoteEyes` component is to:
 ### 1. Data Fetching and Management
 
 - **Remote Camera Data**: The component utilizes the `useRemoteCameras()` hook. This hook establishes a connection to the server (likely via Server-Sent Events) and provides a stream of camera position updates from other users.
-- **Remote Keyboard Data**: It uses the `useKeyboardStore` (a Zustand store) to access `remoteKeys`. This part of the store holds the latest key pressed by each remote user, along with a timestamp.
+- **Remote Symbol Data**: It uses the `useSymbolStore` (a Zustand store) to access `remoteKeys`. This part of the store holds the latest key pressed by each remote user, along with a timestamp.
 - **Eye State Management**: The `useRemoteEyesStore` (another Zustand store) is central to managing the state of each visual "eye".
   - `syncEyes`: This action is called within a `useEffect` hook. It's responsible for creating new eye instances when new remote users are detected (based on `cams` data from `useRemoteCameras`) and removing eye instances for users who are no longer present. It initializes each eye with a copy of the `baseShaderMaterial`.
   - `updateEyeAnimations`: Called every frame via `useFrame`, this action updates properties like `opacity` and `scale` for each managed eye, allowing for animations (e.g., fading in/out).
@@ -46,7 +46,7 @@ The primary purpose of the `RemoteEyes` component is to:
     - Sets `gl_FragColor` using the sampled texture color and the `uOpacity` uniform.
     - `transparent: true` is set on the material to enable opacity effects.
 
-### 4. Displaying Remote Keyboard Symbols
+### 4. Displaying Remote Symbol Symbols
 
 - If `remoteKeys[eye.id]` exists (meaning the remote user has pressed a key) and the timestamp `remoteKeys[eye.id].ts` is recent (within `TEXT_FADE_DURATION_MS`, e.g., 2000ms):
   - A `<Text>` component (from `@react-three/drei`) is rendered.
@@ -60,7 +60,7 @@ The primary purpose of the `RemoteEyes` component is to:
 - **`useRemoteEyesStore`**:
   - Manages the creation, deletion, and animation properties (target opacity, scale) of the visual representations of remote users' eyes.
   - The `useFrame` loop in `RemoteEyes.tsx` reads from this store to update the Three.js objects.
-- **`useKeyboardStore`**:
+- **`useSymbolStore`**:
   - Provides `remoteKeys`, which is a record of the last key pressed by each remote user and the timestamp of that press.
   - `RemoteEyes.tsx` reads this to display the appropriate symbol with a timed fade-out.
 - **`useRemoteCameras()` (hook)**:
@@ -103,8 +103,8 @@ The primary purpose of the `RemoteEyes` component is to:
 ## Interactions and Dependencies
 
 - **`useRemoteCameras()`**: Essential for obtaining remote user camera positions, which dictates where eyes are placed.
-- **`useKeyboardStore`**: Provides the data for which symbol to display for each remote user.
+- **`useSymbolStore`**: Provides the data for which symbol to display for each remote user.
 - **`useRemoteEyesStore`**: Acts as the intermediary, processing data from `useRemoteCameras` and managing the animated properties of the eyes that `RemoteEyes.tsx` renders.
-- **`SYMBOLS` (from `../../lib/domain/keyboard`)**: An array of characters used to derive the visual symbol from a key press.
+- **`SYMBOLS` (from `../../lib/domain/symbol`)**: An array of characters used to derive the visual symbol from a key press.
 
 This component is a crucial piece for multiplayer visibility, combining data from multiple sources to create a dynamic and informative representation of other users in the 3D environment.

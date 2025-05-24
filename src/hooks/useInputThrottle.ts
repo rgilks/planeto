@@ -1,13 +1,13 @@
 import { useEffect, useRef } from "react";
 
-import { useKeyboardStore } from "@/stores/keyboardStore";
+import { useSymbolStore } from "@/stores/symbolStore";
 
-import type { State as KeyboardState } from "@/stores/keyboardStore";
+import type { State as SymbolState } from "@/stores/symbolStore";
 
 const THROTTLE_MS = 100;
 
 export const useInputThrottle = (myId: React.RefObject<string>) => {
-  const lastInput = useKeyboardStore((s: KeyboardState) => s.lastInput);
+  const lastInput = useSymbolStore((s: SymbolState) => s.lastInput);
   const lastSentTimeRef = useRef(0);
   const throttleTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -23,7 +23,7 @@ export const useInputThrottle = (myId: React.RefObject<string>) => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          type: "keyboard",
+          type: "symbol",
           id: myId.current,
           key: currentLastInput.key,
         }),

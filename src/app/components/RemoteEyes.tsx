@@ -6,8 +6,8 @@ import { Mesh, Vector3, Group, TextureLoader, ShaderMaterial } from "three";
 
 import { SYMBOLS } from "@/domain";
 import { useRemoteCameras } from "@/hooks/useRemoteCameras";
-import { useKeyboardStore } from "@/stores/keyboardStore";
 import { useRemoteEyesStore } from "@/stores/remoteEyesStore";
+import { useSymbolStore } from "@/stores/symbolStore";
 
 const EYE_RADIUS = 8;
 const SUN_POS = new Vector3(0, 0, 0);
@@ -47,7 +47,7 @@ export const RemoteEyes = ({ myId }: { myId: string }) => {
   const refs = useRef<Record<string, Mesh | Group>>({});
   const cams = useRemoteCameras();
   const eyeTexture = useLoader(TextureLoader, EYE_TEXTURE_PATH);
-  const remoteKeys = useKeyboardStore((s) => s.remoteKeys);
+  const remoteKeys = useSymbolStore((s) => s.remoteKeys);
 
   const managedEyes = useRemoteEyesStore((s) => s.managedEyes);
   const syncEyes = useRemoteEyesStore((s) => s.syncEyes);

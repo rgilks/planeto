@@ -15,11 +15,11 @@ import {
   useCameraPositionReporting,
 } from "@/hooks";
 import { generateBumpMap } from "@/lib/utils";
-import { useKeyboardStore } from "@/stores/keyboardStore";
+import { useSymbolStore } from "@/stores/symbolStore";
 import { PlanetarySystem } from "@components/PlanetarySystem";
 import { RemoteEyes } from "@components/RemoteEyes";
 
-import type { State as KeyboardState } from "@/stores/keyboardStore";
+import type { State as SymbolState } from "@/stores/symbolStore";
 
 type RigidBodyRef = React.RefObject<RapierRigidBody | null>;
 
@@ -77,7 +77,7 @@ const Scene3D = () => {
   const planetRefs = useRef<RigidBodyRef[]>([]);
   const myId = useRef(nanoid(6));
 
-  const setLastInput = useKeyboardStore((s: KeyboardState) => s.setLastInput);
+  const setLastInput = useSymbolStore((s: SymbolState) => s.setLastInput);
 
   useEventSource(myId);
   useInputThrottle(myId);

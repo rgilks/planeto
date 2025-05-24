@@ -2,19 +2,17 @@
 import { useEffect } from "react";
 
 import { useEventStore } from "@/stores/eventStore";
-import { useKeyboardStore } from "@/stores/keyboardStore";
+import { useSymbolStore } from "@/stores/symbolStore";
 
-import type { KeyboardEventType } from "@/domain/event"; // Ensure path and type name are correct
-import type { State as KeyboardState } from "@/stores/keyboardStore";
+import type { SymbolEventType } from "@/domain/event"; // Ensure path and type name are correct
+import type { State as SymbolState } from "@/stores/symbolStore";
 
 export const useEventSource = (myId: React.RefObject<string>) => {
   const connectToEventSource = useEventStore((s) => s.connect);
-  const subscribeToKeyboardEvents = useEventStore(
-    (s) => s.subscribeKeyboardEvents,
-  );
+  const subscribeToSymbolEvents = useEventStore((s) => s.subscribeSymbolEvents);
   const eventSourceConnected = useEventStore((s) => s.isConnected);
 
-  const setRemoteKey = useKeyboardStore((s: KeyboardState) => s.setRemoteKey);
+  const setRemoteKey = useSymbolStore((s: SymbolState) => s.setRemoteKey);
 
   useEffect(() => {
     // Attempt to connect to the EventSource when the hook mounts
@@ -25,13 +23,13 @@ export const useEventSource = (myId: React.RefObject<string>) => {
   }, [connectToEventSource, eventSourceConnected]);
 
   useEffect(() => {
-    const handleKeyboardEvent = (event: KeyboardEventType) => {
+    const handleSymbolEvent = (event: SymbolEventType) => {
       if (event.id !== myId.current) {
         setRemoteKey(event.id, event.key);
       }
     };
 
-    const unsubscribe = subscribeToKeyboardEvents(handleKeyboardEvent);
+    const unsubscribe = subscribeToSymbolEvents(handleSymbolEvent);
     return () => unsubscribe();
-  }, [subscribeToKeyboardEvents, myId, setRemoteKey]);
+  }, [subscribeToSymbolEvents, myId, setRemoteKey]);
 };

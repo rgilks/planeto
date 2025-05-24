@@ -59,7 +59,7 @@ export const POST = async (req: NextRequest) => {
 
   if (event.type === "cameraUpdate") {
     setCamera(event.id, event.p);
-  } else if (event.type === "keyboard") {
+  } else if (event.type === "symbol") {
     broadcast(event);
   }
 

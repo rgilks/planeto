@@ -1,4 +1,4 @@
 export * from "./event";
 export * from "./planet";
-export * from "./keyboard";
+export * from "./symbol";
 export * from "./eye";

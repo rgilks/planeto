@@ -59,7 +59,7 @@ flowchart LR
     C2 --> C2s[scene3d/]
     C2s --> C2s1[Moon.tsx]
     C2s --> C2s4[utils.tsx]
-    C2 --> C21[KeyboardDisplay.tsx]
+    C2 --> C21[SymbolDisplay.tsx]
     C2 --> C22[RemoteEyes.tsx]
     C2 --> C23[Scene3D.tsx] \n(Orchestrates 3D scene, \nuses hooks for data & physics)
     C --> C3[globals.css]
@@ -67,11 +67,11 @@ flowchart LR
     C --> C5[layout.tsx]
     C --> C6[page.tsx]
     B --> D[lib/]
-    D --> D1[domain/keyboard.ts]
-    D --> D3[store/keyboardStore.ts]
+    D --> D1[domain/symbol.ts]
+    D --> D3[store/symbolStore.ts]
     B --> E[stores/]
     E --> E1[sseStore.ts]
-    E --> E2[keyboardStore.ts]
+    E --> E2[symbolStore.ts]
     E --> E3[remoteEyesStore.ts]
     B --> H[hooks/]
     H --> H1[usePlanetData.ts]
@@ -93,7 +93,7 @@ _The void is deep. The structure is ever-shifting, but this is its current form.
 ## Extending the Mystery
 
 - To birth new planetoids, alter the genesis logic in `src/hooks/usePlanetData.ts`.
-- To change the glyphs, edit the `SYMBOLS` array in `src/lib/domain/keyboard.ts`.
+- To change the glyphs, edit the `SYMBOLS` array in `src/lib/domain/symbol.ts`.
 
 ## License
 
@@ -107,20 +107,20 @@ MIT (for those who care for such things)
 
 When a watcher presses a key, a vast green glyph (from an alien alphabet) appears in the bottom-right. This glyph is not the key, but a symbol mapped from it. Only the glyphs of other eyes are seen in the void; your own glyph is for your gaze alone. Glyphs are broadcast instantly to all who watch. Repeated key events from holding a key down are now ignored to save bandwidth.
 
-- State: Zustand (`src/stores/keyboardStore.ts`)
-- Schema: Zod (`src/lib/domain/keyboard.ts`)
+- State: Zustand (`src/stores/symbolStore.ts`)
+- Schema: Zod (`src/lib/domain/symbol.ts`)
 - Ritual: `src/app/page.tsx` (captures non-repeated keydown events)
-- Manifestation: `src/app/components/KeyboardDisplay.tsx` (your glyph), `src/app/components/RemoteEyes.tsx` (others' glyphs)
+- Manifestation: `src/app/components/SymbolDisplay.tsx` (your glyph), `src/app/components/RemoteEyes.tsx` (others' glyphs)
 - To alter the glyphs or their color, change the relevant components.
 
 ---
 
 ### Efficient Real-Time Communication (Camera & Events)
 
-This project uses Server-Sent Events (SSE) to share camera positions and game events (like keyboard inputs) in near real-time among all connected users. Significant effort has been made to minimize bandwidth and server load:
+This project uses Server-Sent Events (SSE) to share camera positions and game events (like symbol inputs) in near real-time among all connected users. Significant effort has been made to minimize bandwidth and server load:
 
 - **Camera Presence**: Your camera's position is sent to the server when you first connect and then only when it significantly changes. If your camera remains idle, its data is automatically purged from the server after a short period (currently ~4 seconds of inactivity) to keep the active user list fresh and reduce unnecessary data retention. If you move again, your camera will reappear to others.
-- **Keyboard Events**: Only distinct key presses are sent to the server; repeated events from holding a key down are ignored on the client-side before transmission.
+- **Symbol Events**: Only distinct key presses are sent to the server; repeated events from holding a key down are ignored on the client-side before transmission.
 - **Server-Side Logic**: The server manages lists of active cameras and event subscribers, efficiently broadcasting updates only when necessary.
 
 For a detailed technical explanation of the real-time architecture and bandwidth optimization strategies, please see [`docs/realtime-communication.md`](./docs/realtime-communication.md).
@@ -184,5 +184,5 @@ For more detailed deployment and configuration information, see `docs/deployment
 
 ### API Endpoints
 
-- `POST /api/events`: Receives event data (e.g., keyboard events, camera updates).
+- `POST /api/events`: Receives event data (e.g., symbol events, camera updates).
 - `GET /api/events`: Subscribes to a server-sent event stream for real-time updates.
