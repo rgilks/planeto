@@ -1,52 +1,51 @@
 # Deploying Planeto to Fly.io
 
-This document provides a detailed guide for deploying the Planeto application to Fly.io, focusing on cost-effectiveness and best practices for a Next.js application with Server-Sent Events (SSE).
+This guide details deploying Planeto to Fly.io, focusing on cost-effectiveness and best practices for a Next.js application with Server-Sent Events (SSE).
 
 ## Overview
 
-We use Docker to containerize the application, and Fly.io to host and manage the container. The configuration aims for minimal resource usage when idle, scaling to a single small machine when active.
+Planeto is containerized using Docker and hosted on Fly.io. The configuration aims for minimal idle resource usage, scaling to a single small machine when active.
 
 ## Prerequisites
 
-1.  **Fly.io Account**: Sign up at [fly.io](https://fly.io/).
-2.  **`flyctl` CLI**: Install the Fly command-line tool. Instructions: [fly.io/docs/hands-on/install-flyctl/](https://fly.io/docs/hands-on/install-flyctl/).
-3.  **Docker**: Ensure Docker is installed and running locally if you wish to build and test images locally (optional, Fly.io can build from the Dockerfile directly).
-4.  **Project Files**: Ensure you have the `Dockerfile` and `fly.toml` (as configured in the repository) in your project root.
+1.  **Fly.io Account**: [fly.io](https://fly.io/)
+2.  **`flyctl` CLI**: [fly.io/docs/hands-on/install-flyctl/](https://fly.io/docs/hands-on/install-flyctl/)
+3.  **Docker**: (Optional for local builds) Installed and running.
+4.  **Project Files**: `Dockerfile` and `fly.toml` in the project root.
 
 ## Key Configuration Files
 
-- `Dockerfile`: Defines the build process for the Next.js application, creating an optimized production image.
-- `.dockerignore`: Specifies files and directories to exclude from the Docker build context, reducing image size and build time.
-- `next.config.ts`: Configured with `output: 'standalone'` to produce a minimal server deployment.
-- `fly.toml`: Fly.io application configuration file. Defines services, machine resources, health checks, and deployment settings.
+- `Dockerfile`: Defines the Next.js application build process for an optimized production image.
+- `.dockerignore`: Excludes files/directories from the Docker build context, reducing image size and build time.
+- `next.config.ts`: Configured with `output: 'standalone'` for minimal server deployment.
+- `fly.toml`: Fly.io application configuration (services, resources, health checks, deployment settings).
 
-## `fly.toml` Configuration Highlights
+## `fly.toml` Configuration
 
 ```toml
-app = 'planeto' # Your chosen app name
-primary_region = 'lhr' # Your chosen primary region
+app = 'planeto' # Application name
+primary_region = 'lhr' # Primary deployment region
 
 [build]
-  # No specific build args here as Dockerfile is self-contained.
-  # Fly will automatically use the Dockerfile.
+  # Dockerfile is self-contained; Fly.io uses it automatically.
 
 [http_service]
-internal_port = 3000      # Port your app listens on inside the container
+internal_port = 3000      # App's internal listening port
 force_https = true        # Redirect HTTP to HTTPS
-auto_stop_machines = 'stop' # Stop machine(s) when idle (can be 'stop' or 'off')
-auto_start_machines = true  # Start machine(s) on new requests
-min_machines_running = 0    # Allow scaling down to zero machines
-max_machines_running = 1  # Max number of machines (adjust for scaling)
-processes = ['app']       # Corresponds to the process group in the Dockerfile (usually 'app')
+auto_stop_machines = 'stop' # 'stop' or 'off' machine when idle
+auto_start_machines = true  # Start machine on new requests
+min_machines_running = 0    # Scale down to zero machines
+max_machines_running = 1    # Max active machines
+processes = ['app']       # Corresponds to Dockerfile process group
 
 [[vm]]
 memory = '256mb'          # Smallest memory for dedicated IPv4
-cpu_kind = 'shared'         # Use shared CPU for cost-effectiveness
+cpu_kind = 'shared'       # Cost-effective shared CPU
 cpus = 1                  # Number of CPUs
 
 [[services]]
 protocol = "tcp"
-internal_port = 3000 # Port your app listens on (matches http_service.internal_port)
+internal_port = 3000      # Matches http_service.internal_port
 processes = ["app"]
 
   [[services.ports]]
@@ -58,72 +57,63 @@ processes = ["app"]
   port = 443
   handlers = ["tls", "http"]
 
-  # Health check to ensure the app is responsive
   [[services.http_checks]]
-  interval = "10s"          # How often to check
-  timeout = "2s"            # How long to wait for a response
+  interval = "10s"
+  timeout = "2s"
   method = "GET"
-  path = "/"                # Path for the health check
-  grace_period = "5s"       # Time to allow app to start before first check
+  path = "/"                # Health check path
+  grace_period = "5s"       # Allow app start time before first check
 
-  # Concurrency settings (defaults are often fine for starting)
-  # [services.concurrency]
-  # type = "connections" # Can be 'connections' or 'requests'
-  # hard_limit = 25      # Max concurrent connections/requests
-  # soft_limit = 20      # Connections/requests before scaling (if max_machines_running > 1)
+# Example concurrency settings (defaults often sufficient)
+# [services.concurrency]
+# type = "connections" # or 'requests'
+# hard_limit = 25
+# soft_limit = 20
 ```
 
 **Notes on `fly.toml`:**
 
-- **`auto_stop_machines = 'stop'` and `min_machines_running = 0`**: These are key for cost savings. Your app will not consume resources when idle. `'stop'` means the VM is suspended and can resume quickly. `'off'` means it's terminated and will take longer to start.
-- **`memory = '256mb'`**: This is the smallest tier that typically comes with a dedicated IPv4 address. If your app can run on less and you are comfortable with shared IPv4 or IPv6 only, you might explore smaller options, but 256MB is a safe start for Next.js.
-- **SSE Considerations**: The default HTTP/2 proxying by Fly.io generally works well with SSE. The health check on `/` ensures the main app is responsive. If specific SSE endpoints need different handling (e.g., longer timeouts), that would require more advanced configuration.
+- `auto_stop_machines = 'stop'` & `min_machines_running = 0`: Key for cost savings. App resources are not consumed when idle. `'stop'` suspends the VM for quick resume; `'off'` terminates it (longer startup).
+- `memory = '256mb'`: Smallest tier typically providing a dedicated IPv4. Suitable for Next.js startup.
+- **SSE**: Fly.io's default HTTP/2 proxying generally supports SSE well. The `/` health check ensures app responsiveness.
 
 ## Deployment Steps
 
-1.  **Log in to `flyctl`**:
+1.  **Login to `flyctl`**:
 
     ```bash
     fly auth login
     ```
 
-2.  **Initial Launch (if not done already)**:
-    If this is the first time deploying this app to Fly.io under your account, or if `fly.toml` doesn't exist:
+2.  **Initial Launch (if new app)**:
+    If deploying for the first time or `fly.toml` is missing:
 
     ```bash
     fly launch
     ```
 
-    - It will detect the `Dockerfile`.
-    - **App Name**: Choose a unique name for your application (e.g., `planeto`). This will be part of its URL.
+    - Detects `Dockerfile`.
+    - **App Name**: Choose a unique name (e.g., `planeto`).
     - **Organization**: Select your Fly.io organization.
-    - **Region**: Choose a region close to your users or yourself (e.g., `lhr` for London, `sjc` for San Jose).
-    - **PostgreSQL Database**: Select **No**.
-    - **Redis Database**: Select **No**.
-    - **Deploy now?**: You can select **No** if you want to review `fly.toml` first. If you select **Yes**, it will attempt the first deployment.
-      This command creates the `fly.toml` file if it doesn't exist and registers your app with Fly.io. The `fly.toml` in the repository is already configured, so this step might primarily be for app registration if the file is already present.
+    - **Region**: Choose a region (e.g., `lhr` - London).
+    - **PostgreSQL/Redis**: Select **No** for both.
+    - **Deploy now?**: Select **No** to review `fly.toml` first, or **Yes** to deploy immediately.
+      This registers the app and creates `fly.toml` if needed. (The repository's `fly.toml` is pre-configured).
 
-3.  **Deploy the Application**:
-    From your project's root directory:
+3.  **Deploy Application**:
+    From the project root:
 
     ```bash
     fly deploy
     ```
 
-    This command will:
-
-    - Read `fly.toml`.
-    - Build the Docker image (either locally if Docker is running or remotely on Fly.io's builders).
-    - Push the image to Fly.io's registry.
-    - Provision or update the machine(s) based on `fly.toml`.
-    - Start your application.
+    This command builds the Docker image (locally or on Fly.io), pushes it to Fly.io's registry, and provisions/updates machines per `fly.toml`.
 
 4.  **Verify Deployment**:
-    Once the deployment is complete, `flyctl` will output the URL of your application. You can also open it with:
+    `flyctl` will output the application URL. Or open with:
     ```bash
     fly apps open -a <your-app-name>
     ```
-    (Replace `<your-app-name>` with the name you chose).
 
 ## Managing the Application
 
@@ -135,31 +125,27 @@ processes = ["app"]
   ```bash
   fly status -a <your-app-name>
   ```
-- **Scaling (Manual)**:
-  To change the number of machines (if `max_machines_running` allows):
+- **Manual Scaling** (adjust `fly.toml` for `max_machines_running > 1`):
   ```bash
   fly scale count <number> -a <your-app-name>
   ```
-  For the current cost-effective setup, `max_machines_running` is 1, so scaling beyond that requires adjusting `fly.toml`.
-- **Secrets Management**:
-  If your application needs environment variables (e.g., API keys):
+- **Secrets Management** (app restarts on secret changes):
   ```bash
-  fly secrets set MY_VARIABLE=my_value ANOTHER_VARIABLE=another_value -a <your-app-name>
+  fly secrets set MY_VAR=value ANOTHER_VAR=value -a <your-app-name>
   ```
-  These secrets are available as environment variables at runtime. The application will restart after secrets are set/updated.
 
-## Cost Optimization Notes
+## Cost Optimization
 
-- **Machine Size**: The `shared-cpu-1x` with `256mb` memory is one of the cheapest options that provides a dedicated IPv4.
-- **Auto Stop/Start**: `auto_stop_machines = 'stop'` and `min_machines_running = 0` are crucial. Your app only runs (and incurs full compute costs) when receiving traffic.
-- **Regions**: Data transfer costs can vary by region. Choose regions strategically.
-- **Bandwidth**: Fly.io includes a generous free tier for bandwidth. SSE can consume more bandwidth than typical request-response APIs due to persistent connections. Monitor your usage via the Fly.io dashboard.
-- **CDN for Static Assets**: Next.js's build output (`.next/static`) is served by the Node.js server in this setup. For very high traffic sites, you might consider offloading these to a dedicated CDN, but for many applications, Fly.io's built-in edge caching for static assets is sufficient and cost-effective. Fly.io's CDN will automatically cache cacheable static assets served by your app.
+- **Machine Size**: `shared-cpu-1x` with `256mb` memory is a cost-effective option with dedicated IPv4.
+- **Auto Stop/Start**: `auto_stop_machines = 'stop'` and `min_machines_running = 0` minimize costs during idle periods.
+- **Regions**: Choose strategically; data transfer costs vary.
+- **Bandwidth**: Monitor SSE bandwidth via the Fly.io dashboard. Fly.io offers a free bandwidth tier.
+- **CDN**: Fly.io's built-in edge caching for static assets is generally sufficient. Next.js serves static assets (`.next/static`) from the Node.js server.
 
 ## Troubleshooting
 
-- **Build Failures**: Check the output of `fly deploy`. Often, issues are related to the `Dockerfile` or missing dependencies.
-- **Runtime Errors**: Use `fly logs` to inspect application logs.
-- **Health Check Failures**: If your app doesn't become healthy, ensure it starts correctly and responds with HTTP 200 on the health check path (`/` in this configuration) within the specified `timeout`.
+- **Build Failures**: Check `fly deploy` output for `Dockerfile` or dependency issues.
+- **Runtime Errors**: Inspect logs with `fly logs`.
+- **Health Check Failures**: Ensure the app starts correctly and responds with HTTP 200 on the health check path (`/`) within the `timeout`.
 
-By following this guide, you should be able to deploy and run Planeto on Fly.io efficiently and cost-effectively.
+This guide enables efficient and cost-effective deployment of Planeto on Fly.io.

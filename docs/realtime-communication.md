@@ -1,112 +1,106 @@
-# Real-Time Communication Architecture
+# Real-Time Communication
 
-This document outlines the real-time communication mechanisms used in the application, focusing on how camera positions and game events (like keyboard inputs) are shared between clients and the server, and the strategies employed to minimize bandwidth.
+This document details Planeto's real-time communication architecture, focusing on sharing camera positions and game events (e.g., keyboard inputs) between clients and the server, and strategies to minimize bandwidth usage.
 
 ## Overview
 
-- **Purpose**: To enable near real-time sharing of dynamic data (camera movements, user inputs) among all connected clients.
-- **Core Technologies**:
-  - **Server-Sent Events (SSE)**: Used for unidirectional communication from the server to clients. This allows the server to push updates (e.g., other users' camera positions, game events) to all connected clients efficiently.
-  - **HTTP POST Requests**: Used for client-to-server communication (e.g., sending the current user's camera position or keyboard input).
-- **Key Goal**: Minimize bandwidth consumption to support a public, unauthenticated application cost-effectively, while providing a responsive experience.
+- **Purpose**: Enable near real-time sharing of dynamic data (camera movements, user inputs) among connected clients.
+- **Technologies**:
+  - **Server-Sent Events (SSE)**: Unidirectional communication from server to clients for pushing updates (e.g., other users' camera positions, game events).
+  - **HTTP POST Requests**: Client-to-server communication (e.g., sending the current user's camera position or keyboard input).
+- **Key Goal**: Minimize bandwidth consumption for a public, unauthenticated application while maintaining a responsive user experience.
 
-## 1. Camera Position Sharing
+## Camera Position Sharing
 
-This system allows clients to see the camera positions of other users in near real-time.
+This system allows clients to view other users' camera positions in near real-time.
 
-### a. Client-Side Publisher (`src/app/components/useCameraPublisher.ts`)
+### Client-Side Publisher (`src/app/components/useCameraPublisher.ts`)
 
-- A custom React hook `useCameraPublisher` is responsible for sending the local camera's position to the server.
+- The `useCameraPublisher` React hook sends the local camera's position to the server.
 - **Update Logic**:
-  1.  An initial camera position is sent to the server as soon as the component mounts.
-  2.  It then periodically checks the camera's position every 2 seconds:
-      - If the camera position has changed significantly (compared using a small epsilon) since the last full update, a new position update (client `id` and position `p`) is sent. The 20-second timer for forced updates is reset.
-      - If the position has not changed, but 20 seconds (`FORCE_POSITION_UPDATE_INTERVAL_MS`) have passed since the last full position update was sent, a full position update is sent anyway. The 20-second timer is reset.
-      - No other "ping" messages are sent.
-- **Data Transmission**: Uses `navigator.sendBeacon` for sending updates.
+  1. Sends initial camera position on component mount.
+  2. Periodically checks camera position (every 2 seconds):
+     - If position changed significantly (epsilon comparison), sends new position (`id`, `p`) and resets a 20-second forced update timer.
+     - If position unchanged but 20 seconds (`FORCE_POSITION_UPDATE_INTERVAL_MS`) have passed since last full update, sends full position update and resets the timer.
+- **Data Transmission**: Uses `navigator.sendBeacon`.
 
-### b. Server-Side Receiver (`src/app/api/camera/route.ts`)
+### Server-Side Receiver (`src/app/api/camera/route.ts`)
 
-- A simple POST endpoint that receives the camera data:
-  - `id`: A string identifying the client/camera.
-  - `p` (optional): A `Vec3` array `[x, y, z]` representing the camera position.
-- It calls the `setCamera(id, p)` function from `src/lib/sseStore.ts`. If `p` is not provided, it's treated as a "ping" to keep the camera data alive.
+- A POST endpoint receives camera data:
+  - `id`: Client/camera identifier (string).
+  - `p` (optional): `Vec3` array `[x, y, z]` for camera position.
+- Calls `setCamera(id, p)` from `src/lib/sseStore.ts`. If `p` is absent, it acts as a keep-alive ping.
 
-### c. Server-Side State & SSE Broadcasting (`src/lib/sseStore.ts`)
+### Server-Side State & SSE Broadcasting (`src/lib/sseStore.ts`)
 
-- This module acts as the central hub for managing camera states and broadcasting updates.
-- **State (`cameras` Map)**: A `Map` stores the latest known `CameraMessage ({ id, p, t })` for each active camera, where `t` is the timestamp of the last update.
+- Manages camera states and broadcasts updates.
+- **State (`cameras` Map)**: Stores the latest `CameraMessage ({ id, p, t })` for each active camera (`t` is the update timestamp).
 - **`setCamera(id, p?)`**:
-  - If `p` (position) is provided: Updates the camera's entry in the `cameras` Map with the new position and current timestamp. It then calls `broadcast(msg)`.
-  - If `p` is _not_ provided (ping): Only updates the timestamp `t` for the given `id`. This does _not_ trigger a broadcast, saving bandwidth for simple keep-alives.
+  - If `p` (position) is provided: Updates camera entry in `cameras` Map with new position and timestamp, then calls `broadcast(msg)`.
+  - If `p` is not provided (ping): Updates timestamp `t` for the given `id` without broadcasting.
 - **`broadcast(msg: CameraMessage)`**:
-  - Formats the `CameraMessage` as an SSE data string (`data: JSON.stringify(msg)\\n\\n`).
-  - Sends this string to all currently connected subscribers of the `/api/events` SSE stream.
+  - Formats `CameraMessage` as an SSE data string.
+  - Sends to all subscribers of the `/api/events` SSE stream.
 - **`subscribe(writer)`**:
-  - When a new client connects to the `/api/events` SSE stream, this function is called.
-  - It adds the client's `writer` to a `Set` of subscribers.
-  - Critically, it then immediately sends the current state of _all_ cameras in the `cameras` Map to the new subscriber. This ensures the new client gets the full picture right away.
+  - Adds new client's `writer` to a subscriber Set on connection to `/api/events`.
+  - Immediately sends current state of all cameras to the new subscriber.
 - **`purgeStale(maxAge = 60000)`**:
-  - This function iterates through the `cameras` Map and removes any camera whose timestamp `t` is older than `maxAge` (default 60 seconds).
-  - It is invoked periodically by a `setInterval` (default every 10 seconds) within `sseStore.ts` itself. This is crucial for:
-    - Preventing the `cameras` Map from growing indefinitely with stale data.
-    - Ensuring new subscribers don't receive outdated information.
-    - Reducing server memory usage.
-- **`unsubscribe(writer)`**: Removes a client's writer from the subscribers set when they disconnect.
+  - Removes cameras from `cameras` Map if timestamp `t` exceeds `maxAge` (default 60s).
+  - Invoked periodically by `setInterval` (default every 10s) in `sseStore.ts` to prevent stale data and reduce memory usage.
+- **`unsubscribe(writer)`**: Removes client's writer from subscribers on disconnect.
 
-### d. Server-Side SSE Endpoint (`src/app/api/events/route.ts`)
+### Server-Side SSE Endpoint (`src/app/api/events/route.ts`)
 
-- A standard Next.js route handler that establishes an SSE connection.
-- Sets appropriate headers (`Content-Type: text/event-stream`, `Cache-Control: no-cache`, `Connection: keep-alive`).
-- Uses a `ReadableStream` to manage the connection.
-- Calls `sseStore.subscribe()` when a connection starts and `sseStore.unsubscribe()` when it cancels.
+- Establishes SSE connection via a Next.js route handler.
+- Sets headers: `Content-Type: text/event-stream`, `Cache-Control: no-cache`, `Connection: keep-alive`.
+- Uses `ReadableStream` to manage the connection.
+- Calls `sseStore.subscribe()` on connection start and `sseStore.unsubscribe()` on cancellation.
 
-## 2. Game Event Sharing (Keyboard Inputs)
+## Game Event Sharing (Keyboard Inputs)
 
-This system allows clients to send their keyboard inputs to the server, which then broadcasts them to other clients.
+Allows clients to send keyboard inputs to the server, which then broadcasts them.
 
-### a. Client-Side Input Capture (`src/app/page.tsx` - `KeyboardHandler`)
+### Client-Side Input Capture (`src/app/page.tsx` - `KeyboardHandler`)
 
-- A `KeyboardHandler` component wraps the main application content.
-- It sets up a global `window.addEventListener("keydown", ...)` listener.
-- **Optimization**: Inside the `handleKeyDown` function, it checks `if (e.repeat) return;`. This prevents events from being processed (and sent) when a key is held down and the browser fires repeated `keydown` events. This is a key bandwidth-saving measure.
-- If the event is not a repeat, it calls `setLastInput({ key: e.key })` from `useKeyboardStore`.
+- `KeyboardHandler` component wraps the main application.
+- Uses a global `window.addEventListener("keydown", ...)`.
+- **Optimization**: `if (e.repeat) return;` in `handleKeyDown` prevents sending events for held keys, saving bandwidth.
+- If not a repeat, calls `setLastInput({ key: e.key })` from `useKeyboardStore`.
 
-### b. Client-Side State Management (`src/lib/store/keyboardStore.ts`)
+### Client-Side State Management (`src/lib/store/keyboardStore.ts`)
 
-- A Zustand store (`useKeyboardStore`) is used.
-- `lastInput: KeyboardInput | null`: Stores the most recent, non-repeated keyboard input from the local user.
+- Zustand store `useKeyboardStore`.
+- `lastInput: KeyboardInput | null`: Stores the latest non-repeated local keyboard input.
 - `setLastInput(input)`: Updates `lastInput`.
-- `remoteKeys`: Stores a record of the last key events received from other users, indexed by their ID.
+- `remoteKeys`: Stores last key events from other users, indexed by ID.
 
-### c. Client-Side Event Sender (`src/app/components/Scene3D.tsx`)
+### Client-Side Event Sender (`src/app/components/Scene3D.tsx`)
 
-- A `useEffect` hook in the `Scene3D` component subscribes to changes in `lastInput` from the `useKeyboardStore`.
-- When `lastInput` changes, it triggers a `fetch` POST request to `/api/game-events`.
-- The payload is `{ id: myId.current, key: lastInput.key }`, where `myId.current` is a unique client ID (generated via `nanoid`).
+- `useEffect` hook in `Scene3D` subscribes to `lastInput` changes from `useKeyboardStore`.
+- On `lastInput` change, sends a `fetch` POST to `/api/game-events`.
+- Payload: `{ id: myId.current, key: lastInput.key }` (`myId.current` is a unique `nanoid`).
 
-### d. Server-Side Receiver & SSE Broadcaster (`src/app/api/game-events/route.ts`)
+### Server-Side Receiver & SSE Broadcaster (`src/app/api/game-events/route.ts`)
 
 - **`POST` Handler**:
-  - Receives the JSON payload (`{ id, key }`).
-  - Validates the payload using a Zod schema (`KeyboardEventSchema`).
-  - If valid, it formats the event data as an SSE message (`data: JSON.stringify(event)\\n\\n`).
-  - It then iterates through all current subscribers to this SSE stream and sends them the message.
+  - Receives JSON payload (`{ id, key }`).
+  - Validates with Zod schema (`KeyboardEventSchema`).
+  - If valid, formats as SSE message and sends to all stream subscribers.
 - **`GET` Handler**:
-  - Standard SSE setup. Clients connect here to subscribe to game events from other users.
-  - Maintains an in-memory array of `subscribers`. Adds a writer on connection, filters it out on cancellation.
+  - Standard SSE setup for clients to subscribe to game events.
+  - Maintains an in-memory array of `subscribers`.
 
-## 3. Bandwidth and Cost Optimization Strategies Implemented
+## Bandwidth and Cost Optimization
 
 - **Camera Data (`/api/events` & `/api/camera`):**
-  - **Conditional Publishing**: The client-side `useCameraPublisher` sends full position data to `/api/camera` if the (rounded) position has actually changed OR if 20 seconds have passed since the last full update. No pings are sent otherwise. This reduces updates for idle cameras while ensuring positions are periodically refreshed.
-  - **Server-Side Purging**: The `sseStore` automatically purges camera data for clients that haven't sent an update in a configurable interval (default 60 seconds), preventing stale data broadcasts and keeping the server state lean.
-  - **Ping Mechanism**: The explicit ping mechanism has been removed from the client. The server relies on the periodic (20-second) full updates or movement-triggered updates to keep a camera's timestamp current.
+  - **Conditional Publishing**: `useCameraPublisher` sends full position data only if position changes or 20s pass since last full update. No other pings are sent.
+  - **Server-Side Purging**: `sseStore` purges camera data inactive for >60s.
+  - **Ping Removal**: Client-side explicit pings removed; server relies on periodic/movement-triggered updates.
 - **Game Events (`/api/game-events`):**
-  - **Ignoring Key Repeats**: The client-side global keyboard listener explicitly ignores `keydown` events where `event.repeat` is true. This drastically cuts down on messages sent when a user holds a key.
+  - **Key Repeat Ignored**: Client ignores `keydown` events where `event.repeat` is true.
 - **General SSE Practices:**
-  - Data payloads are JSON, which is text-based but generally compact for the structured data being sent.
-  - SSE connections are kept alive, but only data changes trigger messages (for camera events) or new inputs (for game events).
-  - Upon new subscription to camera events, only the _current_ state of active cameras is sent, not a long history.
+  - JSON payloads (compact for structured data).
+  - SSE connections kept alive; data sent only on changes/new inputs.
+  - New camera event subscribers receive only current active camera states.
 
-These strategies aim to make the real-time features usable for a public application by minimizing unnecessary data transfer, thereby reducing server load and potential bandwidth costs.
+These strategies minimize data transfer, reducing server load and bandwidth costs for the public application.

@@ -5,7 +5,7 @@
 ![planeto Screenshot](/screenshots/loaded.png)
 
 <div align="center">
-  <a href='https://ko-fi.com/N4N31DPNUS' target='_blank'><img height='36' style='border:0px;height:36px;' src='https://storage.ko-fi.com/cdn/kofi2.png?v=6' border='0' alt='Buy Me a Coffee at ko-fi.com' /></a>
+  <a href='https://ko-fi.com/N4N31DPNUS' target='_blank'><img height='36' style='border:0px;height:36px;margin-bottom: 20px;' src='https://storage.ko-fi.com/cdn/kofi2.png?v=6' border='0' alt='Buy Me a Coffee at ko-fi.com' /></a>
 </div>
 
 > In the void, a cluster of planetoids drifts. Disembodied eyes hover, exchanging cryptic emerald glyphs. No sun, no orbit, only the silent gaze and the endless, shifting dance of matter and symbol.
@@ -83,10 +83,6 @@ _The void is deep. The structure is ever-shifting, but this is its current form.
 - `npm run lint`: Seek out impurities
 - `npm run check`: All-seeing check: format, lint, type, and test
 
-## End-to-End Omens
-
-- Playwright tests: `npm run test:e2e`
-
 ## Extending the Mystery
 
 - To birth new planetoids, alter the genesis logic in `Scene3D.tsx`
@@ -130,7 +126,7 @@ Key PWA features implemented:
 
 - **Web App Manifest**: `public/manifest.json` provides metadata about the application.
 - **Service Worker**: `next-pwa` automatically generates a service worker for caching and offline capabilities.
-- **Icons**: Placeholder icons are provided in `public/icons/`. These should be replaced with actual app icons.
+- **Icons**: App icons are provided in `public/icons/`.
 
 For more details on the PWA setup, see `docs/pwa-configuration.md`.
 

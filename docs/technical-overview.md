@@ -1,70 +1,68 @@
-# Planeto - Technical Overview
+# Planeto Technical Overview
 
-> In the endless void, clusters of matter drift, watched by silent eyes. Glyphs flicker in the darkness, exchanged in patterns only the initiated may decipher.
+## Core Technologies
 
-## Principles of the Void
+- **Rendering**: React Three Fiber and Drei for 3D scene rendering.
+- **Physics**: Rapier for physics simulation (gravity, collisions).
+- **State Management**: Zustand for global state.
+- **Data Validation**: Zod for schema definition and validation.
+- **Language**: TypeScript for type safety.
+- **Framework**: Next.js.
 
-- **Immutable Domain:** Zod shapes the essence of all things.
-- **Component-Based Vision:** React Three Fiber conjures the cluster and the eyes.
-- **Gravity's Whisper:** Rapier physics moves the matter, unseen but inexorable.
-- **Type Safety:** TypeScript and Zod bind the world in unbreakable runes.
-- **Glyphic Broadcast:** Symbols leap from watcher to watcher, instant and cryptic.
+## Architecture
 
-## The Architecture of the Cluster
+Planeto simulates a cluster of planetoids. Users (Watchers) observe the scene. Keyboard inputs are translated into symbols (glyphs) displayed locally and broadcast to other Watchers.
 
 ```mermaid
 flowchart TD
-    A[Watcher] -- presses key --> B[Key Event]
-    B -- mapped to glyph --> C[Green Symbol]
-    C -- appears --> D[Bottom Right Portal]
-    B -- broadcast --> E[Other Watchers]
-    E -- see glyph --> F[Above Remote Eyes]
-    G[Planetoids] -- gravity/collision --> G
-    G -- observed by --> A
-    G -- observed by --> E
+    A[User] -- presses key --> B{Keyboard Event}
+    B -- to local UI --> C[Symbol Displayed Locally]
+    B -- POST /api/game-events --> D[Server]
+    D -- SSE /api/game-events --> E[Other Users]
+    E -- see symbol --> F[Symbol Displayed Remotely]
+
+    G[Planetoids] -- physics simulation --> G
+    G -- rendered --> A
+    G -- rendered --> E
+
+    H[User Camera] -- POST /api/camera --> D
+    D -- SSE /api/events --> E
+    E -- render remote camera --> I[Remote Camera Displayed]
 ```
 
-## Core Components
+## Key Components
 
-- **Scene3D.tsx:**
-  - The locus of the cluster, where matter and eyes are rendered and moved.
-  - Glyphic events are visualized and broadcast.
-- **RemoteEyes.tsx:**
-  - Renders the eyes of other watchers and their glyphs.
-- **KeyboardDisplay.tsx:**
-  - Shows your glyph in the portal.
-- **page.tsx:**
-  - The watcher's entry point and glyph handler.
+- `src/app/components/Scene3D.tsx`: Main 3D scene, renders planetoids, user camera, remote cameras, and handles physics updates. Initiates glyph broadcast on keyboard input.
+- `src/app/components/RemoteEyes.tsx`: Renders other users' camera positions and their broadcasted glyphs.
+- `src/app/components/KeyboardDisplay.tsx`: Displays the local user's current glyph.
+- `src/app/page.tsx`: Main application entry point, integrates `KeyboardHandler` for input.
+- `src/lib/store/`: Zustand stores for managing application state (keyboard input, camera data).
+- `src/app/api/`: Backend API routes for handling camera position updates and game event (glyph) broadcasting via SSE.
 
 ## Data Flow
 
-- **Genesis:**
-  - Planetoids are born and given mass, color, and motion in `Scene3D.tsx`.
-- **Gravity:**
-  - Every planetoid whispers to every other, pulling and colliding.
-- **Glyphs:**
-  - Key events are mapped to symbols, shown to the watcher, and broadcast to all others.
+- **Planetoid Simulation**:
+  - Initialized in `Scene3D.tsx` with initial properties (mass, color, position, velocity).
+  - Physics (gravity, collisions) managed by Rapier, updated each frame.
+- **Keyboard Input (Glyphs)**:
+  - `KeyboardHandler` captures `keydown` events.
+  - Input stored in `useKeyboardStore` (Zustand).
+  - `Scene3D.tsx` observes store; on change, POSTs `{id, key}` to `/api/game-events`.
+  - `/api/game-events` (server) validates and broadcasts via SSE to all connected clients (except sender).
+  - Remote clients receive glyphs via SSE and display them using `RemoteEyes.tsx`.
+- **Camera Position Sharing**:
+  - `useCameraPublisher` hook sends local camera position to `/api/camera` (POST) periodically or on significant movement.
+  - `/api/camera` (server) updates camera state in `sseStore`.
+  - `sseStore` broadcasts updated camera positions (`{id, p, t}`) via `/api/events` (SSE) to all clients.
+  - Remote clients receive camera updates and render them using `RemoteEyes.tsx`.
+  - `sseStore` periodically purges stale camera data.
 
-## Extending the Void
+## Camera System
 
-- To birth new planetoids, alter the genesis in `Scene3D.tsx`.
-- To change the glyphs, edit the `SYMBOLS` array in the glyph components.
+- The user's camera is fixed. Its position is shared with other users.
+- To maintain presence with minimal data, if the camera hasn't moved, only its `id` (as a ping) is sent periodically (every 20 seconds by `useCameraPublisher` as a full position update, or via no-position `setCamera` calls which are currently not implemented client-side for pure pings). The server updates the timestamp, preventing the camera from being purged as stale unless the connection is lost.
 
-## Libraries of the Void
+## Customization
 
-- React Three Fiber
-- Drei
-- Rapier physics
-- Zod
-- Zustand
-- TypeScript
-
-## Camera Logic
-
-The camera is fixed in position and does not follow any object. The view remains static, providing a consistent perspective of the planetary system.
-
----
-
-## Camera Presence and Heartbeat
-
-To keep your eye visible to others, the app now sends a minimal heartbeat (just your id) every 2 seconds if your camera hasn't moved. This avoids unnecessary network traffic and ensures your presence is maintained efficiently. If you move your camera, the full position is sent as before. The backend updates your timestamp on ping, so your eye is not removed from the cluster unless you close the browser or lose connection for an extended period.
+- **Planetoids**: Modify initialization parameters in `Scene3D.tsx`.
+- **Glyphs**: Update the `SYMBOLS` array in `KeyboardDisplay.tsx` and potentially related rendering logic if visual representation changes.

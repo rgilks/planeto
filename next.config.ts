@@ -1,13 +1,17 @@
-import type { NextConfig } from "next";
 import withPWA from "next-pwa";
+
+import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   output: "standalone",
-  /* config options here */
 };
 
-export default withPWA({
+const pwaConfig = {
   dest: "public",
   register: true,
   skipWaiting: true,
-})(nextConfig);
+};
+
+const isDevelopment = process.env.NODE_ENV === "development";
+
+export default isDevelopment ? nextConfig : withPWA(pwaConfig)(nextConfig);
