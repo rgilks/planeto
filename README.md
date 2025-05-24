@@ -8,197 +8,81 @@
   <a href='https://ko-fi.com/N4N31DPNUS' target='_blank'><img height='36' style='border:0px;height:36px;margin-bottom: 20px;' src='https://storage.ko-fi.com/cdn/kofi2.png?v=6' border='0' alt='Buy Me a Coffee at ko-fi.com' /></a>
 </div>
 
-> In the void, a cluster of planetoids drifts. Disembodied eyes hover, exchanging cryptic emerald glyphs. No sun, no orbit, only the silent gaze and the endless, shifting dance of matter and symbol.
+> Planeto is a 3D multiuser application featuring a cluster of planetoids, observable by users represented as "eyes" that can exchange symbols.
 
 ## Features
 
-- Esoteric planetoid cluster, ever-evolving
-- Disembodied eyes, each a silent watcher
-- Glyphic communication: green symbols flicker between entities
-- Procedural textures and shifting forms
-- Arcane controls: zoom, rotate, peer deeper
-- Multiplayer: your glyphs are seen by other eyes, and theirs by you
-- Immutable domain, defined by Zod
-- **Efficient presence:** Eye sends a lightweight ping if it hasn't moved, so your eye remains visible without unnecessary data
+- A procedurally generated cluster of planetoids.
+- Users are represented as "eyes" that can observe the environment.
+- Real-time symbol-based communication between users.
+- Procedurally generated textures and dynamic object forms.
+- Standard camera controls: zoom and rotate.
+- Multiplayer functionality: symbols sent by one user are visible to others.
+- Data integrity enforced by Zod schemas.
+- **Efficient presence:** User "eye" data is transmitted efficiently, sending lightweight pings for idle users to maintain visibility without excessive data transfer.
 
-## The Dance of Matter
+## Physics and Interaction
 
-- All bodies drift, collide, and influence each other in the void
-- Gravity is a hidden hand, unseen but ever-present
-- Collisions are rare, but when they occur, the cluster shudders
+- All celestial bodies drift, collide, and interact within the simulated space.
+- Gravitational forces influence the movement of objects.
+- Collisions, while infrequent, affect the overall planetoid cluster.
 
-## The Stack of Rituals
+## Technology Stack
 
 - Next.js (App Router, TypeScript)
 - React Three Fiber (@react-three/fiber)
 - Drei (@react-three/drei)
 - Rapier physics (@react-three/rapier)
-- Zod (domain model)
-- Zustand (state management)
+- Zod (for domain modeling)
+- Zustand (for state management)
 
-## To Enter the World
+## Getting Started
 
 ```sh
 npm install
 npm run dev
 ```
 
-Open your portal: [http://localhost:3000](http://localhost:3000)
+Open your browser and navigate to: [http://localhost:3000](http://localhost:3000)
 
-## The Structure of the Void
+## Available Scripts
 
-Behold the lattice of the void, where every glyph and watcher finds its place:
+- `npm run dev`: Starts the development server.
+- `npm run build`: Builds the application for production.
+- `npm run start`: Starts the production server.
+- `npm run lint`: Lints the codebase for potential errors.
+- `npm run check`: Runs formatting, linting, type-checking, and tests.
 
-```mermaid
-flowchart LR
-    subgraph PlanetoProject [planeto/]
-        direction LR
-        subgraph SrcDir [src/]
-            direction TB
-            subgraph AppDir [app/]
-                direction TB
-                AppPage[page.tsx] --> SceneComp
-                Layout[layout.tsx]
+## Customization
 
-                subgraph ApiDir [api/]
-                    direction TB
-                    EventsApi[events/route.ts] --> ServerLogic[/sseStore.ts/]
-                end
-
-                subgraph ComponentsDir [components/]
-                    direction TB
-                    SceneComp[Scene.tsx] --> CanvasContent
-                    CanvasContent --> EyesComp
-                    CanvasContent --> PlanetComp
-                    CanvasContent --> OrbitControls
-                    EyesComp[Eyes.tsx]
-                    SymbolDisplayComp[SymbolDisplay.tsx]
-                    PlanetComp[Planet.tsx]
-                end
-            end
-
-            subgraph DomainDir [domain/]
-                direction TB
-                DomainIndex[index.ts \n(Zod Schemas, SYMBOLS)]
-            end
-
-            subgraph HooksDir [hooks/]
-                direction TB
-                EventSourceHook[useEventSource.ts]
-                InputThrottleHook[useInputThrottle.ts]
-                PhysicsSimHook[usePhysicsSimulation.ts]
-                PlanetDataHook[usePlanetData.ts]
-                EyeReportHook[useEyePositionReporting.ts]
-                EyesHook[useEyes.ts]
-            end
-
-            subgraph StoresDir [stores/]
-                direction TB
-                EventStore[eventStore.ts]
-                EyeStore[eyeStore.ts]
-                EyesVisualStore[eyesStore.ts \n(Visual Animation State)]
-                SymbolStore[symbolStore.ts]
-            end
-
-            subgraph LibDir [lib/]
-                direction TB
-                Utils[utils.ts \n(e.g., generateBumpMap)]
-            end
-        end
-
-        Readme[README.md]
-        PackageJson[package.json]
-        NextConfig[next.config.ts]
-        Dockerfile[Dockerfile]
-        FlyToml[fly.toml]
-        TsConfig[tsconfig.json]
-
-        subgraph DocsDir [docs/]
-            direction TB
-            TechOverview[technical-overview.md]
-            RealtimeComm[realtime-communication.md]
-            ApiDoc[api.md]
-            DeploymentDoc[deployment-flyio.md]
-            EyesDoc[remote-eyes-component.md]
-            CameraDoc[camera-setup.md]
-            E2EDoc[e2e-testing.md]
-            SSEServerDoc[sse-store.md]
-        end
-    end
-
-    %% Relationships
-    SceneComp --> PlanetDataHook
-    SceneComp --> PhysicsSimHook
-    SceneComp --> InputThrottleHook
-    SceneComp --> EventSourceHook
-    SceneComp --> SymbolStore
-    CanvasContent --> EyeReportHook
-    EyesComp --> EyesHook
-    EyesComp --> SymbolStore
-    EyesComp --> EyesVisualStore
-    EyesHook --> EventStore
-    EyesHook --> EyeStore
-    EventSourceHook --> EventStore
-    EventSourceHook --> SymbolStore %% For incoming remote symbols
-    EventSourceHook --> EyeStore %% For incoming remote eye updates
-    EventsApi --> DomainIndex
-    SymbolStore --> DomainIndex
-    PlanetDataHook --> Utils
-    EyeReportHook --> EventsApi
-    %% Symbol trigger/display flow
-    SceneComp -.-> SymbolStore %% onDblClick updates lastInput
-    SymbolDisplayComp -.-> SymbolStore %% reads lastInput
-    InputThrottleHook -.-> EventsApi %% sends throttled symbol event
-
-    %% Data flow for remote eyes visual
-    EventsApi -- EyeUpdateEvent --> EventSourceHook
-    EventSourceHook -- EyeUpdateEvent --> EyeStore
-    EyesHook -- reads --> EyeStore
-    EyesComp -- uses data from --> EyesHook
-    EyesComp -- uses visual state from --> EyesVisualStore
-    EyesVisualStore -- syncs with data from --> EyesHook
-```
-
-_The void is deep. The structure is ever-shifting, but this is its current form._
-
-## Ritual Scripts
-
-- `npm run dev`: Open the portal
-- `npm run build`: Prepare the world for others
-- `npm run start`: Begin the ritual in production
-- `npm run lint`: Seek out impurities
-- `npm run check`: All-seeing check: format, lint, type, and test
-
-## Extending the Mystery
-
-- To birth new planetoids, alter the genesis logic in `src/hooks/usePlanetData.ts`.
-- To change the glyphs, edit the `SYMBOLS` array in `src/domain/index.ts` (or the file where `SYMBOLS` is defined within `src/domain/`).
+- To modify the generation of planetoids, adjust the logic in `src/hooks/usePlanetData.ts`.
+- To change the available symbols, edit the `SYMBOLS` array, likely located in a file within `src/domain/`.
 
 ## License
 
-MIT (for those who care for such things)
+MIT
 
-## Notes from the Void
+## Application Notes
 
-- The gaze is fixed. There is no sun. There is no center. Only the cluster and the eyes.
+- The application simulates a space environment without a central star or fixed point of reference. The focus is on the planetoid cluster and user interactions.
 
-## Glyphic Exchange
+## Symbol Exchange
 
-When a watcher double-clicks, a vast green glyph (from an alien alphabet) appears in the bottom-right of their screen. This glyph is not the key, but a symbol mapped from a randomly chosen one. Only the glyphs of other eyes are seen in the void; your own glyph is for your gaze alone. Glyphs are broadcast instantly to all who watch.
+When a user double-clicks, a large green symbol (from a predefined set) appears in the bottom-right of their screen. This symbol is chosen randomly. Users can see symbols generated by others in the 3D space; their own symbol is only visible on their local interface. Symbols are broadcast to all connected users in real-time.
 
-- State: Zustand (`src/stores/symbolStore.ts`)
-- Schema: Zod (`src/domain/index.ts` or relevant file within `src/domain/`)
-- Trigger: `src/app/components/Scene.tsx` (onDoubleClick event)
-- Manifestation: `src/app/components/SymbolDisplay.tsx` (your glyph), `src/app/components/Eyes.tsx` (others' glyphs)
-- To alter the glyphs or their color, change the relevant components.
+- State Management: Zustand (`src/stores/symbolStore.ts`)
+- Schema Definition: Zod (likely in `src/domain/index.ts` or a similar file within `src/domain/`)
+- Event Trigger: `src/app/components/Scene.tsx` (onDoubleClick event)
+- Symbol Display: `src/app/components/SymbolDisplay.tsx` (for the local user's symbol), `src/app/components/Eyes.tsx` (for other users' symbols)
+- To modify the symbols or their appearance, update the relevant components.
 
 ---
 
-### Efficient Real-Time Communication (Eye & Events)
+### Efficient Real-Time Communication (User Positions & Events)
 
-This project uses Server-Sent Events (SSE) to share eye positions and game events (like symbol inputs) in near real-time among all connected users. Significant effort has been made to minimize bandwidth and server load:
+This project uses Server-Sent Events (SSE) to share user positions and game events (like symbol inputs) in near real-time among all connected users. Significant effort has been made to minimize bandwidth and server load:
 
-- **Eye Presence**: Your eye's position is sent to the server when you first connect and then periodically when it changes (throttled by `useEyePositionReporting`). If your eye remains idle, its data is automatically purged from the server after a period of inactivity (e.g., 30 seconds as configured in `useEyes.ts` and server-side logic) to keep the active user list fresh. If you move again, your eye will reappear to others.
+- **User Presence**: A user's position is sent to the server upon initial connection and then periodically when it changes (throttled by `useEyePositionReporting`). If a user remains idle, their data is automatically purged from the server after a period of inactivity (e.g., 30 seconds, configurable in `useEyes.ts` and server-side logic) to maintain an accurate list of active users. If the user moves again, their representation will reappear to others.
 - **Symbol Events**: Symbol events are triggered by specific actions (e.g., double-click) and are throttled by `useInputThrottle` before transmission.
 
 For a detailed technical explanation of the real-time architecture and bandwidth optimization strategies, please see [`docs/realtime-communication.md`](./docs/realtime-communication.md).
