@@ -54,13 +54,16 @@ flowchart LR
     A[planeto/] --> B[src/]
     B --> C[app/]
     C --> C1[api/]
-    C1 --> C11[camera/route.ts]
     C1 --> C12[events/route.ts]
-    C1 --> C13[game-events/route.ts]
     C --> C2[components/]
+    C2 --> C2s[scene3d/]
+    C2s --> C2s1[Moon.tsx]
+    C2s --> C2s2[usePlanetData.ts]
+    C2s --> C2s3[usePhysicsSimulation.ts]
+    C2s --> C2s4[utils.tsx]
     C2 --> C21[KeyboardDisplay.tsx]
     C2 --> C22[RemoteEyes.tsx]
-    C2 --> C23[Scene3D.tsx]
+    C2 --> C23[Scene3D.tsx] \n(Orchestrates 3D scene, \nuses hooks for data & physics)
     C2 --> C24[useCameraPublisher.ts]
     C2 --> C25[useRemoteCameras.ts]
     C --> C3[globals.css]
@@ -85,8 +88,8 @@ _The void is deep. The structure is ever-shifting, but this is its current form.
 
 ## Extending the Mystery
 
-- To birth new planetoids, alter the genesis logic in `Scene3D.tsx`
-- To change the glyphs, edit the `SYMBOLS` array in `src/app/components/KeyboardDisplay.tsx` and `src/app/components/RemoteEyes.tsx`
+- To birth new planetoids, alter the genesis logic in `src/app/components/scene3d/usePlanetData.ts`.
+- To change the glyphs, edit the `SYMBOLS` array in `src/lib/domain/keyboard.ts`.
 
 ## License
 
