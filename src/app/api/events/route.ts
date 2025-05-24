@@ -3,8 +3,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { EventSchema } from "@/lib/domainTypes";
 import { broadcast, setCamera, subscribe, unsubscribe } from "@/lib/sseStore";
 
-export const runtime = "nodejs";
-
 export const GET = async () => {
   const encoder = new TextEncoder();
   let writer: { write: (data: string) => void; closed: boolean };

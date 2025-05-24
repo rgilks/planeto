@@ -26,7 +26,7 @@ Currently, there are three main E2E test suites:
 
 This suite focuses on core application functionality related to real-time events and state management, including multi-user scenarios:
 
-- **Original Single User Test**:
+- **Single User Test**:
   - Verifies the application page loads and has the correct title (`/`).
   - Checks that a client can successfully POST camera data to the `/api/events` endpoint.
   - Ensures the client-side `EventSource` connection to `/api/events` is established upon page load.
@@ -60,9 +60,11 @@ This suite directly tests the `/api/events` POST endpoint for resilience against
 This suite is responsible for visual regression testing. It ensures the application's UI remains consistent.
 
 - Navigates to the main page (`/`).
-- Waits for a specific duration to allow animations or initial rendering to complete.
-- Takes a full-page screenshot. Playwright will compare this against a previously approved snapshot. If differences are detected, the test will fail, prompting a review of the visual changes.
+- Waits for a specific duration (3 seconds) to allow animations or initial rendering to complete.
+- Takes a full-page screenshot and saves it to `screenshots/loaded.png`. This allows for manual or external comparison for visual consistency.
 - Verifies that the main `canvas` element (used for the 3D scene) is visible.
+
+Note: For automated visual regression testing where Playwright compares the screenshot against a previously approved baseline image and fails the test on pixel differences, one would typically use an assertion like `await expect(page).toHaveScreenshot('loaded.png');`. The current test provides the screenshot for review.
 
 ## Key Testing Strategies
 

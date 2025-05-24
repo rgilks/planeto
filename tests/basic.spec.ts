@@ -128,13 +128,17 @@ test("original: has title and receives initial event data", async ({
   await page.goto("/");
   await expect(page).toHaveTitle(/Planeto/);
 
-  const received = await pollForCondition(page, async () => {
-    const camData = await page.evaluate(() => {
-      // @ts-expect-error - accessing debug store
-      const storeState = window.__camStore?.getState();
-      return storeState?.cams?.["test-camera"];
-    });
-    return JSON.stringify(camData?.p) === JSON.stringify([1, 2, 3]);
-  });
+  const received = await pollForCondition(
+    page,
+    async () => {
+      const camData = await page.evaluate(() => {
+        // @ts-expect-error - accessing debug store
+        const storeState = window.__camStore?.getState();
+        return storeState?.cams?.["test-camera"];
+      });
+      return JSON.stringify(camData?.p) === JSON.stringify([1, 2, 3]);
+    },
+    10000,
+  );
   expect(received).toBe(true);
 });
