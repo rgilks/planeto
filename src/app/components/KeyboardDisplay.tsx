@@ -1,10 +1,12 @@
 import { useKeyboardStore } from "../../lib/store/keyboardStore";
 
 const GREEN = "#00FF41";
+
 const SYMBOLS =
   "☉☯☢☣☠☮☭☽☾☿♀♁♂♃♄♅♆♇♈♉♊♋♌♍♎♏♐♑♒♓♔♕♖♗♘♙♚♛♜♝♞♟♠♣♥♦♪♫☀☁☂☃☄★☆☇☈☉☊☋☌☍☎☏☑☒☓☚☛☜☝☞☟☠☡☢☣☤☥☦☧☨☩☪☫☬☭☮☯☸☹☺☻☼☽☾☿♀♁♂♃♄♅♆♇".split(
     "",
   );
+
 const getSymbol = (key: string) => {
   const code = key.codePointAt(0) || 0;
   return SYMBOLS[code % SYMBOLS.length];
