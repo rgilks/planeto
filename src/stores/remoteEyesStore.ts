@@ -9,7 +9,7 @@ import {
   INITIAL_SCALE,
   TARGET_SCALE,
   FADE_DURATION,
-} from "@/lib/domain/eye";
+} from "@/lib/domain";
 
 type RemoteEyesState = {
   managedEyes: Record<string, EyeState>;

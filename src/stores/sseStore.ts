@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { CameraUpdateType, EventType, Vec3Schema } from "@/lib/domainTypes";
+import { CameraUpdateType, EventType, Vec3Schema } from "@/lib/domain";
 
 export type Vec3 = z.infer<typeof Vec3Schema>;
 

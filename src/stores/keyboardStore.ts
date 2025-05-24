@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 
-import { KeyboardInput } from "@/lib/domain/keyboard";
+import { KeyboardInput } from "@/lib/domain";
 
 type RemoteKey = { key: string; ts: number };
 

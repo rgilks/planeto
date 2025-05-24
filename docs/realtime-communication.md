@@ -12,7 +12,7 @@ This document outlines Planeto's real-time communication architecture, designed 
   - Maintains a set of active SSE subscribers (`subs`).
   - Broadcasts received and processed events to all subscribers.
   - Periodically purges stale camera data.
-- **Event Schemas (`src/lib/domainTypes.ts`)**: Zod schemas define the structure for `CameraUpdateEvent` and `KeyboardEvent`.
+- **Event Schemas (`src/lib/domain.ts`)**: Zod schemas define the structure for `CameraUpdateEvent` and `KeyboardEvent`.
 
 ## Event Flows
 
@@ -89,7 +89,7 @@ For applications where minimizing latency is the absolute top priority (over cos
 
 - **API Route**: `src/app/api/events/route.ts`
 - **Server State/SSE Logic**: `src/lib/sseStore.ts`
-- **Event Definitions**: `src/lib/domainTypes.ts`
+- **Event Definitions**: `src/lib/domain.ts`
 - **Camera Publishing (Client)**: `src/app/components/useCameraPublisher.ts`
 - **Camera Receiving (Client)**: `src/app/components/useRemoteCameras.ts` & `src/lib/store/camStore.ts` (implicitly, via `useRemoteCameras`)
 - **Keyboard Logic (Client)**: `src/app/components/Scene3D.tsx`, `src/lib/store/keyboardStore.ts`

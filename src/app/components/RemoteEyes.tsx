@@ -5,7 +5,7 @@ import { useRef, useEffect, useMemo } from "react";
 import { Mesh, Vector3, Group, TextureLoader, ShaderMaterial } from "three";
 
 import { useRemoteCameras } from "../../hooks/useRemoteCameras";
-import { SYMBOLS } from "../../lib/domain/keyboard";
+import { SYMBOLS } from "../../lib/domain";
 import { useKeyboardStore } from "../../stores/keyboardStore";
 import { useRemoteEyesStore } from "../../stores/remoteEyesStore";
 

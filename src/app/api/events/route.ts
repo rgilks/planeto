@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { EventSchema } from "@/lib/domainTypes/event";
+import { EventSchema } from "@/lib/domain";
 import {
   broadcast,
   setCamera,

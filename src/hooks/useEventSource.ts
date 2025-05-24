@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 
-import { EventSchema } from "../lib/domainTypes/event";
+import { EventSchema } from "../lib/domain";
 import { useKeyboardStore } from "../stores/keyboardStore";
 
 import type { State as KeyboardState } from "../stores/keyboardStore";

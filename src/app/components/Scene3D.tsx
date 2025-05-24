@@ -10,7 +10,7 @@ import { useEventSource } from "@/hooks/useEventSource";
 import { useInputThrottle } from "@/hooks/useInputThrottle";
 import { usePhysicsSimulation } from "@/hooks/usePhysicsSimulation";
 import { usePlanetData } from "@/hooks/usePlanetData";
-import { SYMBOLS } from "@/lib/domain/keyboard";
+import { SYMBOLS } from "@/lib/domain";
 import { generateBumpMap } from "@/lib/utils";
 import { useKeyboardStore } from "@/stores/keyboardStore";
 import { CameraPublisher } from "@components/CameraPublisher";

@@ -2,7 +2,7 @@ import { useEffect, RefObject } from "react";
 
 import { G } from "@/hooks/usePlanetData";
 
-import type { Planet } from "@/lib/domainTypes/planet";
+import type { Planet } from "@/lib/domain";
 import type { RapierRigidBody } from "@react-three/rapier";
 
 type RigidBodyRef = RefObject<RapierRigidBody | null>;

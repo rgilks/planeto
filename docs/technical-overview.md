@@ -42,7 +42,7 @@ The physics simulation for planetoids is handled client-side using Rapier and re
   - Handles `POST` requests for incoming `KeyboardEvent` and `CameraUpdateEvent` data.
   - Manages `GET` requests for establishing Server-Sent Event (SSE) connections.
 - **`src/lib/sseStore.ts`**: Server-side logic for managing SSE subscribers and storing/broadcasting camera state.
-- **`src/lib/domainTypes.ts`**: Zod schemas defining `KeyboardEvent` and `CameraUpdateEvent` structures.
+- **`src/lib/domain.ts`**: Zod schemas defining `KeyboardEvent` and `CameraUpdateEvent` structures.
 
 ## Data Flow Summaries
 

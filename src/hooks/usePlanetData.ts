@@ -10,7 +10,7 @@ import {
   seededRandom,
 } from "@/lib/utils";
 
-import type { Planet, Moon as MoonType } from "@/lib/domainTypes/planet";
+import type { Planet, Moon as MoonType } from "@/lib/domain";
 
 export const G = 1;
 
