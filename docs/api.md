@@ -7,7 +7,6 @@ This document outlines the API endpoints for the Planeto application. The event 
 All real-time events are handled through a single set of endpoints:
 
 - **`POST /api/events`**: This endpoint is used to send event data to the server.
-
   - For `eyeUpdate` events, the server updates its internal state for the given eye ID and then broadcasts the event to subscribed clients.
   - For `symbol` events, the server directly broadcasts the event to subscribed clients.
 

@@ -30,7 +30,6 @@ Key settings in `fly.toml` include:
 - **`primary_region = 'lhr'`**: Specifies the primary region where the application will be deployed (e.g., London).
 
 - **`[http_service]` section**: Configures how HTTP traffic is handled.
-
   - `internal_port = 3000`: The port inside the Docker container where the Next.js application listens.
   - `force_https = true`: Automatically redirects HTTP requests to HTTPS.
   - `auto_stop_machines = 'stop'` and `auto_start_machines = true`: These are crucial for cost-saving. Machines will stop when idle and automatically restart when a new request comes in. `'stop'` suspends the VM for a faster resume compared to `'off'` which terminates it.
