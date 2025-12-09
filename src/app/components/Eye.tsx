@@ -1,6 +1,5 @@
 "use client";
 import { Text } from "@react-three/drei";
-import React from "react";
 import { Group, Vector3 } from "three";
 
 import { SYMBOLS } from "@/domain";
