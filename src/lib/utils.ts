@@ -86,6 +86,13 @@ export const generateBumpMap = (): THREE.Texture | null => {
   return texture;
 };
 
+// Parse "rgb(r,g,b)" (as produced by THREE.Color.getStyle via blendColor) into
+// its byte components — writes pixels identically to filling with that style.
+const parseRgb = (rgb: string): [number, number, number] => {
+  const m = rgb.match(/\d+/g);
+  return m ? [Number(m[0]), Number(m[1]), Number(m[2])] : [255, 255, 255];
+};
+
 export const generateColorMap = (
   seed: number,
   baseColor: string,
@@ -107,6 +114,10 @@ export const generateColorMap = (
     }
     return new THREE.CanvasTexture(white);
   }
+  // Write straight into one ImageData and blit once, rather than ~16k
+  // per-pixel fillRect calls. The pixel bytes are identical to the old path.
+  const image = ctx.createImageData(size, size);
+  const data = image.data;
   for (let y = 0; y < size; y++) {
     for (let x = 0; x < size; x++) {
       const nx = x / size - 0.5;
@@ -123,11 +134,15 @@ export const generateColorMap = (
       let t = (n + 1) * 0.5;
       const band = Math.abs(Math.sin(ny * Math.PI * 6 + seed));
       t = t * 0.7 + band * 0.3;
-      const color = blendColor(baseColor, altColor, t);
-      ctx.fillStyle = color;
-      ctx.fillRect(x, y, 1, 1);
+      const [r, g, b] = parseRgb(blendColor(baseColor, altColor, t));
+      const i = (y * size + x) * 4;
+      data[i] = r;
+      data[i + 1] = g;
+      data[i + 2] = b;
+      data[i + 3] = 255;
     }
   }
+  ctx.putImageData(image, 0, 0);
   return new THREE.CanvasTexture(canvas);
 };
 

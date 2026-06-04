@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { useEventStore } from "@/stores/eventStore";
 import { useSymbolStore } from "@/stores/symbolStore";
 
-import type { SymbolEventType } from "@/domain/event"; // Ensure path and type name are correct
+import type { SymbolEventType } from "@/domain/event";
 import type { State as SymbolState } from "@/stores/symbolStore";
 
 export const useEventSource = (myId: React.RefObject<string>) => {

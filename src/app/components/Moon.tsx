@@ -1,4 +1,5 @@
-import { useRef, useEffect } from "react";
+import { useFrame } from "@react-three/fiber";
+import { useRef } from "react";
 import * as THREE from "three";
 
 import type { Moon as MoonType } from "@/domain";
@@ -6,21 +7,15 @@ import type { Moon as MoonType } from "@/domain";
 export const Moon = ({ moon }: { moon: MoonType }) => {
   const ref = useRef<THREE.Mesh>(null);
 
-  useEffect(() => {
-    let frame: number;
-    const animate = () => {
-      if (ref.current) {
-        const t = performance.now() * 0.0002;
-        const angle = t * moon.orbitSpeed + moon.phase;
-        ref.current.position.x = Math.cos(angle) * moon.orbitRadius;
-        ref.current.position.y = Math.sin(angle) * moon.orbitRadius;
-        ref.current.position.z = 0;
-      }
-      frame = requestAnimationFrame(animate);
-    };
-    frame = requestAnimationFrame(animate);
-    return () => cancelAnimationFrame(frame);
-  }, [moon]);
+  // Kinematic orbit on the shared R3F clock (elapsedTime * 0.2 matches the old
+  // performance.now() * 0.0002), so all moons ride one frame loop.
+  useFrame(({ clock }) => {
+    if (!ref.current) return;
+    const angle = clock.elapsedTime * 0.2 * moon.orbitSpeed + moon.phase;
+    ref.current.position.x = Math.cos(angle) * moon.orbitRadius;
+    ref.current.position.y = Math.sin(angle) * moon.orbitRadius;
+    ref.current.position.z = 0;
+  });
 
   return (
     <mesh ref={ref} castShadow receiveShadow>

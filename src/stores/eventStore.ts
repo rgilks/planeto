@@ -132,10 +132,12 @@ export const useEventStore = create<EventStoreState & EventStoreActions>()(
 
     _handleError: (event: Event) => {
       console.error("EventSource encountered an error:", event);
+      // Keep the instance: the browser auto-reconnects the EventSource (with
+      // backoff). Nulling it here would orphan that reconnecting stream and let
+      // the connect-on-disconnect effects open a duplicate.
       set((state) => {
         state.lastError = "EventSource connection error";
         state.isConnected = false;
-        state.eventSourceInstance = null;
       });
     },
   })),

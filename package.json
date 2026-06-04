@@ -24,8 +24,6 @@
     "test:e2e:watch": "playwright test --watch"
   },
   "dependencies": {
-    "@dimforge/rapier3d": "^0.19.3",
-    "@dimforge/rapier3d-compat": "^0.19.3",
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.4.2",
     "@react-three/postprocessing": "^3.0.4",

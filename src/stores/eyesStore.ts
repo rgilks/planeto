@@ -8,7 +8,7 @@ import {
   INITIAL_SCALE,
   TARGET_SCALE,
   FADE_DURATION,
-} from "@/domain/eye"; // Assuming path, adjust if necessary
+} from "@/domain/eye";
 
 type EyesState = {
   managedEyes: Record<string, EyeState>;

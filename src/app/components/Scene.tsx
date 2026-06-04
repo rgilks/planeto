@@ -76,7 +76,8 @@ const Scene = () => {
   const [bumpMaps, setBumpMaps] = useState<THREE.Texture[] | null>(null);
   const planets = usePlanetData(bumpMaps);
   const planetRefs = useRef<RigidBodyRef[]>([]);
-  const myId = useRef(nanoid(6));
+  const myId = useRef<string>("");
+  if (!myId.current) myId.current = nanoid(6);
 
   const setLastInput = useSymbolStore((s: SymbolState) => s.setLastInput);
   const disableGravityTemporarily = usePhysicsStore(
