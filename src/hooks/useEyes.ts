@@ -2,13 +2,12 @@
 import { useMemo, useEffect } from "react";
 import { z } from "zod";
 
-import { EyeUpdateType, Vec3Schema } from "@/domain/event"; // Ensure path is correct
+import { EyeUpdateType, Vec3Schema, EYE_STALE_MS } from "@/domain/event";
 import { useEventStore } from "@/stores/eventStore";
 import { useEyeStore } from "@/stores/eyeStore";
 
 type Vec3 = z.infer<typeof Vec3Schema>;
 
-const STALE_THRESHOLD_MS = 30000;
 const CLEANUP_INTERVAL_MS = 5000;
 
 export const useEyes = () => {
@@ -39,7 +38,7 @@ export const useEyes = () => {
 
   useEffect(() => {
     const intervalId = setInterval(() => {
-      removeStaleEyesInStore(STALE_THRESHOLD_MS);
+      removeStaleEyesInStore(EYE_STALE_MS);
     }, CLEANUP_INTERVAL_MS);
 
     return () => {

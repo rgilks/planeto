@@ -104,6 +104,50 @@ tests/                           # Playwright, Chromium only — run against `wr
 
 Unit tests are co-located next to source as `*.test.ts` (Vitest, node env): `src/lib/utils.test.ts`, `src/domain/event.test.ts`, `src/domain/symbol.test.ts`. The `tests/` folder is Playwright e2e only.
 
+## Patterns
+
+The codebase is assembled from a small set of repeated patterns. Reach for the matching one when extending it.
+
+**Boundary & data**
+
+- **Wire schema is the single source of truth.** `src/domain/event.ts` (`EventSchema`) defines the `/api/events` protocol once and is imported _verbatim_ by both the client (`eventStore`) and the Worker/DO (`eventsChannel`). Change a wire shape only here.
+- **Parse at the boundary.** Every inbound network payload is `EventSchema.safeParse`d before use — the DO's POST handler and each inbound SSE frame (`eventStore._handleMessage`). Never touch an unparsed payload.
+- **Shared protocol values live in `src/domain`.** Anything both sides must agree on — the wire schema, the eye-staleness window `EYE_STALE_MS` — is defined once in `src/domain/event.ts` (the worker-safe, dependency-free module) and imported by client and Worker.
+- **Server-authoritative timestamp.** The DO stamps `eyeUpdate.t` with its own `Date.now()` and ignores the client's; staleness is judged by that server clock.
+
+**Client state**
+
+- **One Zustand store per concern** — `create<State & Actions>()(immer(...))`, state fields + action methods, all mutations through Immer (`eventStore`, `eyeStore`, `eyesStore`, `symbolStore`, `physicsStore`).
+- **Raw → animated two-stage pipeline.** Network truth lands in a _raw_ store (`eyeStore`: last `{ p, t }` per id); a _managed_ store (`eyesStore`) derives the animated presentation (appear/visible/disappear lifecycle, position lerp, opacity/scale fade). Keep network truth and presentation state apart.
+- **Single transport owner + pub/sub.** `eventStore` owns the one `EventSource`; features subscribe via `subscribeSymbolEvents` / `subscribeEyeUpdates`, which return unsubscribe functions. Nothing else opens a connection.
+- **Dev-only debug handles.** The network-facing stores expose `window.__<store>` outside production for manual inspection.
+
+**Realtime server**
+
+- **One global Durable Object is "the room"** — `idFromName("global")`, in-memory `eyes` map + `writers` set, evicted when idle.
+- **Replay on subscribe.** A new SSE subscriber is immediately sent every current eye, then live updates.
+- **Lazy purge.** Stale eyes are dropped on access (each subscribe/publish), not by a background timer.
+
+**Composition**
+
+- **Hook per concern.** Each multiplayer/sim concern is one hook wiring stores ↔ effects/timers (`useEyePositionReporting`, `useInputThrottle`, `useEyes`, `useEventSource`, `usePhysicsSimulation`, `usePlanetData`).
+- **Component per celestial body.** One small R3F component per body type (`Planet`, `DarkSun`, `Moon`, `Eye`, `Eyes`, `Symbol`); compose, don't grow `Scene.tsx`.
+- **Throttle / beacon outbound.** Outbound traffic is rate-limited and change-detected — camera position via `navigator.sendBeacon` (`useEyePositionReporting`), symbols via a 100 ms throttle (`useInputThrottle`).
+- **Pure core, unit-tested.** Pure logic (`lib/utils`, the domain schemas) is covered by Vitest; effectful/IO code (the DO, the client wiring) is covered by the Playwright e2e against `wrangler dev`.
+
+### Consistency notes
+
+Minor known deviations — align them when you touch the code:
+
+- Store state/action type names aren't uniform (`eyeStore` uses a lower-case `eyeStoreState`; `eyesStore` uses `EyesState` / `EyesActions` with no `Store` segment). Prefer `<Name>State` / `<Name>Actions`.
+- `src/domain/planet.ts` and `eye.ts` define Zod schemas that are **never `.parse()`d** — they serve only as type sources. Either validate them at a boundary or make them plain `type`s, so "parse at the boundary" stays literally true.
+- A couple of duplicated literals: the symbol colour `#00FF41` (`Eye.tsx` + `Symbol.tsx`) and the ambient-light `0.08` (`Scene.tsx`, twice).
+
+### Patterns to adopt
+
+- **Centralised simulation tuning.** `usePlanetData.ts` carries dozens of inline magic numbers (orbit radii, mass/velocity formulas, atmosphere layers, probabilities). Collect them into one config object — as the sibling `galacto` does with `SimulationParams` — so the knobs live in one place instead of scattered through the generator.
+- **A pure, testable core for the DO.** The event-apply and staleness logic in `worker/eventsChannel.ts` is reachable only through the e2e tests. Extracting the pure parts into functions would let the "pure core, unit-tested" pattern cover the realtime backend too.
+
 ## Conventions
 
 - **TypeScript strict.** Validate anything crossing the network with **Zod** — `EventSchema` in `src/domain/event.ts` guards the DO's POST handler and every inbound SSE frame, and is shared verbatim between the client and the Worker. The other schemas exist for their inferred types.

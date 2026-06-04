@@ -7,10 +7,13 @@
 // Browsers talk to it over the standard /api/events SSE protocol; the
 // EventSchema is reused verbatim from the domain layer.
 
-import { EventSchema, type EyeUpdateType } from "../src/domain/event";
+import {
+  EventSchema,
+  EYE_STALE_MS,
+  type EyeUpdateType,
+} from "../src/domain/event";
 
 const KEEPALIVE_MS = 20_000;
-const EYE_MAX_AGE_MS = 30_000;
 
 const SSE_HEADERS = {
   "content-type": "text/event-stream",
@@ -91,8 +94,8 @@ export class EventsChannel implements DurableObject {
     this.purgeStale();
     const event = parsed.data;
     if (event.type === "eyeUpdate") {
-      // The server stamps the timestamp (used for staleness), matching the old
-      // store — the client's `t` is not trusted.
+      // The server stamps the timestamp (used for staleness); the client's
+      // `t` is not trusted.
       const msg: EyeUpdateType = {
         type: "eyeUpdate",
         id: event.id,
@@ -117,7 +120,7 @@ export class EventsChannel implements DurableObject {
   private purgeStale(): void {
     const now = Date.now();
     for (const [id, eye] of this.eyes) {
-      if (now - eye.t > EYE_MAX_AGE_MS) this.eyes.delete(id);
+      if (now - eye.t > EYE_STALE_MS) this.eyes.delete(id);
     }
   }
 

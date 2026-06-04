@@ -23,3 +23,8 @@ export const EventSchema = z.discriminatedUnion("type", [
   EyeUpdateSchema,
 ]);
 export type EventType = z.infer<typeof EventSchema>;
+
+// Shared protocol constant: an eye is treated as stale (purged on the server,
+// pruned on the client) once it is older than this. The Worker
+// (worker/eventsChannel.ts) and the client (useEyes.ts) must agree on it.
+export const EYE_STALE_MS = 30_000;
