@@ -125,10 +125,6 @@ tests/                           # Playwright, Chromium only
 
 Useful cleanups, none urgent (the app builds, deploys green, and runs):
 
-- **Drop unused dependencies:** `better-sqlite3` (+ `@types/better-sqlite3`), `next-auth`, and `uuid` (+ `@types/uuid`) are not imported anywhere in `src/`; the top-level `immer` is redundant (the stores use `zustand/middleware/immer`, which bundles its own).
-- **Declare `nanoid`** as a direct dependency (`Scene.tsx` imports it but it's only present transitively).
-- **Delete `src/stores/rawEyeDataStore.ts`** — empty stub.
-- **Fix `src/types/global.d.ts`** — it imports `useEyeStore` from `@/hooks/useEyes`, which doesn't export it (the store lives in `@/stores/eyeStore`); the `Window` augmentation is also duplicated across several store files.
 - **De-duplicate `SYMBOLS`** in `src/domain/symbol.ts` — the two concatenated glyph ranges overlap, biasing random selection.
 - **Quiet the logging** in `eventStore.ts` and `api/events/route.ts` (logs on every connect/disconnect/frame; noisy with several tabs open).
 - **No unit tests / no `npm run test`** — sibling repos run Vitest. `lib/utils.ts` and the domain schemas are the obvious first targets. The Playwright suite is also Chromium-only (Firefox/WebKit are commented out in `playwright.config.ts`).
