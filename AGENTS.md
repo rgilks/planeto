@@ -173,7 +173,11 @@ Minor known deviations — align them when you touch the code:
 Useful, none urgent (the app builds, deploys, and runs):
 
 - **PWA offline support** — add a service worker (e.g. via `@serwist/next`) for offline use.
-- **Broaden test coverage** — unit tests (Vitest) cover `lib/utils.ts` and the domain schemas; the Playwright e2e runs Chromium only (Firefox/WebKit are commented out in `playwright.config.ts`).
+- **Broaden test coverage** — unit tests (Vitest) cover `lib/utils.ts` and the domain schemas; the Playwright e2e runs Chromium only (Firefox/WebKit are commented out in `playwright.config.ts`), and e2e is not run in CI.
+- **Rate-limit `/api/events`** — it is a public, unauthenticated write endpoint (anyone can POST eye/symbol events). Fine for a toy, but a possible abuse/cost vector; a per-IP limiter (cf. the sibling `antenna`'s `RateLimiter` Durable Object) would harden it.
+- **Visual-snapshot churn** — `tests/visual-snapshot.spec.ts` overwrites the tracked `screenshots/loaded.png` on every run; point it at a gitignored path (or make it an opt-in baseline) so e2e runs don't dirty the working tree.
+
+Code-level pattern deviations to align when touched are tracked under [Patterns → Consistency notes](#consistency-notes).
 
 ## Docs
 
