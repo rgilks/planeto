@@ -117,21 +117,20 @@ Unit tests are co-located next to source as `*.test.ts` (Vitest, node env): `src
 - Cloudflare Workers via `wrangler.toml`: a single Worker named `planeto` serves the static export (`[assets]` → `./out`) and hosts the `EventsChannel` Durable Object (`EVENTS` binding). Custom domain `planeto.tre.systems`. **Durable Objects require a Workers Paid plan.**
 - Push to `main` triggers `.github/workflows/deploy.yml`: `npm ci` → `verify` → `test:run` → `build` → `wrangler deploy` (`cloudflare/wrangler-action`). Secrets: `CLOUDFLARE_API_TOKEN` + `CLOUDFLARE_ACCOUNT_ID`.
 - Local: `npm run preview` runs the whole stack (`wrangler dev`) on `:3000`; `npm run deploy` ships it.
-- The previous Fly.io deployment is preserved on the **`fly-io`** branch.
 
 ## Gotchas
 
 - **Multiplayer state is one global Durable Object** (`idFromName("global")`) — a single shared room, in memory, evicted when nobody is connected. It is the only stateful piece; everything else is static. If the DO is evicted/restarted, eyes are lost — acceptable, since each client re-reports its position at least every 20 s.
 - **`npm run dev` has no `/api/events`.** The realtime endpoint only exists under the Worker (`wrangler dev` / `npm run preview`). Use that for anything touching multiplayer.
 - **The DO and the client share `src/domain/event.ts`.** Change the wire schema in one place; both pick it up. The Worker imports it relatively (`../src/domain/event`).
-- **No PWA / service worker.** `next-pwa` was dropped in the Cloudflare move; `public/manifest.json` + icons remain (installable, no offline) — see Backlog.
+- **No service worker.** `public/manifest.json` + icons make the app installable, but there is no offline support — see Backlog.
 - Gravity is hand-rolled: `<Physics gravity={[0,0,0]}>` integrates bodies, and `usePhysicsSimulation` applies the forces. Changing one without the other will look wrong.
 
 ## Backlog
 
 Useful, none urgent (the app builds, deploys, and runs):
 
-- **PWA offline support** via `@serwist/next` (the `next-pwa` setup was dropped in the Cloudflare migration).
+- **PWA offline support** — add a service worker (e.g. via `@serwist/next`) for offline use.
 - **Broaden test coverage** — unit tests (Vitest) cover `lib/utils.ts` and the domain schemas; the Playwright e2e runs Chromium only (Firefox/WebKit are commented out in `playwright.config.ts`).
 
 ## Docs

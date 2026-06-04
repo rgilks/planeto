@@ -7,7 +7,7 @@ This document outlines Planeto's real-time communication architecture, designed 
 - **Single API Endpoint (`/api/events`)**:
   - **`POST /api/events`**: Clients send `EyeUpdateEvent` or `SymbolEvent` data to this endpoint.
   - **`GET /api/events`**: Clients establish an SSE connection via `useEventSource` to receive real-time events broadcast by the server.
-- **Server-Side Logic (`src/app/api/events/sseStore.ts`)**: (Or a similar module within `src/app/api/events/`)
+- **Server-Side Logic (`worker/eventsChannel.ts` — the `EventsChannel` Durable Object)**:
   - Manages a map of current eye positions.
   - Maintains a set of active SSE subscribers.
   - Broadcasts received and processed events to all subscribers.
@@ -29,17 +29,16 @@ This document outlines Planeto's real-time communication architecture, designed 
     - If the camera position has changed significantly, the new position is sent.
   - Data is transmitted as an `EyeUpdateEvent` to `POST /api/events` using `fetch`.
 
-**Server-Side Handling (`src/app/api/events/route.ts` & `src/app/api/events/sseStore.ts`)**:
+**Server-Side Handling (the `EventsChannel` Durable Object, `worker/eventsChannel.ts`)**:
 
 - The `POST` handler validates the `EyeUpdateEvent`.
-- The server-side store (e.g., `sseStore.ts`) updates the eye's position and timestamp.
+- The Durable Object updates the eye's position and timestamp.
 - The store then broadcasts the `EyeUpdateEvent` to all connected SSE clients.
 
-**Client-Side Receiving (`src/hooks/useEventSource.ts` & `src/stores/useCamStore.ts`)**:
+**Client-Side Receiving (`src/hooks/useEyes.ts` & `src/stores/eyeStore.ts`)**:
 
-- The `useEventSource` hook (used in `Scene.tsx`) establishes an SSE connection to `GET /api/events`.
-- It listens for `EyeUpdateEvent` messages.
-- Received eye data updates a Zustand store (e.g., `useCamStore.ts` or potentially `useSymbolStore.ts` if consolidated), making remote eye positions available to the UI (e.g., for rendering remote user representations in `Eyes.tsx`).
+- The `useEyes` hook (used in `Eyes.tsx`) subscribes to `eyeUpdate` events from the `eventStore`'s SSE connection.
+- Received eye data updates `eyeStore` (then the animated `eyesStore`), making remote eye positions available to the UI (e.g., for rendering remote user representations in `Eyes.tsx`).
 - Stale eye data might be handled by the server-side purging or client-side logic.
 
 ### 2. Symbol Event Sharing
@@ -53,10 +52,10 @@ This document outlines Planeto's real-time communication architecture, designed 
   - A `SymbolEvent` payload (including a unique client `id` and the `key`) is created.
   - This payload is sent via `fetch` to `POST /api/events` (throttled by `useInputThrottle`).
 
-**Server-Side Handling (`src/app/api/events/route.ts` & `src/app/api/events/sseStore.ts`)**:
+**Server-Side Handling (the `EventsChannel` Durable Object, `worker/eventsChannel.ts`)**:
 
 - The `POST` handler validates the `SymbolEvent`.
-- The server-side store (e.g., `sseStore.ts`) immediately broadcasts the `SymbolEvent` to all connected SSE clients.
+- The Durable Object immediately broadcasts the `SymbolEvent` to all connected SSE clients.
 
 **Client-Side Receiving (`src/hooks/useEventSource.ts` & `src/stores/symbolStore.ts`)**:
 
@@ -82,10 +81,10 @@ Alternative technologies like WebSockets might be considered for applications re
 
 ## Key Files Summary
 
-- **API Route**: `src/app/api/events/route.ts`
-- **Server State/SSE Logic**: `src/app/api/events/sseStore.ts` (or similar within the API directory)
+- **Worker entry**: `worker/index.ts`
+- **Server State/SSE Logic**: `worker/eventsChannel.ts` (the `EventsChannel` Durable Object)
 - **Event Definitions**: `src/domain/index.ts`
 - **Eye Publishing (Client)**: `src/hooks/useEyePositionReporting.ts`
 - **Symbol Input Throttling (Client)**: `src/hooks/useInputThrottle.ts`
 - **SSE Event Handling (Client)**: `src/hooks/useEventSource.ts`
-- **Client State Management**: `src/stores/symbolStore.ts`, `src/stores/useCamStore.ts` (verify `useCamStore` usage)
+- **Client State Management**: `src/stores/symbolStore.ts`, `src/stores/eyeStore.ts`, `src/stores/eyesStore.ts`

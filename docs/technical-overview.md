@@ -51,14 +51,14 @@ The physics simulation for planetoids is handled client-side using Rapier and re
   - `SymbolDisplay` (in `src/app/components/Symbol.tsx`) observes this store and shows the corresponding symbol locally.
 - **Symbol Event Broadcasting & Remote Display**:
   - `Scene.tsx` (specifically, its `onDoubleClick` handler, or a dedicated mechanism) observes `lastInput` from `useSymbolStore`. On change, it POSTs a `SymbolEvent` (containing user ID and key) to `/api/events`.
-  - The server (`/api/events/route.ts`) validates and broadcasts this event via SSE to all connected clients, likely using helper functions from `sseStore.ts` or an equivalent module.
+  - The `EventsChannel` Durable Object validates and broadcasts this event via SSE to all connected clients.
   - Remote clients receive these `SymbolEvent`s via their SSE connection managed by `useEventSource` (used in `Scene.tsx`).
   - `useSymbolStore` on remote clients is updated with the key press from the other user.
   - `Eyes.tsx` on remote clients observes `useSymbolStore` (or relevant parts of it related to remote users) and displays the received symbol near the originating user's eye representation.
 - **Eye Position Sharing**:
   - The `useEyePositionReporting` hook (used within `CanvasContent` in `Scene.tsx`, located in `src/hooks/`) sends the local camera's position as an `EyeUpdateEvent` to `/api/events` (POST). This occurs periodically.
-  - The server (`/api/events/route.ts`) validates the event and uses `sseStore.ts` (or equivalent) to update its record of that user's eye position and timestamp.
-  - `sseStore.ts` (or equivalent) then broadcasts the `EyeUpdateEvent` via SSE to all clients.
+  - The `EventsChannel` Durable Object validates the event and updates its record of that user's eye position and timestamp.
+  - The Durable Object then broadcasts the `EyeUpdateEvent` via SSE to all clients.
   - Remote clients receive these updates and write them into `eyeStore` (raw positions), which feeds `eyesStore` (the animated "managed" eyes) that `Eyes.tsx` consumes to position the visual representations of remote users.
   - The server-side store periodically purges stale eye data.
 

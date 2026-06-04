@@ -96,7 +96,7 @@ For details on the 3D camera setup, see [`docs/camera-setup.md`](./docs/camera-s
 
 ## Web App Manifest
 
-The app ships a web app manifest (`public/manifest.json`) and icons (`public/icons/`), so it can be installed to a device home screen. There is no service worker / offline support at present — the previous `next-pwa` setup was dropped in the move to a static export on Cloudflare.
+The app ships a web app manifest (`public/manifest.json`) and icons (`public/icons/`), so it can be installed to a device home screen. There is no service worker or offline support.
 
 ## Deployment on Cloudflare
 
@@ -113,9 +113,7 @@ The app deploys to Cloudflare Workers: a single Worker serves the static export 
 npm run deploy   # next build, then wrangler deploy
 ```
 
-Pushes to `main` deploy automatically via `.github/workflows/deploy.yml`, which needs the `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` repository secrets. Run the whole stack locally with `npm run preview`.
-
-The previous Fly.io deployment is preserved on the `fly-io` branch.
+Pushes to `main` deploy automatically via `.github/workflows/deploy.yml`, which authenticates with the `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` secrets. Run the whole stack locally with `npm run preview`.
 
 ### API Endpoints
 

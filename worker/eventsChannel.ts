@@ -4,9 +4,8 @@
 // eye/symbol events to every connected browser. State is purely in-memory — once
 // all browsers close their EventSource the DO can be evicted.
 //
-// This is the Cloudflare-native replacement for the former in-process
-// src/app/api/events/sseStore.ts. The client and the /api/events wire protocol
-// are unchanged; the EventSchema is reused verbatim from the domain layer.
+// Browsers talk to it over the standard /api/events SSE protocol; the
+// EventSchema is reused verbatim from the domain layer.
 
 import { EventSchema, type EyeUpdateType } from "../src/domain/event";
 

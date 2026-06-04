@@ -1,6 +1,6 @@
 # Event Store (`worker/eventsChannel.ts`)
 
-The `EventsChannel` Durable Object holds Planeto's shared multiplayer state and fans out Server-Sent Events (SSE) to every connected browser. A single global instance (`idFromName("global")`) is the whole "room". It is the Cloudflare-native successor to the former in-process `sseStore`; the client and the `/api/events` wire protocol are unchanged.
+The `EventsChannel` Durable Object holds Planeto's shared multiplayer state and fans out Server-Sent Events (SSE) to every connected browser. A single global instance (`idFromName("global")`) is the whole "room". Browsers connect to it over the standard `/api/events` SSE protocol.
 
 The Worker (`worker/index.ts`) forwards `/api/events` to this DO: a `GET` becomes the DO's `/subscribe`, a `POST` becomes `/publish`.
 
