@@ -37,6 +37,12 @@
 - Zustand (for state management)
 - Cloudflare Workers + Durable Objects (static hosting and the real-time backend)
 
+## Architecture
+
+![Planeto system overview](docs/diagrams/system-overview.png)
+
+A static WebGL client served by a single Cloudflare Worker, which routes `/api/events` to one global `EventsChannel` Durable Object — the multiplayer "room". See [AGENTS.md](AGENTS.md) for the full code map and [docs/diagrams/](docs/diagrams/README.md) for the diagram sources.
+
 ## Getting Started
 
 ```sh

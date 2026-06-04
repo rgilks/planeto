@@ -42,6 +42,7 @@ npm run test:e2e     # playwright only (runs against `wrangler dev` via the prev
 
 npm run deps         # npm-check-updates (report)
 npm run nuke         # rm node_modules + lockfile + .next + out, reinstall
+npm run diagrams     # render docs/diagrams/*.dot → PNG (needs Graphviz)
 ```
 
 **Before committing, run `npm run verify`** (and `npm run test:run` for anything non-trivial). CI (`.github/workflows/deploy.yml`) runs `npm run verify` + `npm run test:run` + build, then `wrangler deploy`, on every push to `main`. The Playwright e2e suite runs locally (via `npm run check` or `npm run test:e2e`), not in CI.
@@ -49,6 +50,8 @@ npm run nuke         # rm node_modules + lockfile + .next + out, reinstall
 Anything touching multiplayer needs the Worker + DO, so use `npm run preview` (or `npm run check`) — plain `next dev` has no `/api/events`.
 
 ## Architecture & code map
+
+![System overview](docs/diagrams/system-overview.png)
 
 **Runtime data flow.** The client renders the planet cluster in an R3F `Canvas` and runs the gravity simulation locally. Multiplayer is a thin presence layer over `/api/events`:
 
@@ -184,6 +187,7 @@ Code-level pattern deviations to align when touched are tracked under [Patterns 
 Docs describe the current state in the present tense; keep history in git, not in docs. The `docs/` folder:
 
 - [technical-overview.md](docs/technical-overview.md) — high-level architecture summary.
+- [diagrams/](docs/diagrams/README.md) — the Graphviz system overview + a Mermaid round-trip sequence.
 - [realtime-communication.md](docs/realtime-communication.md) — the SSE design and bandwidth optimisation.
 - [sse-store.md](docs/sse-store.md) — the server-side event store (the `EventsChannel` Durable Object).
 - [remote-eyes-component.md](docs/remote-eyes-component.md) — how `Eyes.tsx` visualises other users.

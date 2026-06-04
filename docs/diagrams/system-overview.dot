@@ -1,0 +1,147 @@
+digraph SystemOverview {
+  graph [
+    rankdir=TB,
+    bgcolor="#ffffff",
+    pad="0.55",
+    nodesep="0.55",
+    ranksep="0.85",
+    splines=polyline,
+    outputorder=edgesfirst,
+    compound=true,
+    newrank=true,
+    forcelabels=true,
+    fontname="Avenir",
+    label=<
+      <TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="0">
+        <TR><TD><FONT POINT-SIZE="34"><B>Planeto — System Overview</B></FONT></TD></TR>
+      </TABLE>
+    >,
+    labelloc=t,
+    labeljust=c
+  ];
+
+  node [
+    shape=box,
+    style="rounded,filled",
+    margin="0.21,0.13",
+    width=3.05,
+    height=0.74,
+    fixedsize=false,
+    fontname="Avenir",
+    fontsize=18,
+    penwidth=2.4,
+    fontcolor="#14213d",
+    color="#2264c7",
+    fillcolor="#eaf3ff:#ffffff",
+    gradientangle=270
+  ];
+
+  edge [
+    color="#263a59",
+    fontname="Avenir",
+    fontsize=13,
+    fontcolor="#3d4a5c",
+    penwidth=2.2,
+    arrowsize=0.78
+  ];
+
+  // ---- Browser (client) ----
+  subgraph cluster_client {
+    graph [
+      label=<
+        <TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="2">
+          <TR><TD ALIGN="LEFT"><FONT POINT-SIZE="17" COLOR="#1f5fbf"><B>BROWSER (CLIENT)</B></FONT></TD></TR>
+          <TR><TD ALIGN="LEFT"><FONT POINT-SIZE="12" COLOR="#496f9f">Static WebGL app; renders and runs the gravity sim locally.</FONT></TD></TR>
+        </TABLE>
+      >,
+      labelloc=t,
+      labeljust=l,
+      color="#b9d8ff",
+      fillcolor="#f5faff",
+      style="rounded,filled",
+      penwidth=1.8,
+      margin=22
+    ];
+
+    C1 [label=<<B>R3F scene + N-body sim</B><BR/><FONT POINT-SIZE="15">planets, physics, OrbitControls — all local</FONT>>, fillcolor="#edf7ff:#ffffff", color="#2f80ed"];
+    C2 [label=<<B>eventStore (one EventSource)</B><BR/><FONT POINT-SIZE="15">→ eyeStore → eyesStore · symbolStore</FONT>>, fillcolor="#edf7ff:#ffffff", color="#2f80ed"];
+
+    C1 -> C2 [style=invis];
+  }
+
+  // ---- Cloudflare Worker ----
+  subgraph cluster_worker {
+    graph [
+      label=<
+        <TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="2">
+          <TR><TD ALIGN="LEFT"><FONT POINT-SIZE="17" COLOR="#1e6b43"><B>CLOUDFLARE WORKER</B></FONT></TD></TR>
+          <TR><TD ALIGN="LEFT"><FONT POINT-SIZE="12" COLOR="#4e7a61">One Worker serves the static export and routes /api/events.</FONT></TD></TR>
+        </TABLE>
+      >,
+      labelloc=t,
+      labeljust=l,
+      color="#b8e5c8",
+      fillcolor="#f4fbf6",
+      style="rounded,filled",
+      penwidth=1.8,
+      margin=22
+    ];
+
+    W1 [label=<<B>Static assets</B><BR/><FONT POINT-SIZE="15">Next export → ./out (Workers Static Assets)</FONT>>, fillcolor="#eaf8ef:#ffffff", color="#22865a"];
+    W2 [label=<<B>Worker fetch — worker/index.ts</B><BR/><FONT POINT-SIZE="15">routes /api/events; everything else → assets</FONT>>, fillcolor="#eaf8ef:#ffffff", color="#22865a"];
+
+    W1 -> W2 [style=invis];
+  }
+
+  // ---- Durable Object ----
+  subgraph cluster_do {
+    graph [
+      label=<
+        <TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="2">
+          <TR><TD ALIGN="LEFT"><FONT POINT-SIZE="17" COLOR="#0f766e"><B>DURABLE OBJECT</B></FONT></TD></TR>
+          <TR><TD ALIGN="LEFT"><FONT POINT-SIZE="12" COLOR="#357a74">A single global instance is the whole room; in-memory, no database.</FONT></TD></TR>
+        </TABLE>
+      >,
+      labelloc=t,
+      labeljust=l,
+      color="#99d5cf",
+      fillcolor="#f0fdfa",
+      style="rounded,filled",
+      penwidth=1.8,
+      margin=22
+    ];
+
+    D1 [label=<<B>EventsChannel</B><BR/><FONT POINT-SIZE="15">eyes Map + writers Set · replay, fan-out, purge</FONT>>, fillcolor="#e6fffb:#ffffff", color="#0f766e", width=3.7];
+  }
+
+  // ---- Shared domain ----
+  subgraph cluster_domain {
+    graph [
+      label=<
+        <TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="2">
+          <TR><TD ALIGN="LEFT"><FONT POINT-SIZE="17" COLOR="#5f3b8a"><B>SHARED DOMAIN</B></FONT></TD></TR>
+          <TR><TD ALIGN="LEFT"><FONT POINT-SIZE="12" COLOR="#6d4d8d">Pure modules imported verbatim by client and Worker.</FONT></TD></TR>
+        </TABLE>
+      >,
+      labelloc=t,
+      labeljust=l,
+      color="#d6c6ee",
+      fillcolor="#fbf8ff",
+      style="rounded,filled",
+      penwidth=1.8,
+      margin=22
+    ];
+
+    M1 [label=<<B>src/domain</B><BR/><FONT POINT-SIZE="15">EventSchema (wire) · eventsCore (transitions)</FONT>>, fillcolor="#f5f3ff:#ffffff", color="#7c3aed", width=3.7];
+  }
+
+  // ---- Edges ----
+  C1 -> W1 [label="GET / — loads the static app"];
+  C2 -> W2 [label="POST /api/events (sendBeacon / fetch)"];
+  C2 -> W2 [label="GET /api/events (EventSource)", style=dashed];
+  W2 -> D1 [label="forward → /subscribe · /publish"];
+  D1 -> C2 [label="SSE fan-out (eye / symbol events)", color="#0f766e", fontcolor="#0f766e"];
+
+  M1 -> C2 [label="validate frames", style=dashed, color="#7c3aed", fontcolor="#7c3aed", constraint=false];
+  M1 -> D1 [label="validate + apply", style=dashed, color="#7c3aed", fontcolor="#7c3aed", constraint=false];
+}

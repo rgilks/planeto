@@ -2,6 +2,25 @@
 
 This document outlines Planeto's real-time communication architecture, designed to share eye positions and symbol inputs between clients. It leverages Server-Sent Events (SSE) for server-to-client updates and HTTP POST requests for client-to-server data transmission, all consolidated through a single API endpoint (`/api/events`).
 
+## Round-trip at a glance
+
+```mermaid
+sequenceDiagram
+    participant A as Client A
+    participant W as Worker
+    participant DO as EventsChannel DO
+    participant B as Client B
+    Note over A,B: both hold an open EventSource on GET /api/events
+    A->>W: POST /api/events (eyeUpdate, via sendBeacon)
+    W->>DO: forward → /publish
+    DO->>DO: EventSchema.safeParse · store eye (server-stamped t)
+    DO-->>A: SSE data:{eyeUpdate}
+    DO-->>B: SSE data:{eyeUpdate}
+    Note over B: eventStore → eyeStore → eyesStore → Eyes.tsx renders the eye
+```
+
+For the whole-system picture, see [docs/diagrams/system-overview.png](diagrams/system-overview.png).
+
 ## Core Architecture
 
 - **Single API Endpoint (`/api/events`)**:
