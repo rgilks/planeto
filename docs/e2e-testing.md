@@ -1,10 +1,12 @@
 # End-to-End (E2E) Testing
 
-This project uses [Playwright](https://playwright.dev/) for end-to-end testing to ensure key user flows and functionalities are working correctly in a browser environment.
+This project uses [Playwright](https://playwright.dev/) for end-to-end testing of the deployed shape of the app.
+
+Because the realtime backend is a Cloudflare Worker + Durable Object, the Playwright `webServer` builds the static export and serves it together with the Worker via `wrangler dev` (the `npm run preview` script). The tests therefore run against the same code path that ships to Cloudflare, not against `next dev`.
 
 ## Running Tests
 
-E2E tests are part of the comprehensive check script:
+E2E tests are part of the full check:
 
 ```sh
 npm run check
@@ -16,61 +18,30 @@ To run only the E2E tests:
 npx playwright test
 ```
 
-Tests are executed using Chromium by default. Configuration can be found in `playwright.config.ts`.
+Tests run on Chromium by default; configuration is in `playwright.config.ts`.
 
 ## Test Suites
 
-Currently, there are three main E2E test suites:
+### 1. SSE event fan-out (`tests/basic.spec.ts`)
 
-### 1. Basic Functional and Multi-User Tests (`tests/basic.spec.ts`)
+Exercises the `/api/events` SSE endpoint (backed by the `EventsChannel` Durable Object) directly over the wire — opening an `EventSource` from a page and asserting on the frames it receives — so it is independent of the client app's internal stores:
 
-This suite focuses on core application functionality related to real-time events and state management, including multi-user scenarios:
+- **Eye fan-out**: a subscriber connects, an `eyeUpdate` is POSTed, and the subscriber receives it.
+- **Symbol fan-out**: a subscriber connects, a `symbol` is POSTed, and the subscriber receives it.
+- **Replay on subscribe**: an `eyeUpdate` is POSTed first; a newly connecting subscriber receives the stored eye replayed on connect.
 
-- **Single User Test**:
-  - Verifies the application page loads and has the correct title (`/`).
-  - Checks that a client can successfully POST eye data to the `/api/events` endpoint.
-  - Ensures the client-side `EventSource` connection to `/api/events` is established upon page load.
-  - Confirms that initial eye data (posted in the test) is received by the client via the EventSource and correctly updates the relevant Zustand store (e.g., `useEyeStore` for raw data, or state derived from it for `useEyesStore` which manages visual rendering).
-- **Multi-User Eye Synchronization**:
-  - Simulates two users (two browser pages).
-  - User1 posts an eye update via API call.
-  - User2 verifies it receives this eye update in its `useEyeStore` (or the derived state in `useEyesStore`).
-- **Multi-User Symbol Synchronization (API-driven)**:
-  - Simulates two users.
-  - User1 posts a symbol event via API call.
-  - User2 verifies it receives this symbol event in its `useSymbolStore`.
-- **Multi-User Symbol Synchronization (Full Client-Side Flow)**:
-  - Simulates two users.
-  - User1 simulates a physical key press on its page (e.g., using `page.keyboard.press('Enter')`).
-  - User2 verifies it receives the corresponding symbol event in its `useSymbolStore`, testing the full client-to-client pathway.
+### 2. API robustness (`tests/api.spec.ts`)
 
-### 2. API Robustness Tests (`tests/api.spec.ts`)
+Directly tests the `/api/events` POST endpoint:
 
-This suite directly tests the `/api/events` POST endpoint for resilience against malformed or incomplete data:
+- Returns `400 Bad Request` for invalid payloads — empty body; missing/invalid `type`; `symbol` missing `id`/`key`; `eyeUpdate` missing `id`/`p`/`t` or with a malformed `p`.
+- Returns `200 OK` for valid `symbol` and `eyeUpdate` events.
 
-- Verifies that the API returns a `400 Bad Request` status for various invalid payloads, such as:
-  - Empty payload.
-  - Missing or invalid `type` field.
-  - For `symbol` events: missing `id` or `key`.
-  - For `eyeUpdate` events: missing `id`, `p`, `t`, or `p` having an incorrect structure (e.g., not an array, wrong number of elements, non-numeric elements).
-- Confirms that the API returns a `200 OK` status for valid symbol and eye update events.
+### 3. Visual snapshot (`tests/visual-snapshot.spec.ts`)
 
-### 3. Visual Snapshot Tests (`tests/visual-snapshot.spec.ts`)
+- Navigates to `/`, waits ~3 s for the scene to render, screenshots to `screenshots/loaded.png`, and asserts the `<canvas>` is visible.
 
-This suite is responsible for visual regression testing. It ensures the application's UI remains consistent.
+## Notes
 
-- Navigates to the main page (`/`).
-- Waits for a specific duration (3 seconds) to allow animations or initial rendering to complete.
-- Takes a full-page screenshot and saves it to `screenshots/loaded.png`. This allows for manual or external comparison for visual consistency.
-- Verifies that the main `canvas` element (used for the 3D scene) is visible.
-
-Note: For automated visual regression testing where Playwright compares the screenshot against a previously approved baseline image and fails the test on pixel differences, one would typically use an assertion like `await expect(page).toHaveScreenshot('loaded.png');`. The current test provides the screenshot for review.
-
-## Key Testing Strategies
-
-- **Multi-Page Simulation**: For multi-user tests, Playwright's ability to create multiple browser contexts and pages is used to simulate distinct client instances.
-- **Direct API Interaction**: Some tests directly interact with API endpoints (e.g., POSTing to `/api/events`) using `request.post()` to set up preconditions or verify backend responses and validation logic.
-- **Full Client-Side Event Simulation**: Tests simulate actual user interactions like key presses (e.g., `page.keyboard.press('Enter')`) to verify the entire event pipeline from client input to server broadcast and reception by other clients.
-- **Client-Side State Verification**: For state managed by Zustand, tests access the store's state (exposed on `window.__eyeStore` and `window.__symbolStore`, and potentially `window.__eyesStore` for visual state, in non-production environments) to confirm that client-side logic and event handling are working as expected.
-- **Polling Helper**: A custom `pollForCondition` function is used to gracefully wait for asynchronous operations (like SSE message reception and state updates) to complete before making assertions.
-- **Focus on Core User Experience and Robustness**: The tests aim to cover critical paths that impact the user's ability to see and interact with the shared environment, as well as the API's ability to handle invalid data gracefully.
+- **Direct API interaction**: tests POST to `/api/events` with `request.post()` to drive the backend.
+- **SSE over the wire**: the fan-out tests read events via a browser `EventSource`, verifying the real Worker → Durable Object → client path without relying on dev-only globals.

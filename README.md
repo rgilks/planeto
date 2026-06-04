@@ -1,6 +1,6 @@
 # Planeto
 
-[![Fly Deploy](https://github.com/tre-systems/planeto/actions/workflows/fly.yml/badge.svg)](https://github.com/tre-systems/planeto/actions/workflows/fly.yml)
+[![Deploy](https://github.com/tre-systems/planeto/actions/workflows/deploy.yml/badge.svg)](https://github.com/tre-systems/planeto/actions/workflows/deploy.yml)
 
 ![planeto Screenshot](/screenshots/loaded.png)
 
@@ -35,6 +35,7 @@
 - Rapier physics (@react-three/rapier)
 - Zod (for domain modeling)
 - Zustand (for state management)
+- Cloudflare Workers + Durable Objects (static hosting and the real-time backend)
 
 ## Getting Started
 
@@ -47,9 +48,10 @@ Open your browser and navigate to: [http://localhost:3000](http://localhost:3000
 
 ## Available Scripts
 
-- `npm run dev`: Starts the development server.
-- `npm run build`: Builds the application for production.
-- `npm run start`: Starts the production server.
+- `npm run dev`: Starts the Next.js dev server (front-end only — `/api/events` is not served here).
+- `npm run build`: Builds the static export into `out/`.
+- `npm run preview`: Builds, then serves the static export plus the Worker and Durable Object locally with `wrangler dev` — this is how to run multiplayer locally.
+- `npm run deploy`: Builds and deploys to Cloudflare with `wrangler deploy`.
 - `npm run lint`: Lints the codebase for potential errors.
 - `npm test`: Runs the unit tests (Vitest).
 - `npm run check`: Runs formatting, linting, type-checking, and all tests.
@@ -92,62 +94,28 @@ For a detailed technical explanation of the real-time architecture and bandwidth
 
 For details on the 3D camera setup, see [`docs/camera-setup.md`](./docs/camera-setup.md).
 
-## Progressive Web App (PWA)
+## Web App Manifest
 
-This application is configured as a Progressive Web App (PWA), allowing it to be installed on devices for a more native-like experience. This is achieved using `next-pwa`.
+The app ships a web app manifest (`public/manifest.json`) and icons (`public/icons/`), so it can be installed to a device home screen. There is no service worker / offline support at present — the previous `next-pwa` setup was dropped in the move to a static export on Cloudflare.
 
-Key PWA features implemented:
+## Deployment on Cloudflare
 
-- **Web App Manifest**: `public/manifest.json` provides metadata about the application.
-- **Service Worker**: `next-pwa` automatically generates a service worker for caching and offline capabilities.
-- **Icons**: App icons are provided in `public/icons/`.
-
-For more details on the PWA setup, refer to the `next-pwa` documentation and the project's `next.config.ts`.
-
-## Deployment on Fly.io
-
-This application can be deployed to Fly.io using the provided `Dockerfile` and `fly.toml` configuration.
+The app deploys to Cloudflare Workers: a single Worker serves the static export (`out/`) and hosts the `EventsChannel` Durable Object that backs `/api/events`. Durable Objects require a Workers **Paid** plan.
 
 ### Prerequisites
 
-1.  Install `flyctl`: Follow the instructions at [https://fly.io/docs/hands-on/install-flyctl/](https://fly.io/docs/hands-on/install-flyctl/).
-2.  Login to Fly: Run `fly auth login`.
+1.  Install and authenticate Wrangler: `npm i -g wrangler` (or use `npx wrangler`), then `wrangler login`.
+2.  Ensure the `tre.systems` zone is in the Cloudflare account — the custom domain `planeto.tre.systems` is provisioned from `wrangler.toml` on deploy.
 
-### Initial Deployment
-
-1.  **Launch the app on Fly.io (if you haven't already):**
-
-    ```sh
-    fly launch
-    ```
-
-    - Choose an app name (e.g., `planeto`).
-    - Select your organization and a region.
-    - **IMPORTANT**: Say "No" when asked to set up a Postgres database or Redis, as this application does not require them.
-    - A `fly.toml` file will be generated. The provided `fly.toml` in this repository is configured for cost-effectiveness (small machine, auto-stop/start).
-
-2.  **Deploy your application:**
-    ```sh
-    fly deploy
-    ```
-
-### Subsequent Deployments
-
-After making changes to your application, simply run:
+### Deploy
 
 ```sh
-fly deploy
+npm run deploy   # next build, then wrangler deploy
 ```
 
-Fly.io will use the `Dockerfile` to build and deploy your updated application.
+Pushes to `main` deploy automatically via `.github/workflows/deploy.yml`, which needs the `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` repository secrets. Run the whole stack locally with `npm run preview`.
 
-### Monitoring
-
-- View logs: `fly logs -a <your-app-name>`
-- Open your deployed app: `fly apps open -a <your-app-name>`
-- Access the Fly.io dashboard for more detailed monitoring.
-
-For more detailed deployment and configuration information, see `docs/deployment-flyio.md`.
+The previous Fly.io deployment is preserved on the `fly-io` branch.
 
 ### API Endpoints
 

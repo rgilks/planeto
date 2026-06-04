@@ -1,40 +1,26 @@
-# SSE Store (`src/app/api/events/sseStore.ts`)
+# Event Store (`worker/eventsChannel.ts`)
 
-The `sseStore.ts` module (located within the `src/app/api/events/` directory or a similar server-side path) is responsible for managing Server-Sent Events (SSE) connections and broadcasting events to connected clients. It plays a crucial role in the real-time communication features of Planeto, such as synchronizing eye positions and symbol events.
+The `EventsChannel` Durable Object holds Planeto's shared multiplayer state and fans out Server-Sent Events (SSE) to every connected browser. A single global instance (`idFromName("global")`) is the whole "room". It is the Cloudflare-native successor to the former in-process `sseStore`; the client and the `/api/events` wire protocol are unchanged.
 
-## Key Responsibilities
+The Worker (`worker/index.ts`) forwards `/api/events` to this DO: a `GET` becomes the DO's `/subscribe`, a `POST` becomes `/publish`.
 
-- **Subscriber Management**: Maintains a list of active SSE subscribers (client connections).
-- **Event Broadcasting**: Sends event data to all subscribed clients.
-- **Eye State Management**: Stores the latest eye position for each connected user.
-- **State Purging**: Periodically removes stale eye data to keep the state fresh and reduce memory usage.
+## Key responsibilities
 
-## Core Functions
+- **Subscriber management**: keeps a `Set` of active SSE writers.
+- **Event broadcasting (fan-out)**: sends each event to every connected writer.
+- **Eye state**: stores the latest `eyeUpdate` per user id, replayed to new subscribers.
+- **State purging**: drops eye data older than 30 s.
 
-- `setEye(id: string, p: Vec3)`: Updates the eye position for a given user ID. (Broadcasting is typically handled by a separate call to `broadcast` or implicitly if `setEye` also triggers it).
-- `broadcast(msg: EventType)`: Sends a generic event message to all subscribers. This is used for events like symbol inputs.
-- `subscribe(writer: Writer)`: Adds a new subscriber (client connection) to the list. It also sends the current state of all eyes to the new subscriber.
-- `unsubscribe(writer: Writer)`: Removes a subscriber from the list, typically when a client disconnects.
-- `purgeStale(maxAge?: number)`: Removes eye data for users whose information hasn't been updated within the `maxAge` (default 30 seconds). This is called automatically at a regular interval.
+## Behaviour
 
-## Data Structures
+- **subscribe** (`GET /subscribe`): opens an SSE `ReadableStream`, registers the writer, replays the current eyes (so a fresh client immediately sees everyone), and starts a 20 s keepalive ping. The writer is cleaned up when the stream is cancelled.
+- **publish** (`POST /publish`): parses the body and validates it against `EventSchema` (from `src/domain/event.ts`, shared with the client). On failure it returns `400` with the flattened error. On success an `eyeUpdate` is stored (with a **server-stamped** `t`) and fanned out, while a `symbol` is fanned out only (never stored).
+- **fan-out**: encodes `data:${JSON.stringify(event)}\n\n` and enqueues it to every writer; writers whose stream has closed are dropped (safe-enqueue).
+- **purge**: stale eyes (`now - t > 30_000`) are removed lazily on each subscribe/publish — no background timer is needed, because the DO only matters while clients are connected and active clients re-report every ≤ 20 s.
 
-- `eyes`: A `Map` storing the last known `EyeUpdateType` (or its core data like position and timestamp) for each user ID. This type definition comes from `@/domain`.
-- `subs`: A `Set` storing `Writer` objects (or equivalent stream writers), where each represents an active SSE connection to a client. The `Writer` object would typically have:
-  - `write: (data: string) => void`: A function to send data to the client.
-  - `closed: boolean`: A flag indicating if the connection is closed.
+## State
 
-## Error Handling
+- `eyes: Map<string, EyeUpdateType>` — last known eye per id (type from `src/domain/event.ts`).
+- `writers: Set<Writer>` — one entry per open SSE connection, each holding its stream controller, keepalive interval, and a `closed` flag.
 
-The `broadcast` and `subscribe` functions include `try...catch` blocks to handle potential errors when writing to a subscriber. If an error occurs (e.g., the client has disconnected abruptly), the problematic subscriber is removed from the `subs` set to prevent further failed attempts.
-
-## Automatic Purging
-
-An interval timer is set up within the module to call `purgeStale` every 10 seconds. This ensures that eye data for users who have been inactive or disconnected for more than 30 seconds is automatically cleaned up. This helps in maintaining an accurate representation of active users and conserves server resources.
-
-## Integration
-
-The `sseStore` (or its equivalent functionality if integrated directly into the route handler) is primarily used by the API route `src/app/api/events/route.ts`:
-
-- The `GET` handler in the route uses `subscribe` and `unsubscribe` to manage client connections for the SSE stream.
-- The `POST` handler uses `setEye` (for eye updates) and `broadcast` (for other events like symbol inputs) to push data to connected clients via the store.
+State is purely in memory. When the last browser disconnects the DO is evicted; eyes are ephemeral and re-reported, so nothing important is lost.

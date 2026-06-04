@@ -29,8 +29,11 @@ export default defineConfig({
     // },
   ],
   webServer: {
-    command: "npm run dev",
+    // Build the static export and serve it (plus the Worker + Durable Object)
+    // with wrangler dev, so the e2e suite exercises the real Cloudflare shape.
+    command: "npm run preview",
     url: "http://localhost:3000",
+    timeout: 180_000,
     reuseExistingServer: !process.env["CI"],
     stdout: "pipe",
     stderr: "pipe",

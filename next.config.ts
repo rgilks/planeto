@@ -1,18 +1,11 @@
-import withPWA from "next-pwa";
-
 import type { NextConfig } from "next";
 
+// Static export: the app is a client-only WebGL toy. It is served as static
+// assets by the Cloudflare Worker (see wrangler.toml); the only server concern,
+// /api/events, is handled by the EventsChannel Durable Object, not Next.
 const nextConfig: NextConfig = {
-  output: "standalone",
-  turbopack: {},
+  output: "export",
+  images: { unoptimized: true },
 };
 
-const pwaConfig = {
-  dest: "public",
-  register: true,
-  skipWaiting: true,
-};
-
-const isDevelopment = process.env.NODE_ENV === "development";
-
-export default isDevelopment ? nextConfig : withPWA(pwaConfig)(nextConfig);
+export default nextConfig;

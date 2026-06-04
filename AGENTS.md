@@ -4,18 +4,17 @@ Source-of-truth guide for working on **Planeto**. Read this first. Keep it curre
 
 ## What this is
 
-Planeto is a browser-based 3D toy: a procedurally generated cluster of drifting planetoids that you orbit with the camera, lightly shared between everyone connected at once. Each browser tab is an anonymous participant rendered to others as a floating "eye"; double-clicking (or a key press) fires a Unicode symbol that everyone else sees fade above your eye. Live at [planeto.fly.dev](https://planeto.fly.dev).
+Planeto is a browser-based 3D toy: a procedurally generated cluster of drifting planetoids that you orbit with the camera, lightly shared between everyone connected at once. Each browser tab is an anonymous participant rendered to others as a floating "eye"; double-clicking (or a key press) fires a Unicode symbol that everyone else sees fade above your eye. Live at [planeto.tre.systems](https://planeto.tre.systems).
 
-- **Framework:** Next.js 16 (App Router) + React 19, TypeScript (strict).
+- **Framework:** Next.js 16 (App Router) + React 19, TypeScript (strict), built as a **static export** (`output: 'export'`).
 - **Rendering:** React Three Fiber (`@react-three/fiber`) + Drei, with a Bloom pass (`@react-three/postprocessing`). Procedural textures via `simplex-noise`.
 - **Physics:** Rapier (`@react-three/rapier`) rigid bodies, but gravity is **custom** — an N-body loop in `usePhysicsSimulation`, not Rapier's built-in gravity.
 - **State:** Zustand (+ the `zustand/middleware/immer` middleware), six small stores.
 - **Domain:** Zod schemas; only `EventSchema` validates at runtime (the rest are type sources).
-- **Transport:** Server-Sent Events for server→client, HTTP POST for client→server, both at `/api/events`. Shared state is **in-memory in the single server process** — no database, no persistence.
-- **PWA:** `next-pwa` (service worker built only on production `next build`, disabled in dev).
-- **Deployed:** Fly.io (Docker), single 256 MB machine in `lhr`, scale-to-zero.
+- **Multiplayer:** Server-Sent Events for server→client, HTTP POST for client→server, both at `/api/events`. The server is a Cloudflare **Durable Object** (`EventsChannel`) holding the shared state in memory — no database, no persistence.
+- **Deployed:** Cloudflare Workers — a single Worker serves the static export and hosts the Durable Object, at `planeto.tre.systems`.
 
-Size: ~2k LOC, ~31 source files, 6 Zustand stores, 1 API route.
+Size: ~2k LOC, ~30 source files, 6 Zustand stores, 1 Durable Object.
 
 ## Workflow
 
@@ -30,33 +29,40 @@ Size: ~2k LOC, ~31 source files, 6 Zustand stores, 1 API route.
 Node >= 22, npm.
 
 ```bash
-npm run dev          # next dev --turbopack
-npm run build        # next build (output: standalone)
-npm run start        # serve the production build locally
+npm run dev          # next dev --turbopack — FRONT-END ONLY; /api/events is NOT served here
+npm run build        # next build → static export in ./out
+npm run preview      # build, then `wrangler dev` (serves ./out + the Worker + DO) on :3000
+npm run deploy       # build, then `wrangler deploy` to Cloudflare
 
-npm run verify       # prettier --write . && eslint (--max-warnings=0) && tsc --noEmit   (mutates: formats files)
+npm run verify       # prettier --write . && eslint (--max-warnings=0) && tsc (app + worker)   (mutates: formats files)
 npm run test         # vitest (watch)
 npm run test:run     # vitest run (unit tests)
 npm run check        # verify + test:run + playwright e2e  (full local gate)
-npm run test:e2e     # playwright only
+npm run test:e2e     # playwright only (runs against `wrangler dev` via the preview server)
 
 npm run deps         # npm-check-updates (report)
-npm run nuke         # rm node_modules + lockfile + .next, reinstall
+npm run nuke         # rm node_modules + lockfile + .next + out, reinstall
 ```
 
-**Before committing, run `npm run verify`** (and `npm run test:run` for anything non-trivial). CI (`.github/workflows/fly.yml`) runs `npm run verify` and `npm run test:run`, then deploys to Fly.io on every push to `main`. The Playwright e2e suite runs locally (via `npm run check` or `npm run test:e2e`), not in CI.
+**Before committing, run `npm run verify`** (and `npm run test:run` for anything non-trivial). CI (`.github/workflows/deploy.yml`) runs `npm run verify` + `npm run test:run` + build, then `wrangler deploy`, on every push to `main`. The Playwright e2e suite runs locally (via `npm run check` or `npm run test:e2e`), not in CI.
+
+Anything touching multiplayer needs the Worker + DO, so use `npm run preview` (or `npm run check`) — plain `next dev` has no `/api/events`.
 
 ## Architecture & code map
 
-**Runtime data flow.** The client renders the planet cluster in an R3F `Canvas` and runs the gravity simulation locally. Multiplayer is a thin presence layer:
+**Runtime data flow.** The client renders the planet cluster in an R3F `Canvas` and runs the gravity simulation locally. Multiplayer is a thin presence layer over `/api/events`:
 
 - _Outbound — eye position:_ `useEyePositionReporting` beacons the camera position (rounded) to `POST /api/events` as an `eyeUpdate`, only when it changed, or unconditionally every 20 s, via `navigator.sendBeacon`.
 - _Outbound — symbol:_ a key press (`SymbolHandler` in `page.tsx`) or Canvas double-click sets `symbolStore.lastInput`; `useInputThrottle` POSTs it as a `symbol` event, throttled to one per 100 ms.
-- _Server:_ `route.ts` validates every POST against `EventSchema`. `eyeUpdate` → `setEye` (stored **and** broadcast); `symbol` → broadcast only (never stored). `GET /api/events` opens an SSE stream, registers the writer, and immediately replays all currently-known eyes to the new client.
-- _Shared state:_ lives entirely in `sseStore.ts` as module-level singletons — an `eyes` Map and a `subs` Set. A 10 s interval purges eyes idle > 30 s. State is lost on restart and is **not shared across processes** (see Gotchas).
+- _Server (Worker + DO):_ the Worker forwards `/api/events` to a single global `EventsChannel` Durable Object (`idFromName("global")`), which validates every POST against `EventSchema`. `eyeUpdate` → store (server-stamped `t`) **and** fan out; `symbol` → fan out only. `GET` opens an SSE stream, registers the writer, replays the current eyes, and keepalive-pings every 20 s. Stale eyes (> 30 s) are purged lazily on each publish/subscribe.
 - _Inbound:_ `eventStore` owns one `EventSource`, re-validates each frame, and fans out to listeners: `eyeUpdate` → `eyeStore` (raw) → `eyesStore` (animated) → `Eyes.tsx`; `symbol` → `symbolStore.remoteKeys` → fading text in `Eye.tsx`.
 
 ```
+worker/
+  index.ts            # Worker entry: routes /api/events to the EventsChannel DO; serves everything else from static assets (env.ASSETS); re-exports the DO class
+  eventsChannel.ts    # EventsChannel Durable Object: eyes Map + writers Set; subscribe (replay + keepalive), publish (validate + fan out), lazy purge. Reuses EventSchema from src/domain/event.ts
+  tsconfig.json       # worker-only tsconfig (@cloudflare/workers-types, no DOM lib)
+wrangler.toml         # Worker config: [assets] ./out, run_worker_first /api/events, EVENTS DO binding + migration, planeto.tre.systems
 src/
   app/
     layout.tsx          # root layout; fonts; metadata (manifest link)
@@ -69,9 +75,6 @@ src/
       Eyes.tsx          # renders all remote eyes; defines the eye ShaderMaterial; syncEyes + per-frame animation; each eye lookAt the sun
       Eye.tsx           # one eye sphere + fading <Text> symbol (2 s fade)
       Symbol.tsx        # SymbolDisplay — fixed bottom-right HTML overlay of the LOCAL user's last symbol
-    api/events/
-      route.ts          # GET = SSE stream (subscribe + replay eyes); POST = validate EventSchema → setEye / broadcast
-      sseStore.ts       # in-memory singletons: eyes Map + subs Set; broadcast(); purgeStale() every 10 s
   hooks/
     useEventSource.ts            # ensure eventStore connected; subscribe 'symbol' → symbolStore.setRemoteKey (skips own id)
     useEyes.ts                   # subscribe 'eyeUpdate' → eyeStore.setEye; prune stale; returns [id, Vec3][]
@@ -85,19 +88,17 @@ src/
     eyeStore.ts                  # raw remote eye positions { p, t } per id
     eyesStore.ts                 # animated "managed" eyes: appear/visible/disappear lifecycle, per-eye material, lerp + fade
     physicsStore.ts              # isGravityDisabled flag + disableGravityTemporarily(ms)
-    symbolStore.ts               # lastInput (local) + remoteKeys (per id)
-    rawEyeDataStore.ts           # EMPTY STUB — leftover from a rename, exports nothing (see Backlog)
-  domain/                        # Zod schemas
+    symbolStore.ts               # lastInput (local) + remoteKeys (per id); exposes the dev-only window.__ debug handles
+  domain/                        # Zod schemas — the wire protocol, reused by the client AND the Durable Object
     event.ts                     # Vec3 / SymbolEvent / EyeUpdate / EventSchema (discriminated union) — the runtime validation gate
     eye.ts                       # EyeState / EyeStatus + scale & fade constants (type source only)
     planet.ts                    # Planet / Moon / AtmosphereLayer (type source only; never .parse()d at runtime)
     symbol.ts                    # SymbolInput + the SYMBOLS glyph list
     index.ts                     # barrel
   lib/utils.ts                   # colour / noise / texture / vector helpers (generateBumpMap, generateColorMap, roundVec3, areVec3sEqual, …)
-  types/global.d.ts              # Window augmentation for the dev-only __eventStore / __eyeStore / __symbolStore debug handles
-tests/                           # Playwright, Chromium only
+tests/                           # Playwright, Chromium only — run against `wrangler dev`
   api.spec.ts                    # POST /api/events contract: 400 on bad payloads, 200 on valid symbol/eyeUpdate
-  basic.spec.ts                  # two browser contexts; full client→server→client SSE propagation of eyes + symbols
+  basic.spec.ts                  # SSE fan-out + replay over the wire (EventSource), independent of client internals
   visual-snapshot.spec.ts        # loads /, asserts a <canvas>, writes screenshots/loaded.png
 ```
 
@@ -105,41 +106,42 @@ Unit tests are co-located next to source as `*.test.ts` (Vitest, node env): `src
 
 ## Conventions
 
-- **TypeScript strict.** Validate anything crossing the network with **Zod** — that means `EventSchema` in `src/domain/event.ts`, which guards both the POST route and every inbound SSE frame. The other schemas exist for their inferred types.
-- **Prettier + ESLint flat config** (`eslint.config.mjs`); lint is zero-warnings (`--max-warnings=0`).
-- **Single server instance is load-bearing**, not incidental — see Gotchas before changing deploy config or the SSE store.
+- **TypeScript strict.** Validate anything crossing the network with **Zod** — `EventSchema` in `src/domain/event.ts` guards the DO's POST handler and every inbound SSE frame, and is shared verbatim between the client and the Worker. The other schemas exist for their inferred types.
+- **Prettier + ESLint flat config** (`eslint.config.mjs`); lint is zero-warnings (`--max-warnings=0`). Build artifacts (`out`, `.next`) are ignored via `.prettierignore` and ESLint `ignores`.
+- The Worker (`worker/`) is type-checked separately under `worker/tsconfig.json` (Workers types, no DOM) and excluded from the root tsconfig.
 - **IDs** are `nanoid(6)`, generated client-side in `Scene.tsx`.
 - Keep components small and single-purpose; match the existing split (one body type per component) rather than growing `Scene.tsx`.
 
 ## Deployment
 
-- Fly.io via `Dockerfile` + `fly.toml`: app `planeto`, region `lhr`, one shared-CPU 256 MB machine, `auto_stop_machines = 'stop'` / `min_machines_running = 0` (scale-to-zero), **`max_machines_running = 1`**.
-- Push to `main` triggers `.github/workflows/fly.yml`: `npm ci` → `npm run verify` → `flyctl deploy --remote-only`. `FLY_API_TOKEN` is the only required secret.
-- See [docs/deployment-flyio.md](docs/deployment-flyio.md).
+- Cloudflare Workers via `wrangler.toml`: a single Worker named `planeto` serves the static export (`[assets]` → `./out`) and hosts the `EventsChannel` Durable Object (`EVENTS` binding). Custom domain `planeto.tre.systems`. **Durable Objects require a Workers Paid plan.**
+- Push to `main` triggers `.github/workflows/deploy.yml`: `npm ci` → `verify` → `test:run` → `build` → `wrangler deploy` (`cloudflare/wrangler-action`). Secrets: `CLOUDFLARE_API_TOKEN` + `CLOUDFLARE_ACCOUNT_ID`.
+- Local: `npm run preview` runs the whole stack (`wrangler dev`) on `:3000`; `npm run deploy` ships it.
+- The previous Fly.io deployment is preserved on the **`fly-io`** branch.
 
 ## Gotchas
 
-- **All multiplayer state is in-process** singletons in `sseStore.ts`. This works _only_ because `fly.toml` caps `max_machines_running = 1`. Adding instances (or horizontal scale) would silently split and drop eyes/symbols; a scale-to-zero cold start wipes them. Any move to multi-instance needs an external broadcast/state layer first.
-- **PWA only engages on a production build.** `next-pwa` is wired in `next.config.ts` but disabled in dev, so don't expect a service worker under `npm run dev`.
-- **The e2e tests depend on dev-only globals** (`window.__eventStore` / `__eyeStore` / `__symbolStore`), which `eventStore`/`eyeStore`/`symbolStore` expose only outside production. They do not exist on the deployed site.
-- **`nanoid` is used but not a declared dependency** — it resolves transitively today (see Backlog). Don't assume it's pinned.
+- **Multiplayer state is one global Durable Object** (`idFromName("global")`) — a single shared room, in memory, evicted when nobody is connected. It is the only stateful piece; everything else is static. If the DO is evicted/restarted, eyes are lost — acceptable, since each client re-reports its position at least every 20 s.
+- **`npm run dev` has no `/api/events`.** The realtime endpoint only exists under the Worker (`wrangler dev` / `npm run preview`). Use that for anything touching multiplayer.
+- **The DO and the client share `src/domain/event.ts`.** Change the wire schema in one place; both pick it up. The Worker imports it relatively (`../src/domain/event`).
+- **No PWA / service worker.** `next-pwa` was dropped in the Cloudflare move; `public/manifest.json` + icons remain (installable, no offline) — see Backlog.
 - Gravity is hand-rolled: `<Physics gravity={[0,0,0]}>` integrates bodies, and `usePhysicsSimulation` applies the forces. Changing one without the other will look wrong.
 
 ## Backlog
 
-Useful cleanups, none urgent (the app builds, deploys green, and runs):
+Useful, none urgent (the app builds, deploys, and runs):
 
-- **Broaden test coverage** — unit tests (Vitest) currently cover `lib/utils.ts` and the domain schemas; the Playwright e2e suite runs Chromium only (Firefox/WebKit are commented out in `playwright.config.ts`).
+- **PWA offline support** via `@serwist/next` (the `next-pwa` setup was dropped in the Cloudflare migration).
+- **Broaden test coverage** — unit tests (Vitest) cover `lib/utils.ts` and the domain schemas; the Playwright e2e runs Chromium only (Firefox/WebKit are commented out in `playwright.config.ts`).
 
 ## Docs
 
 Docs describe the current state in the present tense; keep history in git, not in docs. The `docs/` folder:
 
 - [technical-overview.md](docs/technical-overview.md) — high-level architecture summary.
-- [realtime-communication.md](docs/realtime-communication.md) — SSE design and bandwidth/cost optimisation.
-- [sse-store.md](docs/sse-store.md) — the server-side in-memory store.
+- [realtime-communication.md](docs/realtime-communication.md) — the SSE design and bandwidth optimisation.
+- [sse-store.md](docs/sse-store.md) — the server-side event store (the `EventsChannel` Durable Object).
 - [remote-eyes-component.md](docs/remote-eyes-component.md) — how `Eyes.tsx` visualises other users.
 - [camera-setup.md](docs/camera-setup.md) — Canvas camera and OrbitControls.
 - [api.md](docs/api.md) — the `/api/events` endpoint.
 - [e2e-testing.md](docs/e2e-testing.md) — the Playwright suite.
-- [deployment-flyio.md](docs/deployment-flyio.md) — deploying to Fly.io.

@@ -1,0 +1,29 @@
+name = "planeto"
+main = "worker/index.ts"
+compatibility_date = "2026-01-01"
+compatibility_flags = ["nodejs_compat"]
+workers_dev = false
+
+# The static Next export (output: 'export') is served from the same Worker.
+[assets]
+directory = "./out"
+binding = "ASSETS"
+not_found_handling = "single-page-application"
+run_worker_first = ["/api/events"]
+
+# Shared multiplayer state + SSE fan-out. One global instance is the whole room;
+# it is evicted automatically once no browser is connected.
+[[durable_objects.bindings]]
+name = "EVENTS"
+class_name = "EventsChannel"
+
+[[migrations]]
+tag = "v1"
+new_classes = ["EventsChannel"]
+
+[[routes]]
+pattern = "planeto.tre.systems"
+custom_domain = true
+
+[observability]
+enabled = true

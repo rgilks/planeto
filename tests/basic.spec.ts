@@ -1,142 +1,104 @@
 import { test, expect, Page } from "@playwright/test";
 
-const pollForCondition = async (
+// Exercises the /api/events SSE endpoint (backed by the EventsChannel Durable
+// Object) directly over the wire — independent of the client app's internal
+// stores — so these run against the production static build served by
+// `wrangler dev`.
+
+// Open an EventSource on the page and resolve with the first event whose JSON
+// has `field === value`, or null on timeout.
+const firstMatchingEvent = (
   page: Page,
-  conditionFn: () => Promise<boolean>,
-  timeout = 10000,
-  pollInterval = 100,
-) => {
-  const startTime = Date.now();
-  while (Date.now() - startTime < timeout) {
-    if (await conditionFn()) {
-      return true;
-    }
-    await page.waitForTimeout(pollInterval);
-  }
-  return false;
-};
-
-test.describe("Multi-User Event Synchronization", () => {
-  let page1: Page;
-  let page2: Page;
-
-  test.beforeEach(async ({ browser }) => {
-    const context1 = await browser.newContext();
-    const context2 = await browser.newContext();
-    page1 = await context1.newPage();
-    page2 = await context2.newPage();
-
-    await page1.goto("/");
-    await page2.goto("/");
-    await expect(page1).toHaveTitle(/Planeto/);
-    await expect(page2).toHaveTitle(/Planeto/);
-  });
-
-  test("synchronizes eye updates between two users", async ({ request }) => {
-    const user1EyeId = "user1-eye-test";
-    const user1EyePos: [number, number, number] = [10, 20, 30];
-
-    // Allow page2 a moment to fully initialize its event listeners
-    await page2.waitForTimeout(500);
-
-    // User 1 posts a eye update
-    const postData = {
-      type: "eyeUpdate",
-      id: user1EyeId,
-      p: user1EyePos,
-      t: Date.now(),
-    };
-    const postResponse = await request.post("/api/events", { data: postData });
-    expect(postResponse.ok()).toBeTruthy();
-
-    // User 2 verifies receiving the eye update
-    const receivedOnPage2 = await pollForCondition(page2, async () => {
-      const eyeData = await page2.evaluate((id) => {
-        const storeState = window.__eyeStore?.getState();
-        return storeState?.eyes?.[id];
-      }, user1EyeId);
-      return JSON.stringify(eyeData?.p) === JSON.stringify(user1EyePos);
-    });
-    expect(receivedOnPage2).toBe(true);
-  });
-
-  test("synchronizes symbol events between two users", async ({ request }) => {
-    const user1SymbolId = "user1-key-test";
-    const user1Key = "g";
-
-    // User 1 posts a symbol event
-    const symbolEventData = {
-      type: "symbol",
-      id: user1SymbolId,
-      key: user1Key,
-    };
-    const symbolPostResponse = await request.post("/api/events", {
-      data: symbolEventData,
-    });
-    expect(symbolPostResponse.ok()).toBeTruthy();
-
-    // User 2 verifies receiving the symbol event
-    const symbolEventReceivedOnPage2 = await pollForCondition(
-      page2,
-      async () => {
-        const keyData = await page2.evaluate((id) => {
-          const storeState = window.__symbolStore?.getState();
-          return storeState?.remoteKeys?.[id];
-        }, user1SymbolId);
-        return keyData?.key === user1Key;
-      },
-    );
-    expect(symbolEventReceivedOnPage2).toBe(true);
-  });
-
-  test("full client-side symbol event synchronization", async () => {
-    await page1.locator("body").focus(); // Ensure page1 is focused to receive symbol input
-    await page1.keyboard.press("h");
-
-    const clientSideSymbolEventReceived = await pollForCondition(
-      page2,
-      async () => {
-        const remoteKeys = await page2.evaluate(() => {
-          const storeState = window.__symbolStore?.getState();
-          return storeState?.remoteKeys as
-            | Record<string, { key: string; ts: number }>
-            | undefined;
-        });
-        return Object.values(remoteKeys || {}).some(
-          (entry) => entry.key === "h",
-        );
-      },
-    );
-    expect(clientSideSymbolEventReceived).toBe(true);
-  });
-});
-
-test("original: has title and receives initial event data", async ({
-  page,
-  request,
-}) => {
-  const postData = {
-    type: "eyeUpdate",
-    id: "test-eye",
-    p: [1, 2, 3],
-    t: Date.now(),
-  };
-  const postResponse = await request.post("/api/events", { data: postData });
-  expect(postResponse.ok()).toBeTruthy();
-
-  await page.goto("/");
-  await expect(page).toHaveTitle(/Planeto/);
-
-  const received = await pollForCondition(
-    page,
-    async () => {
-      const eyeData = await page.evaluate(() => {
-        const storeState = window.__eyeStore?.getState();
-        return storeState?.eyes?.["test-eye"];
-      });
-      return JSON.stringify(eyeData?.p) === JSON.stringify([1, 2, 3]);
-    },
-    10000,
+  field: string,
+  value: string,
+  timeout = 10_000,
+) =>
+  page.evaluate(
+    ({ field, value, timeout }) =>
+      new Promise<Record<string, unknown> | null>((resolve) => {
+        const es = new EventSource("/api/events");
+        const timer = setTimeout(() => {
+          es.close();
+          resolve(null);
+        }, timeout);
+        es.onmessage = (e) => {
+          // The DO only emits JSON `data:` frames (keepalives are SSE comments,
+          // which never trigger onmessage), so this parse is always safe.
+          const data = JSON.parse(e.data) as Record<string, unknown>;
+          if (data[field] === value) {
+            clearTimeout(timer);
+            es.close();
+            resolve(data);
+          }
+        };
+      }),
+    { field, value, timeout },
   );
-  expect(received).toBe(true);
+
+test.describe("SSE event fan-out via /api/events", () => {
+  test("fans out eye updates to a connected subscriber", async ({
+    page,
+    request,
+  }) => {
+    await page.goto("/");
+    await expect(page).toHaveTitle(/Planeto/);
+
+    const received = firstMatchingEvent(page, "id", "wire-eye");
+    await page.waitForTimeout(800); // let the EventSource register with the DO
+
+    const post = await request.post("/api/events", {
+      data: {
+        type: "eyeUpdate",
+        id: "wire-eye",
+        p: [10, 20, 30],
+        t: Date.now(),
+      },
+    });
+    expect(post.ok()).toBeTruthy();
+
+    const event = (await received) as { type?: string; p?: number[] } | null;
+    expect(event?.type).toBe("eyeUpdate");
+    expect(event?.p).toEqual([10, 20, 30]);
+  });
+
+  test("fans out symbol events to a connected subscriber", async ({
+    page,
+    request,
+  }) => {
+    await page.goto("/");
+
+    const received = firstMatchingEvent(page, "id", "wire-symbol");
+    await page.waitForTimeout(800);
+
+    const post = await request.post("/api/events", {
+      data: { type: "symbol", id: "wire-symbol", key: "g" },
+    });
+    expect(post.ok()).toBeTruthy();
+
+    const event = (await received) as { type?: string; key?: string } | null;
+    expect(event?.type).toBe("symbol");
+    expect(event?.key).toBe("g");
+  });
+
+  test("replays the current eyes to a new subscriber", async ({
+    page,
+    request,
+  }) => {
+    // Post an eye BEFORE subscribing; the DO stores it and replays on connect.
+    const post = await request.post("/api/events", {
+      data: {
+        type: "eyeUpdate",
+        id: "replay-eye",
+        p: [4, 5, 6],
+        t: Date.now(),
+      },
+    });
+    expect(post.ok()).toBeTruthy();
+
+    await page.goto("/");
+    const event = (await firstMatchingEvent(page, "id", "replay-eye")) as {
+      p?: number[];
+    } | null;
+    expect(event?.p).toEqual([4, 5, 6]);
+  });
 });

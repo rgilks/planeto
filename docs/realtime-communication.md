@@ -69,7 +69,7 @@ This document outlines Planeto's real-time communication architecture, designed 
 The "real-time" nature of this system is subject to various factors affecting latency. It's important to note that certain delays are an **accepted consequence of design choices aimed at minimizing hosting costs and bandwidth usage**.
 
 - **Network Conditions**: User's internet speed, ping to the server.
-- **Server Load & Processing**: The server infrastructure (e.g., Fly.io VM) handles all requests and SSE connections.
+- **Server Load & Processing**: A Cloudflare Worker serves the static app, and a single `EventsChannel` Durable Object handles the SSE connections and fan-out.
 - **Client-Side Throttling/Polling**:
   - Eye updates are throttled by `useEyePositionReporting` (e.g., 500ms).
   - Symbol event submissions are throttled by `useInputThrottle` (e.g., 100ms).

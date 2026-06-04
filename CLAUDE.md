@@ -5,5 +5,5 @@ Read **[AGENTS.md](AGENTS.md)** first — it is the source of truth for this rep
 Quick reminders:
 
 - Work on `main` and commit directly. Stage only files relevant to the change.
-- Run `npm run verify` before committing; `npm run check` for the full gate (adds Playwright e2e). CI runs `verify`, then deploys to Fly.io.
-- Multiplayer state is in-memory in a **single** server process — `fly.toml` caps the app to one machine. Read the Gotchas in AGENTS.md before touching the SSE store or deploy config.
+- Run `npm run verify` before committing; `npm run check` for the full gate (adds Playwright e2e). CI runs `verify` + `test:run`, then deploys to Cloudflare.
+- Multiplayer state lives in a single global **Durable Object** (`EventsChannel`); the app is otherwise a static export. `/api/events` only runs under `wrangler dev` (`npm run preview`), not `next dev`. Read the Gotchas in AGENTS.md before touching the Worker, the DO, or deploy config.

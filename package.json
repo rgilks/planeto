@@ -8,15 +8,16 @@
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build",
-    "start": "next start",
+    "preview": "next build && wrangler dev --port 3000",
+    "deploy": "next build && wrangler deploy",
     "lint": "eslint . --max-warnings=0",
-    "verify": "prettier --write . && npm run lint && npx tsc --noEmit",
+    "verify": "prettier --write . && npm run lint && npx tsc --noEmit && npx tsc -p worker/tsconfig.json --noEmit",
     "test": "vitest",
     "test:run": "vitest run",
     "check": "npm run verify && npm run test:run && npx playwright test --reporter=list",
     "deps": "npx npm-check-updates",
     "deps:update": "npx npm-check-updates -u && npm run nuke",
-    "nuke": "rm -rf node_modules package-lock.json .next && npm install",
+    "nuke": "rm -rf node_modules package-lock.json .next out && npm install",
     "test:e2e": "playwright test",
     "test:e2e:watch": "playwright test --watch"
   },
@@ -30,7 +31,6 @@
     "immer": "^11.0.1",
     "nanoid": "^3.3.11",
     "next": "16.0.8",
-    "next-pwa": "^5.6.0",
     "react": "^19.2.1",
     "react-dom": "^19.2.1",
     "simplex-noise": "^4.0.3",
@@ -39,8 +39,8 @@
     "zustand": "^5.0.9"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260604.1",
     "@eslint/eslintrc": "^3",
-    "@flydotio/dockerfile": "^0.7.10",
     "@next/eslint-plugin-next": "^16.0.8",
     "@playwright/test": "^1.57.0",
     "@tailwindcss/postcss": "^4",
@@ -59,6 +59,7 @@
     "tailwindcss": "^4",
     "typescript": "^5",
     "typescript-eslint": "^8.49.0",
-    "vitest": "^4.0.15"
+    "vitest": "^4.0.15",
+    "wrangler": "^4.97.0"
   }
 }

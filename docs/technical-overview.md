@@ -37,10 +37,8 @@ The physics simulation for planetoids is handled client-side using Rapier and re
   - `symbolStore.ts`: Manages local input (`lastInput`) and remote users' symbols (`remoteKeys`).
   - `eventStore.ts`: Owns the single `EventSource` and dispatches inbound SSE frames to listeners.
   - `eyeStore.ts` / `eyesStore.ts`: Raw remote eye positions, and the animated "managed" eyes that `Eyes.tsx` renders.
-- **`src/app/api/events/route.ts`**: The sole backend API route.
-  - Handles `POST` requests for incoming `SymbolEvent` and `EyeUpdateEvent` data.
-  - Manages `GET` requests for establishing Server-Sent Event (SSE) connections.
-- **`src/app/api/events/sseStore.ts`**: Server-side helper (or similar module within `src/app/api/events/`) for managing SSE subscribers and storing/broadcasting eye state.
+- **`worker/index.ts`**: The Cloudflare Worker entry. Serves the static export and forwards `/api/events` (GET = SSE subscribe, POST = publish) to the Durable Object.
+- **`worker/eventsChannel.ts`**: The `EventsChannel` Durable Object — the sole backend. Validates `POST`s against `EventSchema`, stores the latest eye per user, and fans out events over SSE to all connected clients. See [sse-store.md](sse-store.md).
 - **`src/domain/index.ts`**: Contains Zod schemas defining `SymbolEvent`, `EyeUpdateEvent`, and other domain-specific types.
 
 ## Data Flow Summaries
@@ -68,6 +66,6 @@ The physics simulation for planetoids is handled client-side using Rapier and re
 
 - **Coordinate System**: Standard 3D Cartesian coordinates are used.
 - **User Identification**: Users are identified by a unique string ID, generated client-side (e.g., using `nanoid` in `Scene.tsx`).
-- **Cost Optimization**: The architecture incorporates design choices (e.g., throttling eye updates, use of `navigator.sendBeacon` if applicable, scale-to-zero server on Fly.io) that prioritize minimizing hosting costs and bandwidth. Refer to `docs/realtime-communication.md` for details.
+- **Cost Optimization**: The architecture incorporates design choices (e.g., throttling eye updates, `navigator.sendBeacon` for presence) that minimize hosting costs and bandwidth; the realtime backend is a Cloudflare Durable Object that is evicted when no one is connected. Refer to `docs/realtime-communication.md` for details.
 
 For deeper dives into specific areas, please consult the other markdown documents in this `docs` folder.

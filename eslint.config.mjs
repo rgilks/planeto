@@ -4,7 +4,7 @@ import importPlugin from "eslint-plugin-import";
 
 const eslintConfig = [
   {
-    ignores: [".next/**", "node_modules/**"],
+    ignores: [".next/**", "out/**", "node_modules/**", "playwright-report/**"],
   },
   ...tseslint.configs.recommended,
   {
