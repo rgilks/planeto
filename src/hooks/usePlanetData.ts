@@ -13,7 +13,7 @@ import {
 
 import type { Planet, Moon as MoonType } from "@/domain";
 
-// base + Math.random() * range — one RNG draw, replacing the inline form.
+// base + Math.random() * range — exactly one RNG draw.
 const jitter = (s: { base: number; range: number }): number =>
   s.base + Math.random() * s.range;
 

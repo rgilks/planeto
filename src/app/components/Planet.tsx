@@ -12,7 +12,7 @@ interface PlanetProps {
 }
 
 const getGeometry = (
-  type: "sphere" | "lowpoly" | "oblate",
+  type: PlanetType["geometryType"],
   radius: number,
 ): React.ReactNode => {
   if (type === "lowpoly") return <icosahedronGeometry args={[radius, 1]} />;

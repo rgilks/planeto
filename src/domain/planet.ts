@@ -1,48 +1,42 @@
-import * as THREE from "three";
-import { z } from "zod";
+import type { Texture } from "three";
 
-const TextureSchema = z.custom<THREE.Texture>(
-  (val) => val instanceof THREE.Texture,
-);
+export type Moon = {
+  radius: number;
+  color: string;
+  orbitRadius: number;
+  orbitSpeed: number;
+  phase: number;
+};
 
-const MoonSchema = z.object({
-  radius: z.number(),
-  color: z.string(),
-  orbitRadius: z.number(),
-  orbitSpeed: z.number(),
-  phase: z.number(),
-});
+export type AtmosphereLayer = {
+  color: string;
+  opacity: number;
+  scale: number;
+  additive?: boolean;
+};
 
-const AtmosphereLayerSchema = z.object({
-  color: z.string(),
-  opacity: z.number(),
-  scale: z.number(),
-  additive: z.boolean().optional(),
-});
-
-export const PlanetSchema = z.object({
-  mass: z.number(),
-  radius: z.number(),
-  position: z.tuple([z.number(), z.number(), z.number()]),
-  velocity: z.tuple([z.number(), z.number(), z.number()]),
-  color: z.string(),
-  id: z.string(),
-  bumpMap: TextureSchema,
-  colorMap: TextureSchema,
-  metalness: z.number(),
-  roughness: z.number(),
-  hasRing: z.boolean(),
-  ringColor: z.string(),
-  ringInner: z.number(),
-  ringOuter: z.number(),
-  moons: z.array(MoonSchema),
-  atmosphereColor: z.string(),
-  atmosphereLayers: z.array(AtmosphereLayerSchema),
-  geometryType: z.enum(["sphere", "lowpoly", "oblate"]),
-  angularVelocity: z.tuple([z.number(), z.number(), z.number()]),
-  isDarkSun: z.boolean().optional(),
-});
-
-export type Planet = z.infer<typeof PlanetSchema>;
-export type Moon = z.infer<typeof MoonSchema>;
-export type AtmosphereLayer = z.infer<typeof AtmosphereLayerSchema>;
+// Fully-resolved, client-side planet. Generated locally from a seed
+// (usePlanetData), never sent over the wire, so it is a plain type rather than
+// a Zod schema — the only validated boundary is event.ts.
+export type Planet = {
+  mass: number;
+  radius: number;
+  position: [number, number, number];
+  velocity: [number, number, number];
+  color: string;
+  id: string;
+  bumpMap: Texture;
+  colorMap: Texture;
+  metalness: number;
+  roughness: number;
+  hasRing: boolean;
+  ringColor: string;
+  ringInner: number;
+  ringOuter: number;
+  moons: Moon[];
+  atmosphereColor: string;
+  atmosphereLayers: AtmosphereLayer[];
+  geometryType: "sphere" | "lowpoly" | "oblate";
+  angularVelocity: [number, number, number];
+  isDarkSun?: boolean;
+};

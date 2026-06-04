@@ -15,7 +15,7 @@ export const usePhysicsSimulation = (
   const isGravityDisabled = usePhysicsStore((s) => s.isGravityDisabled);
 
   useEffect(() => {
-    let frameId: number | undefined = undefined;
+    let frameId: number | undefined;
 
     const step = () => {
       let allRefsReady = false;
@@ -104,8 +104,6 @@ export const usePhysicsSimulation = (
 
     if (planets.length > 0) {
       frameId = requestAnimationFrame(step);
-    } else {
-      if (frameId !== undefined) cancelAnimationFrame(frameId);
     }
 
     return () => {

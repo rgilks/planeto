@@ -6,7 +6,7 @@ import { EyeUpdateType, Vec3Schema } from "@/domain/event";
 
 type Vec3 = z.infer<typeof Vec3Schema>;
 
-interface eyeStoreState {
+interface EyeStoreState {
   eyes: Record<string, { p: Vec3; t: number }>;
 }
 
@@ -15,14 +15,13 @@ interface EyeStoreActions {
   removeStaleEyes: (thresholdMs: number) => void;
 }
 
-// Augment the Window interface for the debug store
 declare global {
   interface Window {
     __eyeStore?: typeof useEyeStore;
   }
 }
 
-export const useEyeStore = create<eyeStoreState & EyeStoreActions>()(
+export const useEyeStore = create<EyeStoreState & EyeStoreActions>()(
   immer((set) => ({
     eyes: {},
     setEye: (eyeUpdate) =>

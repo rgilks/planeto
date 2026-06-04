@@ -14,3 +14,12 @@ export const SYMBOLS = Array.from(
     ),
   ),
 );
+
+// Matrix-green accent used wherever a symbol glyph is shown (HUD + in-scene labels).
+export const SYMBOL_COLOR = "#00FF41";
+
+// Map any keyboard key to a stable symbol glyph via its first code point.
+export const getSymbol = (key: string): string => {
+  const code = key.codePointAt(0) || 0;
+  return SYMBOLS[code % SYMBOLS.length];
+};

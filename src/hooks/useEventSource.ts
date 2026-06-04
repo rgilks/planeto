@@ -5,18 +5,16 @@ import { useEventStore } from "@/stores/eventStore";
 import { useSymbolStore } from "@/stores/symbolStore";
 
 import type { SymbolEventType } from "@/domain/event";
-import type { State as SymbolState } from "@/stores/symbolStore";
 
 export const useEventSource = (myId: React.RefObject<string>) => {
   const connectToEventSource = useEventStore((s) => s.connect);
   const subscribeToSymbolEvents = useEventStore((s) => s.subscribeSymbolEvents);
   const eventSourceConnected = useEventStore((s) => s.isConnected);
 
-  const setRemoteKey = useSymbolStore((s: SymbolState) => s.setRemoteKey);
+  const setRemoteKey = useSymbolStore((s) => s.setRemoteKey);
 
+  // Re-runs when isConnected flips false so the stream reconnects after a drop.
   useEffect(() => {
-    // Attempt to connect to the EventSource when the hook mounts
-    // if not already connected.
     if (!eventSourceConnected) {
       connectToEventSource();
     }
@@ -29,7 +27,6 @@ export const useEventSource = (myId: React.RefObject<string>) => {
       }
     };
 
-    const unsubscribe = subscribeToSymbolEvents(handleSymbolEvent);
-    return () => unsubscribe();
+    return subscribeToSymbolEvents(handleSymbolEvent);
   }, [subscribeToSymbolEvents, myId, setRemoteKey]);
 };

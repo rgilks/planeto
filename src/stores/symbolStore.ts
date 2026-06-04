@@ -12,7 +12,6 @@ type State = {
   setRemoteKey: (id: string, key: string) => void;
 };
 
-// Augment the Window interface for the debug store
 declare global {
   interface Window {
     __symbolStore?: typeof useSymbolStore;

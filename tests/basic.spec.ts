@@ -6,8 +6,10 @@ import { test, expect, Page } from "@playwright/test";
 // `wrangler dev`.
 
 // Open an EventSource on the page and resolve with the first event whose JSON
-// has `field === value`, or null on timeout.
-const firstMatchingEvent = (
+// has `field === value`, or null on timeout. The caller supplies the expected
+// frame shape via T (frames cross the page boundary as plain JSON, so this only
+// narrows the type — there is no runtime cast).
+const firstMatchingEvent = <T extends Record<string, unknown>>(
   page: Page,
   field: string,
   value: string,
@@ -33,7 +35,7 @@ const firstMatchingEvent = (
         };
       }),
     { field, value, timeout },
-  );
+  ) as Promise<T | null>;
 
 test.describe("SSE event fan-out via /api/events", () => {
   test("fans out eye updates to a connected subscriber", async ({
@@ -43,7 +45,11 @@ test.describe("SSE event fan-out via /api/events", () => {
     await page.goto("/");
     await expect(page).toHaveTitle(/Planeto/);
 
-    const received = firstMatchingEvent(page, "id", "wire-eye");
+    const received = firstMatchingEvent<{ type?: string; p?: number[] }>(
+      page,
+      "id",
+      "wire-eye",
+    );
     await page.waitForTimeout(800); // let the EventSource register with the DO
 
     const post = await request.post("/api/events", {
@@ -56,7 +62,7 @@ test.describe("SSE event fan-out via /api/events", () => {
     });
     expect(post.ok()).toBeTruthy();
 
-    const event = (await received) as { type?: string; p?: number[] } | null;
+    const event = await received;
     expect(event?.type).toBe("eyeUpdate");
     expect(event?.p).toEqual([10, 20, 30]);
   });
@@ -67,7 +73,11 @@ test.describe("SSE event fan-out via /api/events", () => {
   }) => {
     await page.goto("/");
 
-    const received = firstMatchingEvent(page, "id", "wire-symbol");
+    const received = firstMatchingEvent<{ type?: string; key?: string }>(
+      page,
+      "id",
+      "wire-symbol",
+    );
     await page.waitForTimeout(800);
 
     const post = await request.post("/api/events", {
@@ -75,7 +85,7 @@ test.describe("SSE event fan-out via /api/events", () => {
     });
     expect(post.ok()).toBeTruthy();
 
-    const event = (await received) as { type?: string; key?: string } | null;
+    const event = await received;
     expect(event?.type).toBe("symbol");
     expect(event?.key).toBe("g");
   });
@@ -96,9 +106,11 @@ test.describe("SSE event fan-out via /api/events", () => {
     expect(post.ok()).toBeTruthy();
 
     await page.goto("/");
-    const event = (await firstMatchingEvent(page, "id", "replay-eye")) as {
-      p?: number[];
-    } | null;
+    const event = await firstMatchingEvent<{ p?: number[] }>(
+      page,
+      "id",
+      "replay-eye",
+    );
     expect(event?.p).toEqual([4, 5, 6]);
   });
 });

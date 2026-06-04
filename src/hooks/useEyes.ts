@@ -1,12 +1,9 @@
 "use client";
 import { useMemo, useEffect } from "react";
-import { z } from "zod";
 
-import { EyeUpdateType, Vec3Schema, EYE_STALE_MS } from "@/domain/event";
+import { EyeUpdateType, Vec3, EYE_STALE_MS } from "@/domain/event";
 import { useEventStore } from "@/stores/eventStore";
 import { useEyeStore } from "@/stores/eyeStore";
-
-type Vec3 = z.infer<typeof Vec3Schema>;
 
 const CLEANUP_INTERVAL_MS = 5000;
 

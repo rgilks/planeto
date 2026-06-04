@@ -4,7 +4,6 @@ import { immer } from "zustand/middleware/immer";
 
 import {
   EyeState,
-  EyeStatus,
   INITIAL_SCALE,
   TARGET_SCALE,
   FADE_DURATION,
@@ -21,7 +20,6 @@ type EyesActions = {
     baseShaderMaterial: ShaderMaterial,
   ) => void;
   updateEyeAnimations: (delta: number) => void;
-  removeEye: (id: string) => void;
 };
 
 export type { EyeState as ManagedEye };
@@ -51,7 +49,7 @@ export const useEyesStore = create<EyesState & EyesActions>()(
               targetPosition: positionVec.clone(),
               opacity: 0,
               scale: INITIAL_SCALE,
-              status: "appearing" as EyeStatus,
+              status: "appearing",
               material: baseShaderMaterial.clone(),
             };
           }
@@ -60,22 +58,18 @@ export const useEyesStore = create<EyesState & EyesActions>()(
         for (const id in state.managedEyes) {
           if (id === myId) continue;
           if (!incomingEyeIds.has(id)) {
-            if (state.managedEyes[id].status !== "disappearing") {
-              state.managedEyes[id].status = "disappearing";
-            }
+            state.managedEyes[id].status = "disappearing";
           }
         }
       }),
 
     updateEyeAnimations: (delta) =>
       set((state) => {
-        let changed = false;
         for (const id in state.managedEyes) {
           const eye = state.managedEyes[id];
 
           if (!eye.position.equals(eye.targetPosition)) {
             eye.position.lerp(eye.targetPosition, 0.05);
-            changed = true;
           }
 
           if (eye.status === "appearing") {
@@ -89,7 +83,6 @@ export const useEyesStore = create<EyesState & EyesActions>()(
               eye.scale = TARGET_SCALE;
               eye.status = "visible";
             }
-            changed = true;
           } else if (eye.status === "disappearing") {
             eye.opacity -= delta / FADE_DURATION;
             eye.scale =
@@ -98,21 +91,9 @@ export const useEyesStore = create<EyesState & EyesActions>()(
 
             if (eye.opacity <= 0) {
               delete state.managedEyes[id];
-              changed = true;
-              continue;
             }
-            changed = true;
           }
         }
-        if (!changed) {
-          return state;
-        }
-        return;
-      }),
-
-    removeEye: (id: string) =>
-      set((state) => {
-        delete state.managedEyes[id];
       }),
   })),
 );

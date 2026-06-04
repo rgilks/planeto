@@ -1,12 +1,7 @@
-import { SYMBOLS } from "@/domain";
+"use client";
+
+import { getSymbol, SYMBOL_COLOR } from "@/domain";
 import { useSymbolStore } from "@/stores/symbolStore";
-
-const GREEN = "#00FF41";
-
-const getSymbol = (key: string) => {
-  const code = key.codePointAt(0) || 0;
-  return SYMBOLS[code % SYMBOLS.length];
-};
 
 const SymbolDisplay = () => {
   const lastInput = useSymbolStore((s) => s.lastInput);
@@ -20,7 +15,7 @@ const SymbolDisplay = () => {
         bottom: 24,
         right: 24,
         background: "rgba(0,0,0,0.7)",
-        color: GREEN,
+        color: SYMBOL_COLOR,
         padding: "1rem 2rem",
         borderRadius: 12,
         fontSize: 96,

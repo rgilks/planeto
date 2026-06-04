@@ -1,7 +1,7 @@
 "use client";
 import { useFrame, useLoader } from "@react-three/fiber";
 import { useRef, useEffect, useMemo } from "react";
-import { Mesh, Vector3, Group, TextureLoader, ShaderMaterial } from "three";
+import { Vector3, Group, TextureLoader, ShaderMaterial } from "three";
 
 import { useEyes } from "@/hooks/useEyes";
 import { useEyesStore } from "@/stores/eyesStore";
@@ -36,7 +36,7 @@ const fragmentShader = `
 `;
 
 export const Eyes = ({ myId }: { myId: string }) => {
-  const refs = useRef<Record<string, Mesh | Group>>({});
+  const refs = useRef<Record<string, Group>>({});
   const eyes = useEyes();
   const eyeTexture = useLoader(TextureLoader, EYE_TEXTURE_PATH);
   const remoteKeys = useSymbolStore((s) => s.remoteKeys);

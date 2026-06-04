@@ -3,11 +3,9 @@ import { immer } from "zustand/middleware/immer";
 
 import { EventSchema, SymbolEventType, EyeUpdateType } from "@/domain/event";
 
-// Define listener types
 type SymbolEventListener = (event: SymbolEventType) => void;
 type EyeUpdateEventListener = (event: EyeUpdateType) => void;
 
-// Augment the Window interface for the debug store
 declare global {
   interface Window {
     __eventStore?: typeof useEventStore;

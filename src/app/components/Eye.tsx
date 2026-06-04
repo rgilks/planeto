@@ -2,18 +2,12 @@
 import { Text } from "@react-three/drei";
 import { Group, Vector3 } from "three";
 
-import { SYMBOLS } from "@/domain";
+import { getSymbol, SYMBOL_COLOR } from "@/domain";
 import { ManagedEye } from "@/stores/eyesStore";
 import { RemoteKeyState } from "@/stores/symbolStore";
 
 const EYE_RADIUS = 8;
-const GREEN = "#00FF41";
 const TEXT_FADE_DURATION_MS = 2000;
-
-const getSymbol = (key: string) => {
-  const code = key.codePointAt(0) || 0;
-  return SYMBOLS[code % SYMBOLS.length];
-};
 
 interface EyeProps {
   eye: ManagedEye;
@@ -22,15 +16,9 @@ interface EyeProps {
   position?: Vector3;
 }
 
-export const Eye = ({
-  eye,
-  remoteKey,
-  groupRef,
-  position,
-  ...props
-}: EyeProps) => {
+export const Eye = ({ eye, remoteKey, groupRef, position }: EyeProps) => {
   return (
-    <group ref={groupRef} position={position || eye.position} {...props}>
+    <group ref={groupRef} position={position || eye.position}>
       <mesh>
         <sphereGeometry args={[EYE_RADIUS, 32, 32]} />
         <primitive object={eye.material} attach="material" />
@@ -41,7 +29,7 @@ export const Eye = ({
           <Text
             position={[0, EYE_RADIUS + 6, 0]}
             fontSize={10}
-            color={GREEN}
+            color={SYMBOL_COLOR}
             anchorX="center"
             anchorY="middle"
             fillOpacity={

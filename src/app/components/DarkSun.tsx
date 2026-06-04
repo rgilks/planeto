@@ -24,19 +24,16 @@ const DarkSun: React.FC<DarkSunProps> = ({ radius }) => {
 
   return (
     <group>
-      {/* Point light originating from the sun's center */}
       <pointLight
         color="white"
-        intensity={15} // Start with a strong intensity, can be adjusted
-        distance={1000} // How far the light reaches, adjust based on scene scale
-        decay={2} // How the light intensity falls off with distance
-        castShadow // Enabled shadow casting
+        intensity={15}
+        distance={1000}
+        decay={2}
+        castShadow
       />
-      {/* Inner solid core */}
       <Sphere args={[radius, 64, 64]} position={[0, 0, 0]}>
         <meshBasicMaterial color="white" />
       </Sphere>
-      {/* Outer transparent atmosphere */}
       <Sphere
         args={[radius * atmosphereRadiusFactor, 64, 64]}
         position={[0, 0, 0]}

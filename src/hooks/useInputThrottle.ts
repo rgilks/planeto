@@ -14,9 +14,7 @@ export const useInputThrottle = (myId: React.RefObject<string>) => {
   useEffect(() => {
     if (!lastInput) return;
 
-    const now = Date.now();
-    const timeSinceLastSend = now - lastSentTimeRef.current;
-    const currentLastInput = lastInput;
+    const timeSinceLastSend = Date.now() - lastSentTimeRef.current;
 
     const sendEvent = () => {
       fetch("/api/events", {
@@ -25,7 +23,7 @@ export const useInputThrottle = (myId: React.RefObject<string>) => {
         body: JSON.stringify({
           type: "symbol",
           id: myId.current,
-          key: currentLastInput.key,
+          key: lastInput.key,
         }),
       });
       lastSentTimeRef.current = Date.now();
@@ -35,6 +33,8 @@ export const useInputThrottle = (myId: React.RefObject<string>) => {
       clearTimeout(throttleTimeoutRef.current);
     }
 
+    // Leading-edge throttle: send immediately if enough time has elapsed,
+    // otherwise defer to the trailing edge so rapid input can't flood /api/events.
     if (timeSinceLastSend >= THROTTLE_MS) {
       sendEvent();
     } else {

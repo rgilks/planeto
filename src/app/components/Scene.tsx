@@ -65,8 +65,6 @@ const CanvasContent = ({ myId }: { myId: string }) => {
         zoomSpeed={0.4}
         minDistance={40}
         maxDistance={400}
-        onStart={() => {}}
-        onEnd={() => {}}
       />
     </>
   );
@@ -106,7 +104,7 @@ const Scene = () => {
     const x = r * Math.sin(phi) * Math.cos(theta);
     const y = r * Math.sin(phi) * Math.sin(theta);
     const z = r * Math.cos(phi);
-    return [x, y, z] as [number, number, number];
+    return [x, y, z];
   };
 
   if (!bumpMaps || planets.length === 0) {

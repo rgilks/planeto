@@ -7,8 +7,7 @@ import type { Moon as MoonType } from "@/domain";
 export const Moon = ({ moon }: { moon: MoonType }) => {
   const ref = useRef<THREE.Mesh>(null);
 
-  // Kinematic orbit on the shared R3F clock (elapsedTime * 0.2 matches the old
-  // performance.now() * 0.0002), so all moons ride one frame loop.
+  // Kinematic orbit driven directly off the shared R3F clock — no physics state.
   useFrame(({ clock }) => {
     if (!ref.current) return;
     const angle = clock.elapsedTime * 0.2 * moon.orbitSpeed + moon.phase;

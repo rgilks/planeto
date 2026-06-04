@@ -23,49 +23,37 @@ export const useEyePositionReporting = (
     const checksPerForcePositionUpdate =
       FORCE_POSITION_UPDATE_INTERVAL_MS / LOCAL_INTERVAL_MS;
 
-    const initialPositionRaw: [number, number, number] = [
-      camera.position.x,
-      camera.position.y,
-      camera.position.z,
-    ];
-    const initialPositionRounded = roundVec3(initialPositionRaw);
-    const initialPayload: EyeUpdateType = {
-      type: "eyeUpdate",
-      id: myId,
-      p: initialPositionRounded,
-      t: Date.now(),
+    const send = (position: [number, number, number]) => {
+      const payload: EyeUpdateType = {
+        type: "eyeUpdate",
+        id: myId,
+        p: position,
+        t: Date.now(),
+      };
+      navigator.sendBeacon?.("/api/events", JSON.stringify(payload));
+      lastSentPositionRef.current = position;
+      forcePositionUpdateCounterRef.current = 0;
     };
-    navigator.sendBeacon?.("/api/events", JSON.stringify(initialPayload));
-    lastSentPositionRef.current = initialPositionRounded;
-    forcePositionUpdateCounterRef.current = 0;
+
+    const readPosition = (): [number, number, number] =>
+      roundVec3([camera.position.x, camera.position.y, camera.position.z]);
+
+    send(readPosition());
 
     const intervalId = setInterval(() => {
-      const currentPositionRaw: [number, number, number] = [
-        camera.position.x,
-        camera.position.y,
-        camera.position.z,
-      ];
-      const currentPositionRounded = roundVec3(currentPositionRaw);
+      const currentPosition = readPosition();
 
       forcePositionUpdateCounterRef.current += 1;
 
       const positionActuallyChanged = !areVec3sEqual(
         lastSentPositionRef.current,
-        currentPositionRounded,
+        currentPosition,
       );
       const isTimeForForcePositionUpdate =
         forcePositionUpdateCounterRef.current >= checksPerForcePositionUpdate;
 
       if (positionActuallyChanged || isTimeForForcePositionUpdate) {
-        const payload: EyeUpdateType = {
-          type: "eyeUpdate",
-          id: myId,
-          p: currentPositionRounded,
-          t: Date.now(),
-        };
-        navigator.sendBeacon?.("/api/events", JSON.stringify(payload));
-        lastSentPositionRef.current = currentPositionRounded;
-        forcePositionUpdateCounterRef.current = 0;
+        send(currentPosition);
       }
     }, LOCAL_INTERVAL_MS);
 

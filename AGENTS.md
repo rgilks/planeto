@@ -9,8 +9,8 @@ Planeto is a browser-based 3D toy: a procedurally generated cluster of drifting 
 - **Framework:** Next.js 16 (App Router) + React 19, TypeScript (strict), built as a **static export** (`output: 'export'`).
 - **Rendering:** React Three Fiber (`@react-three/fiber`) + Drei, with a Bloom pass (`@react-three/postprocessing`). Procedural textures via `simplex-noise`.
 - **Physics:** Rapier (`@react-three/rapier`) rigid bodies, but gravity is **custom** — an N-body loop in `usePhysicsSimulation`, not Rapier's built-in gravity.
-- **State:** Zustand (+ the `zustand/middleware/immer` middleware), six small stores.
-- **Domain:** Zod schemas; only `EventSchema` validates at runtime (the rest are type sources).
+- **State:** Zustand (+ the `zustand/middleware/immer` middleware), five small stores.
+- **Domain:** Zod guards the wire boundary (`EventSchema` in `event.ts`); client-side shapes (`planet.ts`, `eye.ts`) are plain types.
 - **Multiplayer:** Server-Sent Events for server→client, HTTP POST for client→server, both at `/api/events`. The server is a Cloudflare **Durable Object** (`EventsChannel`) holding the shared state in memory — no database, no persistence.
 - **Deployed:** Cloudflare Workers — a single Worker serves the static export and hosts the Durable Object, at `planeto.tre.systems`.
 
@@ -92,11 +92,11 @@ src/
     eyesStore.ts                 # animated "managed" eyes: appear/visible/disappear lifecycle, per-eye material, lerp + fade
     physicsStore.ts              # isGravityDisabled flag + disableGravityTemporarily(ms)
     symbolStore.ts               # lastInput (local) + remoteKeys (per id); exposes the dev-only window.__ debug handles
-  domain/                        # Zod schemas — the wire protocol, reused by the client AND the Durable Object
+  domain/                        # the wire protocol (Zod, shared with the Worker) + plain domain types
     event.ts                     # Vec3 / SymbolEvent / EyeUpdate / EventSchema (discriminated union) — the validation gate; EYE_STALE_MS
     eventsCore.ts                # pure DO state transitions (applyEvent, pruneStaleEyes, encodeEventFrame) — unit-tested, shared with the Worker
-    eye.ts                       # EyeState / EyeStatus + scale & fade constants (type source only)
-    planet.ts                    # Planet / Moon / AtmosphereLayer (type source only; never .parse()d at runtime)
+    eye.ts                       # EyeState / EyeStatus + scale & fade constants (plain client-side types)
+    planet.ts                    # Planet / Moon / AtmosphereLayer (plain client-side types)
     symbol.ts                    # SymbolInput + the SYMBOLS glyph list
     index.ts                     # barrel
   lib/utils.ts                   # colour / noise / texture / vector helpers (generateBumpMap, generateColorMap, roundVec3, areVec3sEqual, …)
@@ -145,13 +145,12 @@ The codebase is assembled from a small set of repeated patterns. Reach for the m
 
 Minor known deviations — align them when you touch the code:
 
-- Store state/action type names aren't uniform (`eyeStore` uses a lower-case `eyeStoreState`; `eyesStore` uses `EyesState` / `EyesActions` with no `Store` segment). Prefer `<Name>State` / `<Name>Actions`.
-- `src/domain/planet.ts` and `eye.ts` define Zod schemas that are **never `.parse()`d** — they serve only as type sources. Either validate them at a boundary or make them plain `type`s, so "parse at the boundary" stays literally true.
-- A couple of duplicated literals: the symbol colour `#00FF41` (`Eye.tsx` + `Symbol.tsx`) and the ambient-light `0.08` (`Scene.tsx`, twice).
+- Store state/action type names aren't fully uniform: `eyesStore` uses `EyesState` / `EyesActions`, while `eventStore` / `eyeStore` carry a `Store` segment (`EventStoreState` / `EyeStoreState`). Prefer one convention.
+- The ambient-light intensity `0.08` is repeated in `Scene.tsx` (the main scene and the loading fallback).
 
 ## Conventions
 
-- **TypeScript strict.** Validate anything crossing the network with **Zod** — `EventSchema` in `src/domain/event.ts` guards the DO's POST handler and every inbound SSE frame, and is shared verbatim between the client and the Worker. The other schemas exist for their inferred types.
+- **TypeScript strict.** Validate anything crossing the network with **Zod** — `EventSchema` in `src/domain/event.ts` guards the DO's POST handler and every inbound SSE frame, and is shared verbatim between the client and the Worker. Client-side shapes that never cross the network (`planet.ts`, `eye.ts`) are plain types, not schemas.
 - **Prettier + ESLint flat config** (`eslint.config.mjs`); lint is zero-warnings (`--max-warnings=0`). Build artifacts (`out`, `.next`) are ignored via `.prettierignore` and ESLint `ignores`.
 - The Worker (`worker/`) is type-checked separately under `worker/tsconfig.json` (Workers types, no DOM) and excluded from the root tsconfig.
 - **IDs** are `nanoid(6)`, generated client-side in `Scene.tsx`.
