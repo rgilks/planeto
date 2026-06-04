@@ -1,6 +1,6 @@
 # Planeto
 
-[![CI/CD](https://github.com/rgilks/planeto/actions/workflows/fly.yml/badge.svg)](https://github.com/rgilks/planeto/actions/workflows/fly.yml)
+[![Fly Deploy](https://github.com/tre-systems/planeto/actions/workflows/fly.yml/badge.svg)](https://github.com/tre-systems/planeto/actions/workflows/fly.yml)
 
 ![planeto Screenshot](/screenshots/loaded.png)
 
@@ -53,6 +53,8 @@ Open your browser and navigate to: [http://localhost:3000](http://localhost:3000
 - `npm run lint`: Lints the codebase for potential errors.
 - `npm run check`: Runs formatting, linting, type-checking, and tests.
 
+For architecture, conventions, and a full code map, see [AGENTS.md](AGENTS.md).
+
 ## Customization
 
 - To modify the generation of planetoids, adjust the logic in `src/hooks/usePlanetData.ts`.
@@ -73,7 +75,7 @@ When a user double-clicks, a large green symbol (from a predefined set) appears 
 - State Management: Zustand (`src/stores/symbolStore.ts`)
 - Schema Definition: Zod (likely in `src/domain/index.ts` or a similar file within `src/domain/`)
 - Event Trigger: `src/app/components/Scene.tsx` (onDoubleClick event)
-- Symbol Display: `src/app/components/SymbolDisplay.tsx` (for the local user's symbol), `src/app/components/Eyes.tsx` (for other users' symbols)
+- Symbol Display: `src/app/components/Symbol.tsx` (the local user's symbol overlay), `src/app/components/Eye.tsx` (other users' symbols, shown above their eye)
 - To modify the symbols or their appearance, update the relevant components.
 
 ---

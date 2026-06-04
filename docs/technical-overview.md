@@ -31,11 +31,12 @@ The physics simulation for planetoids is handled client-side using Rapier and re
   - `Scene.tsx` uses `useEventSource` for establishing an SSE connection to receive events from other users.
 - **`src/app/components/Eyes.tsx`**: Renders representations of other users' eyes.
   - Displays symbols/glyphs based on recent symbol inputs from remote users, positioned near their respective "eye".
-- **`src/app/components/SymbolDisplay.tsx`**: Displays the local user's most recently typed symbol in a fixed overlay on their screen.
+- **`src/app/components/Symbol.tsx`**: Exports `SymbolDisplay`, which shows the local user's most recently typed symbol in a fixed overlay on their screen.
 - **`src/app/page.tsx`**: Main application page, integrating `Scene` and `SymbolDisplay`.
 - **`src/stores/`**: Zustand stores for managing client-side state:
-  - `useSymbolStore.ts`: Manages local and remote symbol inputs/symbols.
-  - `useCamStore.ts`: Manages data for remote eyes. (Note: The existence and exact usage of `useCamStore.ts` should be verified; it might be part of `useSymbolStore` or another mechanism if remote eye data is handled differently).
+  - `symbolStore.ts`: Manages local input (`lastInput`) and remote users' symbols (`remoteKeys`).
+  - `eventStore.ts`: Owns the single `EventSource` and dispatches inbound SSE frames to listeners.
+  - `eyeStore.ts` / `eyesStore.ts`: Raw remote eye positions, and the animated "managed" eyes that `Eyes.tsx` renders.
 - **`src/app/api/events/route.ts`**: The sole backend API route.
   - Handles `POST` requests for incoming `SymbolEvent` and `EyeUpdateEvent` data.
   - Manages `GET` requests for establishing Server-Sent Event (SSE) connections.
@@ -49,7 +50,7 @@ The physics simulation for planetoids is handled client-side using Rapier and re
   - Physics (gravity, collisions) are managed by Rapier. The core simulation loop and application of forces are handled by the `usePhysicsSimulation` hook (located in `src/hooks/`), which updates the `RigidBody` components representing each planetoid.
 - **Local Symbol Input & Symbol Display**:
   - Symbol inputs update `lastInput` in `useSymbolStore`.
-  - `SymbolDisplay.tsx` observes this store and shows the corresponding symbol locally.
+  - `SymbolDisplay` (in `src/app/components/Symbol.tsx`) observes this store and shows the corresponding symbol locally.
 - **Symbol Event Broadcasting & Remote Display**:
   - `Scene.tsx` (specifically, its `onDoubleClick` handler, or a dedicated mechanism) observes `lastInput` from `useSymbolStore`. On change, it POSTs a `SymbolEvent` (containing user ID and key) to `/api/events`.
   - The server (`/api/events/route.ts`) validates and broadcasts this event via SSE to all connected clients, likely using helper functions from `sseStore.ts` or an equivalent module.
@@ -60,7 +61,7 @@ The physics simulation for planetoids is handled client-side using Rapier and re
   - The `useEyePositionReporting` hook (used within `CanvasContent` in `Scene.tsx`, located in `src/hooks/`) sends the local camera's position as an `EyeUpdateEvent` to `/api/events` (POST). This occurs periodically.
   - The server (`/api/events/route.ts`) validates the event and uses `sseStore.ts` (or equivalent) to update its record of that user's eye position and timestamp.
   - `sseStore.ts` (or equivalent) then broadcasts the `EyeUpdateEvent` via SSE to all clients.
-  - Remote clients receive these updates. This data is then used to populate a client-side store (e.g., `useCamStore.ts` or managed within `useSymbolStore` or `Eyes.tsx` directly) that `Eyes.tsx` consumes to position the visual representations of remote users.
+  - Remote clients receive these updates and write them into `eyeStore` (raw positions), which feeds `eyesStore` (the animated "managed" eyes) that `Eyes.tsx` consumes to position the visual representations of remote users.
   - The server-side store periodically purges stale eye data.
 
 ## Notes
