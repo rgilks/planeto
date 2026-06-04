@@ -1,6 +1,6 @@
 import { useEffect, RefObject } from "react";
 
-import { G } from "@/hooks/usePlanetData";
+import { G, SIM } from "@/lib/simulationParams";
 import { usePhysicsStore } from "@/stores/physicsStore";
 
 import type { Planet } from "@/domain";
@@ -92,8 +92,9 @@ export const usePhysicsSimulation = (
             fz += (dz / dist) * forceMag;
           }
 
+          const s = SIM.physics.impulseScale;
           planetRef.current.applyImpulse(
-            { x: fx * 0.016, y: fy * 0.016, z: fz * 0.016 },
+            { x: fx * s, y: fy * s, z: fz * s },
             true,
           );
         }

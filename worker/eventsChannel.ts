@@ -4,14 +4,19 @@
 // eye/symbol events to every connected browser. State is purely in-memory — once
 // all browsers close their EventSource the DO can be evicted.
 //
-// Browsers talk to it over the standard /api/events SSE protocol; the
-// EventSchema is reused verbatim from the domain layer.
+// The pure state transitions (apply event, prune stale, encode frame) live in
+// src/domain/eventsCore.ts and are unit-tested; this file is the SSE plumbing.
 
 import {
   EventSchema,
-  EYE_STALE_MS,
+  type EventType,
   type EyeUpdateType,
 } from "../src/domain/event";
+import {
+  applyEvent,
+  encodeEventFrame,
+  pruneStaleEyes,
+} from "../src/domain/eventsCore";
 
 const KEEPALIVE_MS = 20_000;
 
@@ -24,10 +29,7 @@ const SSE_HEADERS = {
   connection: "keep-alive",
 } as const;
 
-const encoder = new TextEncoder();
-const encodeFrame = (data: unknown): Uint8Array =>
-  encoder.encode(`data:${JSON.stringify(data)}\n\n`);
-const KEEPALIVE_FRAME = encoder.encode(`:keepalive\n\n`);
+const KEEPALIVE_FRAME = new TextEncoder().encode(`:keepalive\n\n`);
 
 type Writer = {
   readonly controller: ReadableStreamDefaultController<Uint8Array>;
@@ -51,7 +53,7 @@ export class EventsChannel implements DurableObject {
   }
 
   private subscribe(): Response {
-    this.purgeStale();
+    pruneStaleEyes(this.eyes, Date.now());
     let writer: Writer | null = null;
     const stream = new ReadableStream<Uint8Array>({
       start: (controller) => {
@@ -65,7 +67,7 @@ export class EventsChannel implements DurableObject {
         this.writers.add(writer);
         // Replay the current eyes so a fresh client immediately sees everyone.
         for (const eye of this.eyes.values()) {
-          this.safeEnqueue(writer, encodeFrame(eye));
+          this.safeEnqueue(writer, encodeEventFrame(eye));
         }
       },
       cancel: () => {
@@ -91,36 +93,16 @@ export class EventsChannel implements DurableObject {
       );
     }
 
-    this.purgeStale();
-    const event = parsed.data;
-    if (event.type === "eyeUpdate") {
-      // The server stamps the timestamp (used for staleness); the client's
-      // `t` is not trusted.
-      const msg: EyeUpdateType = {
-        type: "eyeUpdate",
-        id: event.id,
-        p: event.p,
-        t: Date.now(),
-      };
-      this.eyes.set(event.id, msg);
-      this.fanout(msg);
-    } else {
-      this.fanout(event);
-    }
+    const now = Date.now();
+    pruneStaleEyes(this.eyes, now);
+    this.fanout(applyEvent(this.eyes, parsed.data, now));
     return Response.json({ ok: true });
   }
 
-  private fanout(event: unknown): void {
-    const frame = encodeFrame(event);
+  private fanout(event: EventType): void {
+    const frame = encodeEventFrame(event);
     for (const writer of this.writers) {
       this.safeEnqueue(writer, frame);
-    }
-  }
-
-  private purgeStale(): void {
-    const now = Date.now();
-    for (const [id, eye] of this.eyes) {
-      if (now - eye.t > EYE_STALE_MS) this.eyes.delete(id);
     }
   }
 

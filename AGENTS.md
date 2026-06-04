@@ -60,7 +60,7 @@ Anything touching multiplayer needs the Worker + DO, so use `npm run preview` (o
 ```
 worker/
   index.ts            # Worker entry: routes /api/events to the EventsChannel DO; serves everything else from static assets (env.ASSETS); re-exports the DO class
-  eventsChannel.ts    # EventsChannel Durable Object: eyes Map + writers Set; subscribe (replay + keepalive), publish (validate + fan out), lazy purge. Reuses EventSchema from src/domain/event.ts
+  eventsChannel.ts    # EventsChannel Durable Object — SSE plumbing: subscribe (replay + keepalive), publish (validate + fan out). The pure transitions live in src/domain/eventsCore.ts
   tsconfig.json       # worker-only tsconfig (@cloudflare/workers-types, no DOM lib)
 wrangler.toml         # Worker config: [assets] ./out, run_worker_first /api/events, EVENTS DO binding + migration, planeto.tre.systems
 src/
@@ -90,12 +90,14 @@ src/
     physicsStore.ts              # isGravityDisabled flag + disableGravityTemporarily(ms)
     symbolStore.ts               # lastInput (local) + remoteKeys (per id); exposes the dev-only window.__ debug handles
   domain/                        # Zod schemas — the wire protocol, reused by the client AND the Durable Object
-    event.ts                     # Vec3 / SymbolEvent / EyeUpdate / EventSchema (discriminated union) — the runtime validation gate
+    event.ts                     # Vec3 / SymbolEvent / EyeUpdate / EventSchema (discriminated union) — the validation gate; EYE_STALE_MS
+    eventsCore.ts                # pure DO state transitions (applyEvent, pruneStaleEyes, encodeEventFrame) — unit-tested, shared with the Worker
     eye.ts                       # EyeState / EyeStatus + scale & fade constants (type source only)
     planet.ts                    # Planet / Moon / AtmosphereLayer (type source only; never .parse()d at runtime)
     symbol.ts                    # SymbolInput + the SYMBOLS glyph list
     index.ts                     # barrel
   lib/utils.ts                   # colour / noise / texture / vector helpers (generateBumpMap, generateColorMap, roundVec3, areVec3sEqual, …)
+  lib/simulationParams.ts        # SIM — centralised procedural-generation + gravity tuning constants
 tests/                           # Playwright, Chromium only — run against `wrangler dev`
   api.spec.ts                    # POST /api/events contract: 400 on bad payloads, 200 on valid symbol/eyeUpdate
   basic.spec.ts                  # SSE fan-out + replay over the wire (EventSource), independent of client internals
@@ -133,7 +135,8 @@ The codebase is assembled from a small set of repeated patterns. Reach for the m
 - **Hook per concern.** Each multiplayer/sim concern is one hook wiring stores ↔ effects/timers (`useEyePositionReporting`, `useInputThrottle`, `useEyes`, `useEventSource`, `usePhysicsSimulation`, `usePlanetData`).
 - **Component per celestial body.** One small R3F component per body type (`Planet`, `DarkSun`, `Moon`, `Eye`, `Eyes`, `Symbol`); compose, don't grow `Scene.tsx`.
 - **Throttle / beacon outbound.** Outbound traffic is rate-limited and change-detected — camera position via `navigator.sendBeacon` (`useEyePositionReporting`), symbols via a 100 ms throttle (`useInputThrottle`).
-- **Pure core, unit-tested.** Pure logic (`lib/utils`, the domain schemas) is covered by Vitest; effectful/IO code (the DO, the client wiring) is covered by the Playwright e2e against `wrangler dev`.
+- **Pure core, unit-tested.** Pure logic is split from IO and covered by Vitest — `lib/utils`, the domain schemas, and the DO's state transitions (`src/domain/eventsCore.ts`); the SSE plumbing and client wiring are covered by the Playwright e2e against `wrangler dev`.
+- **Centralised simulation tuning.** The procedural-generation and gravity knobs live in one place — `src/lib/simulationParams.ts` (`SIM`) — instead of scattered through the generator (`usePlanetData`).
 
 ### Consistency notes
 
@@ -142,11 +145,6 @@ Minor known deviations — align them when you touch the code:
 - Store state/action type names aren't uniform (`eyeStore` uses a lower-case `eyeStoreState`; `eyesStore` uses `EyesState` / `EyesActions` with no `Store` segment). Prefer `<Name>State` / `<Name>Actions`.
 - `src/domain/planet.ts` and `eye.ts` define Zod schemas that are **never `.parse()`d** — they serve only as type sources. Either validate them at a boundary or make them plain `type`s, so "parse at the boundary" stays literally true.
 - A couple of duplicated literals: the symbol colour `#00FF41` (`Eye.tsx` + `Symbol.tsx`) and the ambient-light `0.08` (`Scene.tsx`, twice).
-
-### Patterns to adopt
-
-- **Centralised simulation tuning.** `usePlanetData.ts` carries dozens of inline magic numbers (orbit radii, mass/velocity formulas, atmosphere layers, probabilities). Collect them into one config object — as the sibling `galacto` does with `SimulationParams` — so the knobs live in one place instead of scattered through the generator.
-- **A pure, testable core for the DO.** The event-apply and staleness logic in `worker/eventsChannel.ts` is reachable only through the e2e tests. Extracting the pure parts into functions would let the "pure core, unit-tested" pattern cover the realtime backend too.
 
 ## Conventions
 

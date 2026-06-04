@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { createNoise2D } from "simplex-noise";
 import * as THREE from "three";
 
+import { SIM, G } from "@/lib/simulationParams";
 import {
   blendColor,
   generateColorMap,
@@ -12,7 +13,9 @@ import {
 
 import type { Planet, Moon as MoonType } from "@/domain";
 
-export const G = 1;
+// base + Math.random() * range — one RNG draw, replacing the inline form.
+const jitter = (s: { base: number; range: number }): number =>
+  s.base + Math.random() * s.range;
 
 export const usePlanetData = (bumpMaps: THREE.Texture[] | null): Planet[] => {
   const [planets, setPlanets] = useState<Planet[]>([]);
@@ -20,142 +23,137 @@ export const usePlanetData = (bumpMaps: THREE.Texture[] | null): Planet[] => {
   useEffect(() => {
     if (!bumpMaps || bumpMaps.length === 0) return;
 
-    const N = 20;
-    const sizeMultiplier = 7;
-    const centralRadius = 8.5 + Math.random() * 1.5;
+    const { sun: S, planet: P } = SIM;
 
     const sunData = (() => {
-      const radius = centralRadius * 2;
-      const mass = Math.pow(radius, 3) * (8 + Math.random() * 2) * 2;
-      const baseColor = "#200020";
-      const altColor = "#400040";
-      const seed = Math.random() * 10000;
+      const radius = jitter(S.radius) * S.radius.factor;
+      const mass = Math.pow(radius, 3) * jitter(S.mass) * S.mass.factor;
+      const baseColor = S.colors.base;
+      const altColor = S.colors.alt;
+      const seed = Math.random() * SIM.seedScale;
       const bumpMap = bumpMaps[Math.floor(Math.random() * bumpMaps.length)];
       const colorMap = generateColorMap(seed, baseColor, altColor);
-      const metalness = 0.7;
-      const roughness = 0.2;
-      const ringColor = blendColor(baseColor, altColor, 0.8);
-      const ringInner = radius * 1.3;
-      const ringOuter = ringInner + radius * 0.3;
-      const generatedMoons: MoonType[] = [];
-      const atmosphereColor = blendColor(baseColor, "white", 0.7);
-      const atmosphereLayers = [
-        {
-          color: atmosphereColor,
-          opacity: 0.5,
-          scale: 1.18,
-          additive: true,
-        },
-      ];
-      const geometryType = "sphere" as const;
-      const angularVelocity: [number, number, number] = [0, 0.1, 0];
+      const ringInner = radius * S.ring.innerFactor;
+      const atmosphereColor = blendColor(
+        baseColor,
+        "white",
+        S.atmosphere.colorBlend,
+      );
 
       return {
         mass,
         radius,
         position: [0, 0, 0] as [number, number, number],
         velocity: [0, 0, 0] as [number, number, number],
-        color: blendColor(baseColor, altColor, 0.7),
+        color: blendColor(baseColor, altColor, S.colorBlend),
         id: "sun",
         bumpMap,
         colorMap,
-        metalness,
-        roughness,
+        metalness: S.metalness,
+        roughness: S.roughness,
         hasRing: false,
-        ringColor,
+        ringColor: blendColor(baseColor, altColor, S.ring.colorBlend),
         ringInner,
-        ringOuter,
-        moons: generatedMoons,
+        ringOuter: ringInner + radius * S.ring.widthFactor,
+        moons: [] as MoonType[],
         atmosphereColor,
-        atmosphereLayers,
-        geometryType,
-        angularVelocity,
+        atmosphereLayers: [
+          {
+            color: atmosphereColor,
+            opacity: S.atmosphere.opacity,
+            scale: S.atmosphere.scale,
+            additive: true,
+          },
+        ],
+        geometryType: "sphere" as const,
+        angularVelocity: [0, S.spinY, 0] as [number, number, number],
         isDarkSun: true,
       };
     })();
 
     const generatePlanets = (): Planet[] => [
       sunData,
-      ...Array.from({ length: N - 1 }).map(() => {
-        const radius = randomRadius() * sizeMultiplier;
-        const mass = Math.pow(radius, 3) * (6 + Math.random() * 2);
+      ...Array.from({ length: SIM.planetCount - 1 }).map(() => {
+        const radius = randomRadius() * SIM.sizeMultiplier;
+        const mass = Math.pow(radius, 3) * jitter(P.mass);
         const angle = Math.random() * 2 * Math.PI;
-        const r = Math.random() * 60 + 40;
-        const z = (Math.random() - 0.5) * (Math.random() * 18 + 2);
+        const r = jitter(P.orbit.radius);
+        const z = (Math.random() - 0.5) * jitter(P.orbit.z);
         const x = r * Math.cos(angle);
         const y = r * Math.sin(angle);
         const vMag =
-          (Math.sqrt((G * sunData.mass) / r) * (0.8 + Math.random() * 0.4)) / 4;
+          (Math.sqrt((G * sunData.mass) / r) * jitter(P.velocity)) /
+          P.velocity.divisor;
         const vx = -vMag * Math.sin(angle);
         const vy = vMag * Math.cos(angle);
-        const vz = (Math.random() - 0.5) * 0.1 * vMag;
-        const seed = Math.random() * 10000;
+        const vz = (Math.random() - 0.5) * P.velocity.zFactor * vMag;
+        const seed = Math.random() * SIM.seedScale;
         const noise2D = createNoise2D(seededRandom(seed));
         const band = Math.abs(noise2D(Math.sin(angle), Math.cos(angle)));
         const baseColor = randomColor();
         const altColor = randomColor();
-        const color = blendColor(baseColor, altColor, band * 0.7);
+        const color = blendColor(baseColor, altColor, band * P.colorBandFactor);
         const bumpMap = bumpMaps[Math.floor(Math.random() * bumpMaps.length)];
         const colorMap = generateColorMap(seed, baseColor, altColor);
-        const metalness = Math.random() * 0.5 + 0.1;
-        const roughness = Math.random() * 0.5 + 0.3;
-        const isLarge = radius > 2.2;
-        const hasRing = isLarge ? Math.random() < 0.5 : Math.random() < 0.12;
+        const metalness = jitter(P.metalness);
+        const roughness = jitter(P.roughness);
+        const isLarge = radius > P.largeRadius;
+        const hasRing = isLarge
+          ? Math.random() < P.ring.probLarge
+          : Math.random() < P.ring.probSmall;
         const ringColor = blendColor(
           baseColor,
           altColor,
-          0.5 + Math.random() * 0.5,
+          jitter(P.ring.colorBlend),
         );
-        const ringInner = radius * (1.2 + Math.random() * 0.2);
-        const ringOuter = ringInner + radius * (0.2 + Math.random() * 0.3);
+        const ringInner = radius * jitter(P.ring.innerFactor);
+        const ringOuter = ringInner + radius * jitter(P.ring.widthFactor);
         const moonCount = isLarge
-          ? Math.floor(Math.random() * 3) + 1
-          : Math.random() < 0.12
+          ? Math.floor(Math.random() * P.moons.maxLarge) + 1
+          : Math.random() < P.moons.probSmall
             ? 1
             : 0;
         const generatedMoons: MoonType[] = Array.from(
           { length: moonCount },
           (_, mi) => ({
-            radius: radius * (0.12 + Math.random() * 0.09),
+            radius: radius * jitter(P.moons.radiusFactor),
             color: randomColor(),
-            orbitRadius: radius * (2.2 + Math.random() * 1.5 + mi * 0.7),
-            orbitSpeed: 0.2 + Math.random() * 0.3,
+            orbitRadius:
+              radius *
+              (jitter(P.moons.orbitFactor) + mi * P.moons.orbitFactor.step),
+            orbitSpeed: jitter(P.moons.speed),
             phase: Math.random() * Math.PI * 2,
           }),
         );
         const atmosphereColor = blendColor(
           baseColor,
           "white",
-          0.5 + Math.random() * 0.3,
+          jitter(P.atmosphere.colorBlend),
         );
-        const atmosphereLayers = [
-          {
-            color: atmosphereColor,
-            opacity: 0.18 + Math.random() * 0.12 + (isLarge ? 0.1 : 0),
-            scale: 1.08 + Math.random() * 0.04 + (isLarge ? 0.04 : 0),
-          },
-          {
-            color: blendColor(atmosphereColor, "white", 0.5),
-            opacity: 0.08 + Math.random() * 0.07 + (isLarge ? 0.05 : 0),
-            scale: 1.13 + Math.random() * 0.06 + (isLarge ? 0.05 : 0),
-          },
-          {
-            color: blendColor(atmosphereColor, "aqua", 0.5),
-            opacity: 0.04 + Math.random() * 0.05 + (isLarge ? 0.04 : 0),
-            scale: 1.18 + Math.random() * 0.08 + (isLarge ? 0.07 : 0),
-            additive: true,
-          },
-        ];
+        const atmosphereLayers = P.atmosphere.layers.map((layer) => ({
+          color: layer.mix
+            ? blendColor(atmosphereColor, layer.mix.with, layer.mix.t)
+            : atmosphereColor,
+          opacity:
+            layer.opacityBase +
+            Math.random() * layer.opacityRange +
+            (isLarge ? layer.opacityLarge : 0),
+          scale:
+            layer.scaleBase +
+            Math.random() * layer.scaleRange +
+            (isLarge ? layer.scaleLarge : 0),
+          ...(layer.additive ? { additive: true } : {}),
+        }));
         const geometryType = (
-          Math.random() < 0.12
+          Math.random() < P.geometry.lowpolyProb
             ? "lowpoly"
-            : Math.random() < 0.18
+            : Math.random() < P.geometry.oblateProb
               ? "oblate"
               : "sphere"
         ) as "sphere" | "lowpoly" | "oblate";
-        let spinMag = 0.1 + Math.random() * (0.7 / radius);
-        spinMag *= 20;
-        if (radius > 5) spinMag = Math.min(spinMag, 1.2);
+        let spinMag = P.spin.base + Math.random() * (P.spin.range / radius);
+        spinMag *= P.spin.multiplier;
+        if (radius > P.bigRadius) spinMag = Math.min(spinMag, P.spin.bigMax);
         const spinAxis = new THREE.Vector3(
           Math.random(),
           Math.random(),
