@@ -45,17 +45,12 @@ export const useEventStore = create<EventStoreState & EventStoreActions>()(
 
     connect: () => {
       if (get().eventSourceInstance || get().isConnected) {
-        console.log(
-          "EventSource connection attempt skipped: already connected or connecting.",
-        );
         return;
       }
-      console.log("Attempting to connect to EventSource...");
       const es = new EventSource("/api/events");
       set({ eventSourceInstance: es, isConnected: false, lastError: null });
 
       es.onopen = () => {
-        console.log("EventSource connected.");
         set({ isConnected: true, lastError: null });
       };
       es.onmessage = (event: MessageEvent) => get()._handleMessage(event);
@@ -65,7 +60,6 @@ export const useEventStore = create<EventStoreState & EventStoreActions>()(
     disconnect: () => {
       const es = get().eventSourceInstance;
       if (es) {
-        console.log("Disconnecting EventSource...");
         es.close();
         set({
           eventSourceInstance: null,

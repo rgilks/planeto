@@ -51,7 +51,8 @@ Open your browser and navigate to: [http://localhost:3000](http://localhost:3000
 - `npm run build`: Builds the application for production.
 - `npm run start`: Starts the production server.
 - `npm run lint`: Lints the codebase for potential errors.
-- `npm run check`: Runs formatting, linting, type-checking, and tests.
+- `npm test`: Runs the unit tests (Vitest).
+- `npm run check`: Runs formatting, linting, type-checking, and all tests.
 
 For architecture, conventions, and a full code map, see [AGENTS.md](AGENTS.md).
 

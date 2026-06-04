@@ -35,14 +35,16 @@ npm run build        # next build (output: standalone)
 npm run start        # serve the production build locally
 
 npm run verify       # prettier --write . && eslint (--max-warnings=0) && tsc --noEmit   (mutates: formats files)
-npm run check        # verify + playwright e2e            (full local gate)
+npm run test         # vitest (watch)
+npm run test:run     # vitest run (unit tests)
+npm run check        # verify + test:run + playwright e2e  (full local gate)
 npm run test:e2e     # playwright only
 
 npm run deps         # npm-check-updates (report)
 npm run nuke         # rm node_modules + lockfile + .next, reinstall
 ```
 
-**Before committing, run `npm run verify`.** CI (`.github/workflows/fly.yml`) runs `npm run verify` and then deploys to Fly.io on every push to `main` — there is no separate test job, so the e2e suite only runs when you run `npm run check` locally.
+**Before committing, run `npm run verify`** (and `npm run test:run` for anything non-trivial). CI (`.github/workflows/fly.yml`) runs `npm run verify` and `npm run test:run`, then deploys to Fly.io on every push to `main`. The Playwright e2e suite runs locally (via `npm run check` or `npm run test:e2e`), not in CI.
 
 ## Architecture & code map
 
@@ -99,6 +101,8 @@ tests/                           # Playwright, Chromium only
   visual-snapshot.spec.ts        # loads /, asserts a <canvas>, writes screenshots/loaded.png
 ```
 
+Unit tests are co-located next to source as `*.test.ts` (Vitest, node env): `src/lib/utils.test.ts`, `src/domain/event.test.ts`, `src/domain/symbol.test.ts`. The `tests/` folder is Playwright e2e only.
+
 ## Conventions
 
 - **TypeScript strict.** Validate anything crossing the network with **Zod** — that means `EventSchema` in `src/domain/event.ts`, which guards both the POST route and every inbound SSE frame. The other schemas exist for their inferred types.
@@ -125,9 +129,7 @@ tests/                           # Playwright, Chromium only
 
 Useful cleanups, none urgent (the app builds, deploys green, and runs):
 
-- **De-duplicate `SYMBOLS`** in `src/domain/symbol.ts` — the two concatenated glyph ranges overlap, biasing random selection.
-- **Quiet the logging** in `eventStore.ts` and `api/events/route.ts` (logs on every connect/disconnect/frame; noisy with several tabs open).
-- **No unit tests / no `npm run test`** — sibling repos run Vitest. `lib/utils.ts` and the domain schemas are the obvious first targets. The Playwright suite is also Chromium-only (Firefox/WebKit are commented out in `playwright.config.ts`).
+- **Broaden test coverage** — unit tests (Vitest) currently cover `lib/utils.ts` and the domain schemas; the Playwright e2e suite runs Chromium only (Firefox/WebKit are commented out in `playwright.config.ts`).
 
 ## Docs
 
