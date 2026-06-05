@@ -1,6 +1,13 @@
 import { z } from "zod";
 
-export const Vec3Schema = z.tuple([z.number(), z.number(), z.number()]);
+// Generous bound for a single coordinate. The camera/eyes live within roughly
+// +/-2000 given the scene's far plane, so this never rejects legitimate values
+// while still rejecting absurd ones from untrusted clients.
+export const VEC3_COORD_BOUND = 100_000;
+
+const coord = z.number().finite().min(-VEC3_COORD_BOUND).max(VEC3_COORD_BOUND);
+
+export const Vec3Schema = z.tuple([coord, coord, coord]);
 export type Vec3 = z.infer<typeof Vec3Schema>;
 
 export const SymbolEventSchema = z.object({
