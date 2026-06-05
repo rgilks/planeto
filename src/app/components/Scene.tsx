@@ -20,9 +20,12 @@ import { useSymbolStore } from "@/stores/symbolStore";
 import { Eyes } from "@components/Eyes";
 import { Planet } from "@components/Planet";
 
-import type { State as SymbolState } from "@/stores/symbolStore";
+import type { SymbolState } from "@/stores/symbolStore";
 
 type RigidBodyRef = React.RefObject<RapierRigidBody | null>;
+
+// Ambient fill, shared by the main scene and the loading fallback.
+const AMBIENT_INTENSITY = 0.08;
 
 const CanvasContent = ({ myId }: { myId: string }) => {
   const { camera } = useThree();
@@ -38,7 +41,7 @@ const CanvasContent = ({ myId }: { myId: string }) => {
         />
       </EffectComposer>
       <group>
-        <ambientLight intensity={0.08} />
+        <ambientLight intensity={AMBIENT_INTENSITY} />
         <Eyes myId={myId} />
         <directionalLight
           position={[100, 100, 100]}
@@ -114,7 +117,7 @@ const Scene = () => {
         style={{ width: "100%", height: "100%" }}
       >
         <color attach="background" args={["#000"]} />
-        <ambientLight intensity={0.08} />
+        <ambientLight intensity={AMBIENT_INTENSITY} />
         <mesh>
           <sphereGeometry args={[1, 16, 16]} />
           <meshStandardMaterial color="gray" />

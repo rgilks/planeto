@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 
 import { useSymbolStore } from "@/stores/symbolStore";
 
-import type { State as SymbolState } from "@/stores/symbolStore";
+import type { SymbolState } from "@/stores/symbolStore";
 
 const THROTTLE_MS = 100;
 

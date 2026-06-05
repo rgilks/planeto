@@ -4,14 +4,14 @@ import { Group, Vector3 } from "three";
 
 import { getSymbol, SYMBOL_COLOR } from "@/domain";
 import { ManagedEye } from "@/stores/eyesStore";
-import { RemoteKeyState } from "@/stores/symbolStore";
+import { RemoteKey } from "@/stores/symbolStore";
 
 const EYE_RADIUS = 8;
 const TEXT_FADE_DURATION_MS = 2000;
 
 interface EyeProps {
   eye: ManagedEye;
-  remoteKey?: RemoteKeyState["remoteKeys"][string];
+  remoteKey?: RemoteKey;
   groupRef: (el: Group | null) => void;
   position?: Vector3;
 }

@@ -9,11 +9,11 @@ import {
   FADE_DURATION,
 } from "@/domain/eye";
 
-type EyesState = {
+type EyesStoreState = {
   managedEyes: Record<string, EyeState>;
 };
 
-type EyesActions = {
+type EyesStoreActions = {
   syncEyes: (
     eyes: [string, [number, number, number]][],
     myId: string,
@@ -24,7 +24,7 @@ type EyesActions = {
 
 export type { EyeState as ManagedEye };
 
-export const useEyesStore = create<EyesState & EyesActions>()(
+export const useEyesStore = create<EyesStoreState & EyesStoreActions>()(
   immer((set) => ({
     managedEyes: {},
 

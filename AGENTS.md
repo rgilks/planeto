@@ -146,7 +146,7 @@ The codebase is assembled from a small set of repeated patterns. Reach for the m
 
 **Client state**
 
-- **One Zustand store per concern** — `create<State & Actions>()(immer(...))`, state fields + action methods, all mutations through Immer (`eventStore`, `eyeStore`, `eyesStore`, `symbolStore`, `physicsStore`).
+- **One Zustand store per concern** — `create<…>()(immer(...))`, state fields + action methods, all mutations through Immer (`eventStore`, `eyeStore`, `eyesStore`, `symbolStore`, `physicsStore`). Stores with rich actions split their types as `<Name>StoreState` / `<Name>StoreActions` (`eventStore`, `eyeStore`, `eyesStore`); the two simplest keep one combined type for cleaner selector typing (`symbolStore` → `SymbolState`, `physicsStore` → `PhysicsState`).
 - **Raw → animated two-stage pipeline.** Network truth lands in a _raw_ store (`eyeStore`: last `{ p, t }` per id); a _managed_ store (`eyesStore`) derives the animated presentation (appear/visible/disappear lifecycle, position lerp, opacity/scale fade). Keep network truth and presentation state apart.
 - **Single transport owner + pub/sub.** `eventStore` owns the one `EventSource`; features subscribe via `subscribeSymbolEvents` / `subscribeEyeUpdates`, which return unsubscribe functions. Nothing else opens a connection.
 - **Dev-only debug handles.** The network-facing stores expose `window.__<store>` outside production for manual inspection.
@@ -167,10 +167,7 @@ The codebase is assembled from a small set of repeated patterns. Reach for the m
 
 ### Consistency notes
 
-Minor known deviations — align them when you touch the code:
-
-- Store state/action type names aren't fully uniform: `eyesStore` uses `EyesState` / `EyesActions`, while `eventStore` / `eyeStore` carry a `Store` segment (`EventStoreState` / `EyeStoreState`). Prefer one convention.
-- The ambient-light intensity `0.08` is repeated in `Scene.tsx` (the main scene and the loading fallback).
+No known deviations — store type-naming and shared constants are uniform. Track new code-level nits here as they arise, to align when next touching the file.
 
 ## Conventions
 

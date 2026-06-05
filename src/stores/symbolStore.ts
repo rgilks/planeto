@@ -5,7 +5,7 @@ import { SymbolInput } from "@/domain";
 
 type RemoteKey = { key: string; ts: number };
 
-type State = {
+type SymbolState = {
   lastInput: SymbolInput | null;
   setLastInput: (input: SymbolInput) => void;
   remoteKeys: Record<string, RemoteKey>;
@@ -18,7 +18,7 @@ declare global {
   }
 }
 
-export const useSymbolStore = create<State>()(
+export const useSymbolStore = create<SymbolState>()(
   immer((set) => ({
     lastInput: null,
     setLastInput: (input) =>
@@ -41,4 +41,4 @@ if (typeof window !== "undefined" && process.env.NODE_ENV !== "production") {
   window.__symbolStore = useSymbolStore;
 }
 
-export type { State, State as RemoteKeyState };
+export type { SymbolState, RemoteKey };
