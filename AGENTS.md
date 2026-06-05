@@ -14,7 +14,7 @@ Planeto is a browser-based 3D toy: a procedurally generated cluster of drifting 
 - **Multiplayer:** Server-Sent Events for server→client, HTTP POST for client→server, both at `/api/events`. The server is a Cloudflare **Durable Object** (`EventsChannel`) holding the shared state in memory — no database, no persistence.
 - **Deployed:** Cloudflare Workers — a single Worker serves the static export and hosts the Durable Object, at `planeto.tre.systems`.
 
-Size: ~2k LOC, ~30 source files, 6 Zustand stores, 1 Durable Object.
+Size: ~2k LOC, ~30 source files, 5 Zustand stores, 1 Durable Object.
 
 ## Workflow
 
@@ -59,6 +59,30 @@ Anything touching multiplayer needs the Worker + DO, so use `npm run preview` (o
 - _Outbound — symbol:_ a key press (`SymbolHandler` in `page.tsx`) or Canvas double-click sets `symbolStore.lastInput`; `useInputThrottle` POSTs it as a `symbol` event, throttled to one per 100 ms.
 - _Server (Worker + DO):_ the Worker forwards `/api/events` to a single global `EventsChannel` Durable Object (`idFromName("global")`), which validates every POST against `EventSchema`. `eyeUpdate` → store (server-stamped `t`) **and** fan out; `symbol` → fan out only. `GET` opens an SSE stream, registers the writer, replays the current eyes, and keepalive-pings every 20 s. Stale eyes (> 30 s) are purged lazily on each publish/subscribe.
 - _Inbound:_ `eventStore` owns one `EventSource`, re-validates each frame, and fans out to listeners: `eyeUpdate` → `eyeStore` (raw) → `eyesStore` (animated) → `Eyes.tsx`; `symbol` → `symbolStore.remoteKeys` → fading text in `Eye.tsx`.
+
+The publish → fan-out round-trip:
+
+```mermaid
+sequenceDiagram
+    participant A as Client A
+    participant W as Worker
+    participant DO as EventsChannel DO
+    participant B as Client B
+    Note over A,B: both hold an open EventSource on GET /api/events
+    A->>W: POST /api/events (eyeUpdate, via sendBeacon)
+    W->>DO: forward → /publish
+    DO->>DO: EventSchema.safeParse · store eye (server-stamped t)
+    DO-->>A: SSE data:{eyeUpdate}
+    DO-->>B: SSE data:{eyeUpdate}
+    Note over B: eventStore → eyeStore → eyesStore → Eyes.tsx renders the eye
+```
+
+**Wire contract** (`/api/events`, one endpoint):
+
+| Method | Body                                                             | Response                                                                                       |
+| ------ | ---------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `POST` | a `SymbolEvent` or `EyeUpdate` (validated against `EventSchema`) | `200 {ok:true}`, or `400 {error, …}` on a malformed payload                                    |
+| `GET`  | —                                                                | SSE (`text/event-stream`); each frame is `data:{event}\n\n` — current eyes replayed, then live |
 
 ```
 worker/
@@ -183,13 +207,6 @@ Code-level pattern deviations to align when touched are tracked under [Patterns 
 
 ## Docs
 
-Docs describe the current state in the present tense; keep history in git, not in docs. The `docs/` folder:
+Docs describe the current state in the present tense; keep history in git, not in docs. This file is the source of truth; [README.md](README.md) is the public front page. The only other docs are the architecture diagrams:
 
-- [technical-overview.md](docs/technical-overview.md) — high-level architecture summary.
-- [diagrams/](docs/diagrams/README.md) — the Graphviz system overview + a Mermaid round-trip sequence.
-- [realtime-communication.md](docs/realtime-communication.md) — the SSE design and bandwidth optimisation.
-- [sse-store.md](docs/sse-store.md) — the server-side event store (the `EventsChannel` Durable Object).
-- [remote-eyes-component.md](docs/remote-eyes-component.md) — how `Eyes.tsx` visualises other users.
-- [camera-setup.md](docs/camera-setup.md) — Canvas camera and OrbitControls.
-- [api.md](docs/api.md) — the `/api/events` endpoint.
-- [e2e-testing.md](docs/e2e-testing.md) — the Playwright suite.
+- [docs/diagrams/](docs/diagrams/README.md) — the Graphviz system overview (`.dot` source + committed PNG) and how to regenerate it.

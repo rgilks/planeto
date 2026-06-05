@@ -2,125 +2,73 @@
 
 [![Deploy](https://github.com/tre-systems/planeto/actions/workflows/deploy.yml/badge.svg)](https://github.com/tre-systems/planeto/actions/workflows/deploy.yml)
 
-![planeto Screenshot](/screenshots/loaded.png)
+![planeto Screenshot](screenshots/loaded.png)
 
 <div align="center">
   <a href='https://ko-fi.com/N4N31DPNUS' target='_blank'><img height='36' style='border:0px;height:36px;margin-bottom: 20px;' src='https://storage.ko-fi.com/cdn/kofi2.png?v=6' border='0' alt='Buy Me a Coffee at ko-fi.com' /></a>
 </div>
 
-> Planeto is a 3D multiuser application featuring a cluster of planetoids, observable by users represented as "eyes" that can exchange symbols.
+> A browser-based 3D toy: a procedurally generated cluster of drifting planetoids you orbit with the camera, lightly shared with everyone else connected. Each tab is an anonymous "eye"; double-click or press a key to fire a Unicode symbol that everyone sees fade above your eye.
+
+Live at **[planeto.tre.systems](https://planeto.tre.systems)**.
 
 ## Features
 
-- A procedurally generated cluster of planetoids.
-- Users are represented as "eyes" that can observe the environment.
-- Real-time symbol-based communication between users.
-- Procedurally generated textures and dynamic object forms.
-- Standard camera controls: zoom and rotate.
-- Multiplayer functionality: symbols sent by one user are visible to others.
-- Data integrity enforced by Zod schemas.
-- **Efficient presence:** User "eye" data is transmitted efficiently, sending lightweight pings for idle users to maintain visibility without excessive data transfer.
+- Procedurally generated planetoid cluster — textures, forms, moons, and rings.
+- Custom N-body gravity: bodies drift, attract, and occasionally collide.
+- Lightweight multiplayer presence — other users appear as floating "eyes" you can watch move.
+- Real-time symbol exchange — double-click or type to broadcast a glyph to everyone.
+- Orbit controls: rotate and zoom.
 
-## Physics and Interaction
+## Tech stack
 
-- All celestial bodies drift, collide, and interact within the simulated space.
-- Gravitational forces influence the movement of objects.
-- Collisions, while infrequent, affect the overall planetoid cluster.
+- Next.js (App Router, TypeScript), built as a static export
+- React Three Fiber + Drei + a Bloom pass, Rapier rigid bodies
+- Zustand for state, Zod for the wire protocol
+- Cloudflare Workers + a Durable Object (static hosting + the realtime backend)
 
-## Technology Stack
+## Quick start
 
-- Next.js (App Router, TypeScript)
-- React Three Fiber (@react-three/fiber)
-- Drei (@react-three/drei)
-- Rapier physics (@react-three/rapier)
-- Zod (for domain modeling)
-- Zustand (for state management)
-- Cloudflare Workers + Durable Objects (static hosting and the real-time backend)
+```sh
+npm install
+npm run dev      # front-end only, at http://localhost:3000
+```
+
+`npm run dev` does **not** serve `/api/events` (the multiplayer endpoint). To run the full stack — static export + Worker + Durable Object — locally:
+
+```sh
+npm run preview  # builds, then serves everything with `wrangler dev` on :3000
+```
+
+Common scripts (full list in [AGENTS.md](AGENTS.md)):
+
+| Script            | What it does                               |
+| ----------------- | ------------------------------------------ |
+| `npm run dev`     | Next dev server (front-end only)           |
+| `npm run preview` | Full stack locally via `wrangler dev`      |
+| `npm run build`   | Static export into `out/`                  |
+| `npm run deploy`  | Build + `wrangler deploy` to Cloudflare    |
+| `npm run check`   | Format, lint, type-check, unit + e2e tests |
 
 ## Architecture
 
 ![Planeto system overview](docs/diagrams/system-overview.png)
 
-A static WebGL client served by a single Cloudflare Worker, which routes `/api/events` to one global `EventsChannel` Durable Object — the multiplayer "room". See [AGENTS.md](AGENTS.md) for the full code map and [docs/diagrams/](docs/diagrams/README.md) for the diagram sources.
+A static WebGL client served by a single Cloudflare Worker, which routes `/api/events` to one global `EventsChannel` Durable Object — the multiplayer "room". The client renders the cluster and runs gravity locally; multiplayer is a thin presence layer (Server-Sent Events down, HTTP POST up).
 
-## Getting Started
+**[AGENTS.md](AGENTS.md) is the full guide** — architecture, code map, patterns, conventions, deployment, and the `/api/events` wire contract. Diagram sources live in [docs/diagrams/](docs/diagrams/README.md).
 
-```sh
-npm install
-npm run dev
-```
+## Customisation
 
-Open your browser and navigate to: [http://localhost:3000](http://localhost:3000)
+- Planet generation and gravity tuning: `src/lib/simulationParams.ts` (the `SIM` config) and `src/hooks/usePlanetData.ts`.
+- The symbol set: the `SYMBOLS` array in `src/domain/symbol.ts`.
 
-## Available Scripts
+## Deployment
 
-- `npm run dev`: Starts the Next.js dev server (front-end only — `/api/events` is not served here).
-- `npm run build`: Builds the static export into `out/`.
-- `npm run preview`: Builds, then serves the static export plus the Worker and Durable Object locally with `wrangler dev` — this is how to run multiplayer locally.
-- `npm run deploy`: Builds and deploys to Cloudflare with `wrangler deploy`.
-- `npm run lint`: Lints the codebase for potential errors.
-- `npm test`: Runs the unit tests (Vitest).
-- `npm run check`: Runs formatting, linting, type-checking, and all tests.
+Pushes to `main` build and deploy automatically via `.github/workflows/deploy.yml` (Cloudflare). Durable Objects require a Workers **Paid** plan; see [AGENTS.md → Deployment](AGENTS.md#deployment) for details and secrets.
 
-For architecture, conventions, and a full code map, see [AGENTS.md](AGENTS.md).
-
-## Customization
-
-- To modify the generation of planetoids, adjust the logic in `src/hooks/usePlanetData.ts`.
-- To change the available symbols, edit the `SYMBOLS` array, likely located in a file within `src/domain/`.
+The app ships a web app manifest (`public/manifest.json`) so it can be installed to a home screen; there is no service worker or offline support.
 
 ## License
 
 MIT
-
-## Application Notes
-
-- The application simulates a space environment without a central star or fixed point of reference. The focus is on the planetoid cluster and user interactions.
-
-## Symbol Exchange
-
-When a user double-clicks, a large green symbol (from a predefined set) appears in the bottom-right of their screen. This symbol is chosen randomly. Users can see symbols generated by others in the 3D space; their own symbol is only visible on their local interface. Symbols are broadcast to all connected users in real-time.
-
-- State Management: Zustand (`src/stores/symbolStore.ts`)
-- Schema Definition: Zod (likely in `src/domain/index.ts` or a similar file within `src/domain/`)
-- Event Trigger: `src/app/components/Scene.tsx` (onDoubleClick event)
-- Symbol Display: `src/app/components/Symbol.tsx` (the local user's symbol overlay), `src/app/components/Eye.tsx` (other users' symbols, shown above their eye)
-- To modify the symbols or their appearance, update the relevant components.
-
----
-
-### Efficient Real-Time Communication (User Positions & Events)
-
-This project uses Server-Sent Events (SSE) to share user positions and game events (like symbol inputs) in near real-time among all connected users. Significant effort has been made to minimize bandwidth and server load:
-
-- **User Presence**: A user's position is sent to the server upon initial connection and then periodically when it changes (throttled by `useEyePositionReporting`). If a user remains idle, their data is automatically purged from the server after a period of inactivity (e.g., 30 seconds, configurable in `useEyes.ts` and server-side logic) to maintain an accurate list of active users. If the user moves again, their representation will reappear to others.
-- **Symbol Events**: Symbol events are triggered by specific actions (e.g., double-click) and are throttled by `useInputThrottle` before transmission.
-
-For a detailed technical explanation of the real-time architecture and bandwidth optimization strategies, please see [`docs/realtime-communication.md`](./docs/realtime-communication.md).
-
-For details on the 3D camera setup, see [`docs/camera-setup.md`](./docs/camera-setup.md).
-
-## Web App Manifest
-
-The app ships a web app manifest (`public/manifest.json`) and icons (`public/icons/`), so it can be installed to a device home screen. There is no service worker or offline support.
-
-## Deployment on Cloudflare
-
-The app deploys to Cloudflare Workers: a single Worker serves the static export (`out/`) and hosts the `EventsChannel` Durable Object that backs `/api/events`. Durable Objects require a Workers **Paid** plan.
-
-### Prerequisites
-
-1.  Install and authenticate Wrangler: `npm i -g wrangler` (or use `npx wrangler`), then `wrangler login`.
-2.  Ensure the `tre.systems` zone is in the Cloudflare account — the custom domain `planeto.tre.systems` is provisioned from `wrangler.toml` on deploy.
-
-### Deploy
-
-```sh
-npm run deploy   # next build, then wrangler deploy
-```
-
-Pushes to `main` deploy automatically via `.github/workflows/deploy.yml`, which authenticates with the `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` secrets. Run the whole stack locally with `npm run preview`.
-
-### API Endpoints
-
-For details on API endpoints, please refer to [`docs/api.md`](./docs/api.md).

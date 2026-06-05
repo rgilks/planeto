@@ -1,6 +1,6 @@
 # Diagrams
 
-Graphviz / DOT sources plus rendered PNGs. The `.dot` files are the source of truth; the PNGs are committed for in-browser viewing on GitHub. Mermaid is used only for small inline diagrams inside Markdown (e.g. the round-trip sequence in [realtime-communication.md](../realtime-communication.md)).
+Graphviz / DOT sources plus rendered PNGs. The `.dot` files are the source of truth; the PNGs are committed for in-browser viewing on GitHub. Mermaid is used only for small inline diagrams inside Markdown (e.g. the round-trip sequence in [AGENTS.md](../../AGENTS.md)).
 
 ## Files
 
