@@ -108,7 +108,7 @@ src/
     useEyePositionReporting.ts   # beacon camera position to /api/events on change / every 20 s
     useInputThrottle.ts          # throttled (100 ms) POST of 'symbol' events from symbolStore.lastInput
     usePhysicsSimulation.ts      # rAF O(n²) gravity loop (G = 1); applyImpulse per dynamic body; honors physicsStore.isGravityDisabled
-    usePlanetData.ts             # builds the sun + 19 planets once bump maps exist; exports G = 1
+    usePlanetData.ts             # builds the sun + 19 planets, then their bump/colour textures progressively (yields between maps so load never freezes)
     index.ts                     # barrel (the 5 reporting/input hooks; not useEyes)
   stores/                        # Zustand, all wrapped in zustand/middleware/immer
     eventStore.ts                # owns the single EventSource; connect/disconnect; symbol/eye listener registries; validates inbound frames
@@ -193,16 +193,11 @@ No known deviations — store type-naming and shared constants are uniform. Trac
 
 ## Backlog
 
-Nothing here blocks — the app builds, deploys, and runs. Ordered by impact.
-
-**P1 — biggest user-facing win**
-
-- **Async texture generation.** Procedural textures are built synchronously on the main thread at load — `generateBumpMap` ×5 (`Scene.tsx`) plus a `generateColorMap` per planet (`usePlanetData`) — so a gray placeholder shows for several seconds before the cluster appears. Move generation off-thread into a Web Worker (OffscreenCanvas → transfer an `ImageBitmap` → build the `THREE` texture on the main thread, preserving `wrapS`/`wrapT`/`repeat`). Feasibility is confirmed: a Web Worker (`new Worker(new URL("./x.worker.ts", import.meta.url))`) does bundle and serve under `output: 'export'`. The work is mainly an async refactor of the currently-synchronous `usePlanetData`; textures are random per load, so the visual _character_ must be preserved (exact pixels need not be).
-
-**P2 — nice-to-have**
+Nothing here blocks — the app builds, deploys, and runs.
 
 - **Run e2e beyond Chromium.** The Playwright suite runs in CI on Chromium via `.github/workflows/e2e.yml`; Firefox/WebKit are still commented out in `playwright.config.ts`. Enabling them adds cross-browser confidence, though the WebGL scene may need per-browser tweaks.
 - **PWA offline support.** Add a service worker (e.g. via `@serwist/next`) for offline use. Low value while multiplayer needs the network, and a service worker must carefully exclude `/api/events` from caching.
+- **Fully off-thread texture generation (optional).** Texture generation is now progressive — `usePlanetData` yields to the event loop between maps so it never freezes the page — but still runs on the main thread; a real Web Worker would free the main thread entirely. Note: under `output: 'export'`, `new Worker(new URL("./x.worker.ts", import.meta.url))` is emitted as a raw `.ts` asset by both webpack and Turbopack, so a worker must be bundled separately (e.g. esbuild → `public/`), not referenced via `import.meta.url`.
 
 Pattern deviations (none currently) are tracked under [Patterns → Consistency notes](#consistency-notes).
 

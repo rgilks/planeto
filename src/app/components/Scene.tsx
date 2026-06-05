@@ -3,8 +3,7 @@ import { Canvas, useThree } from "@react-three/fiber";
 import { EffectComposer, Bloom } from "@react-three/postprocessing";
 import { Physics, RapierRigidBody } from "@react-three/rapier";
 import { nanoid } from "nanoid";
-import { useRef, useEffect, useState, createRef } from "react";
-import * as THREE from "three";
+import { useRef, createRef } from "react";
 
 import { SYMBOLS } from "@/domain";
 import {
@@ -14,7 +13,6 @@ import {
   usePlanetData,
   useEyePositionReporting,
 } from "@/hooks";
-import { generateBumpMap } from "@/lib/utils";
 import { usePhysicsStore } from "@/stores/physicsStore";
 import { useSymbolStore } from "@/stores/symbolStore";
 import { Eyes } from "@components/Eyes";
@@ -74,8 +72,7 @@ const CanvasContent = ({ myId }: { myId: string }) => {
 };
 
 const Scene = () => {
-  const [bumpMaps, setBumpMaps] = useState<THREE.Texture[] | null>(null);
-  const planets = usePlanetData(bumpMaps);
+  const planets = usePlanetData();
   const planetRefs = useRef<RigidBodyRef[]>([]);
   const myId = useRef<string>("");
   if (!myId.current) myId.current = nanoid(6);
@@ -89,17 +86,6 @@ const Scene = () => {
   useInputThrottle(myId);
   usePhysicsSimulation(planets, planetRefs);
 
-  useEffect(() => {
-    const maps = [
-      generateBumpMap(),
-      generateBumpMap(),
-      generateBumpMap(),
-      generateBumpMap(),
-      generateBumpMap(),
-    ].filter(Boolean) as THREE.Texture[];
-    setBumpMaps(maps);
-  }, []);
-
   const randomEyePos = (): [number, number, number] => {
     const r = 80 + Math.random() * 80;
     const theta = Math.random() * 2 * Math.PI;
@@ -110,7 +96,7 @@ const Scene = () => {
     return [x, y, z];
   };
 
-  if (!bumpMaps || planets.length === 0) {
+  if (planets.length === 0) {
     return (
       <Canvas
         camera={{ position: [0, 0, 120], near: 0.1, far: 2000 }}
