@@ -195,11 +195,23 @@ No known deviations — store type-naming and shared constants are uniform. Trac
 
 ## Backlog
 
-Nothing here blocks — the app builds, deploys, and runs.
+Nothing here blocks day to day. The top group is what to do before sharing this widely; keeping running costs low and predictable is the priority.
+
+### Before going wide (cost and scale first)
+
+- **Cost backstop: billing alert** _(needs Rob: Cloudflare dashboard)_ - Cloudflare has no hard spend cap, so set a usage/billing notification (account -> Notifications). The per-IP rate limit (120 / 60 s on GET+POST) and the 200-connection room cap already bound worst-case load, so this is the safety net, not a fix.
+- **Shard the room.** One global Durable Object fans out O(N) per event (total work scales ~ N x room-size), so a viral spike concentrates cost on one DO and hits the 200 cap. Cap each room (~50) and overflow into a new one when it fills, so popularity scales cheaply. Use sequential fill (room 0 until full, then room 1, ...) so the usually-small crowd stays together; a hash-into-fixed-rooms scheme would scatter a handful of users across rooms so nobody sees anyone. Needs a director DO that hands out the lowest non-full room, room-scoped `/api/events` (a room id the client carries on its GET and POSTs), and leave handling. Biggest change here - touches the multiplayer core.
+- **Social share preview.** Add Open Graph / Twitter Card tags (`og:image` = the hero screenshot) in `layout.tsx`, so shared links show a rich preview instead of a blank one.
+- **Mobile + low-end devices.** Most shared traffic is mobile. Add device-adaptive quality (smaller/no shadows, lighter effects) and WebGL context-loss recovery, and give touch users a way to send a symbol (double-tap or an on-screen control) since there is no keyboard and double-click is unreliable on touch.
+- **Cookieless analytics.** Add Cloudflare Web Analytics to see traffic without cookies or a consent banner.
+- **Client error tracking.** Add a lean Sentry browser SDK (errors only, sampled, with source maps and noise filters) to catch device-specific WebGL failures that server-side logs cannot see.
+- **Hardening + privacy note.** Clamp incoming eye coordinates to finite, bounded values (untrusted input), and add a one-line "no accounts, no tracking, no data stored" note (update it if analytics/Sentry are added).
+
+### Later / nice-to-have
 
 - **Run e2e beyond Chromium.** The Playwright suite runs in CI on Chromium via `.github/workflows/e2e.yml`; Firefox/WebKit are still commented out in `playwright.config.ts`. Enabling them adds cross-browser confidence, though the WebGL scene may need per-browser tweaks.
 - **PWA offline support.** Add a service worker (e.g. via `@serwist/next`) for offline use. Low value while multiplayer needs the network, and a service worker must carefully exclude `/api/events` from caching.
-- **Fully off-thread texture generation (optional).** Texture generation is now progressive — `usePlanetData` yields to the event loop between maps so it never freezes the page — but still runs on the main thread; a real Web Worker would free the main thread entirely. Note: under `output: 'export'`, `new Worker(new URL("./x.worker.ts", import.meta.url))` is emitted as a raw `.ts` asset by both webpack and Turbopack, so a worker must be bundled separately (e.g. esbuild → `public/`), not referenced via `import.meta.url`.
+- **Fully off-thread texture generation (optional).** Texture generation is now progressive (`usePlanetData` yields to the event loop between maps so it never freezes the page) but still runs on the main thread; a real Web Worker would free the main thread entirely. Note: under `output: 'export'`, `new Worker(new URL("./x.worker.ts", import.meta.url))` is emitted as a raw `.ts` asset by both webpack and Turbopack, so a worker must be bundled separately (e.g. esbuild to `public/`), not referenced via `import.meta.url`.
 
 Pattern deviations (none currently) are tracked under [Patterns → Consistency notes](#consistency-notes).
 
