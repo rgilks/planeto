@@ -193,14 +193,24 @@ No known deviations — store type-naming and shared constants are uniform. Trac
 
 ## Backlog
 
-Useful, none urgent (the app builds, deploys, and runs):
+Nothing here blocks — the app builds, deploys, and runs. Ordered by impact.
 
+**P1 — biggest user-facing win**
+
+- **Async texture generation.** Procedural textures are built synchronously on the main thread at load — `generateBumpMap` ×5 (`Scene.tsx`) plus a `generateColorMap` per planet (`usePlanetData`) — so a gray placeholder shows for several seconds before the cluster appears. Move generation off-thread (OffscreenCanvas in a Web Worker) or make it progressive. Higher effort; the RNG draw order must be preserved so the look is unchanged.
+
+**P2 — hardening & confidence**
+
+- **Rate-limit `/api/events`.** A public, unauthenticated write endpoint (anyone can POST eye/symbol events) — a possible abuse/cost vector. Add a per-IP limiter (cf. the sibling `antenna`'s `RateLimiter` Durable Object).
+- **Broaden test coverage.** Run the Playwright e2e in CI (it is local-only today) and beyond Chromium (Firefox/WebKit are commented out in `playwright.config.ts`); add unit tests for the untested `lib/utils` helpers (`randomColor`, `randomRadius`, `generateBumpMap`, `generateColorMap`).
+
+**P3 — nice-to-have / quick cleanups**
+
+- **Visual-snapshot churn** _(quick win)_ — `tests/visual-snapshot.spec.ts` overwrites the tracked `screenshots/loaded.png` (also the README hero) on every run, dirtying the tree. Point it at a gitignored path or make the baseline refresh opt-in, updating the README image source.
+- **Trim residual dead code** _(quick win)_ — harmless unused bits kept for safety during the file-by-file pass: `Eye.tsx`'s `position?` prop and its `position || eye.position` fallback (never passed), `useEyes`'s `if (event.p)` guard (always true), `eventStore`'s unused `disconnect` action and `lastError` field, and the `else delete` branch in `symbolStore.setRemoteKey` (no caller passes an empty key).
 - **PWA offline support** — add a service worker (e.g. via `@serwist/next`) for offline use.
-- **Broaden test coverage** — unit tests (Vitest) cover `lib/utils.ts` and the domain schemas; the Playwright e2e runs Chromium only (Firefox/WebKit are commented out in `playwright.config.ts`), and e2e is not run in CI.
-- **Rate-limit `/api/events`** — it is a public, unauthenticated write endpoint (anyone can POST eye/symbol events). Fine for a toy, but a possible abuse/cost vector; a per-IP limiter (cf. the sibling `antenna`'s `RateLimiter` Durable Object) would harden it.
-- **Visual-snapshot churn** — `tests/visual-snapshot.spec.ts` overwrites the tracked `screenshots/loaded.png` on every run; point it at a gitignored path (or make it an opt-in baseline) so e2e runs don't dirty the working tree.
 
-Code-level pattern deviations to align when touched are tracked under [Patterns → Consistency notes](#consistency-notes).
+Pattern deviations (none currently) are tracked under [Patterns → Consistency notes](#consistency-notes).
 
 ## Docs
 
