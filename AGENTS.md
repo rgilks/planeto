@@ -93,7 +93,7 @@ wrangler.toml         # Worker config: [assets] ./out, run_worker_first /api/eve
 src/
   app/
     layout.tsx          # root layout; fonts; metadata (manifest link)
-    page.tsx            # "use client" home; SymbolHandler keydown listener; renders <Scene/> + <SymbolDisplay/>
+    page.tsx            # "use client" home; SymbolHandler keydown listener; renders <Scene/> + <SymbolDisplay/> + <InfoPanel/>
     components/
       Scene.tsx         # top-level R3F Canvas; generates myId = nanoid(6); wires every hook; Physics/Bloom/lights/OrbitControls; onDoubleClick → random symbol + disable gravity 2s
       Planet.tsx        # one planet as a Rapier RigidBody (sun = fixed, others = dynamic ball); material, atmosphere, optional ring, moons; delegates to DarkSun when isDarkSun
@@ -102,6 +102,7 @@ src/
       Eyes.tsx          # renders all remote eyes; defines the eye ShaderMaterial; syncEyes + per-frame animation; each eye lookAt the sun
       Eye.tsx           # one eye sphere + fading <Text> symbol (2 s fade)
       Symbol.tsx        # SymbolDisplay — fixed bottom-right HTML overlay of the LOCAL user's last symbol
+      InfoPanel.tsx     # discreet bottom-left "?" → an about card (casual description + Ko-fi link)
   hooks/
     useEventSource.ts            # ensure eventStore connected; subscribe 'symbol' → symbolStore.setRemoteKey (skips own id)
     useEyes.ts                   # subscribe 'eyeUpdate' → eyeStore.setEye; prune stale; returns [id, Vec3][]

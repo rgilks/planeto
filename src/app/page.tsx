@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 
 import { useSymbolStore } from "@/stores/symbolStore";
+import { InfoPanel } from "@components/InfoPanel";
 import Scene from "@components/Scene";
 import SymbolDisplay from "@components/Symbol";
 
@@ -30,6 +31,7 @@ const HomePage = () => {
         </div>
       </main>
       <SymbolDisplay />
+      <InfoPanel />
     </SymbolHandler>
   );
 };
