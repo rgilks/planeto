@@ -197,18 +197,12 @@ Nothing here blocks — the app builds, deploys, and runs. Ordered by impact.
 
 **P1 — biggest user-facing win**
 
-- **Async texture generation.** Procedural textures are built synchronously on the main thread at load — `generateBumpMap` ×5 (`Scene.tsx`) plus a `generateColorMap` per planet (`usePlanetData`) — so a gray placeholder shows for several seconds before the cluster appears. Move generation off-thread (OffscreenCanvas in a Web Worker) or make it progressive. Higher effort; the RNG draw order must be preserved so the look is unchanged.
+- **Async texture generation.** Procedural textures are built synchronously on the main thread at load — `generateBumpMap` ×5 (`Scene.tsx`) plus a `generateColorMap` per planet (`usePlanetData`) — so a gray placeholder shows for several seconds before the cluster appears. Move generation off-thread into a Web Worker (OffscreenCanvas → transfer an `ImageBitmap` → build the `THREE` texture on the main thread, preserving `wrapS`/`wrapT`/`repeat`). Feasibility is confirmed: a Web Worker (`new Worker(new URL("./x.worker.ts", import.meta.url))`) does bundle and serve under `output: 'export'`. The work is mainly an async refactor of the currently-synchronous `usePlanetData`; textures are random per load, so the visual _character_ must be preserved (exact pixels need not be).
 
-**P2 — hardening & confidence**
+**P2 — nice-to-have**
 
-- **Rate-limit `/api/events`.** A public, unauthenticated write endpoint (anyone can POST eye/symbol events) — a possible abuse/cost vector. Add a per-IP limiter (cf. the sibling `antenna`'s `RateLimiter` Durable Object).
-- **Broaden test coverage.** Run the Playwright e2e in CI (it is local-only today) and beyond Chromium (Firefox/WebKit are commented out in `playwright.config.ts`); add unit tests for the untested `lib/utils` helpers (`randomColor`, `randomRadius`, `generateBumpMap`, `generateColorMap`).
-
-**P3 — nice-to-have / quick cleanups**
-
-- **Visual-snapshot churn** _(quick win)_ — `tests/visual-snapshot.spec.ts` overwrites the tracked `screenshots/loaded.png` (also the README hero) on every run, dirtying the tree. Point it at a gitignored path or make the baseline refresh opt-in, updating the README image source.
-- **Trim residual dead code** _(quick win)_ — harmless unused bits kept for safety during the file-by-file pass: `Eye.tsx`'s `position?` prop and its `position || eye.position` fallback (never passed), `useEyes`'s `if (event.p)` guard (always true), `eventStore`'s unused `disconnect` action and `lastError` field, and the `else delete` branch in `symbolStore.setRemoteKey` (no caller passes an empty key).
-- **PWA offline support** — add a service worker (e.g. via `@serwist/next`) for offline use.
+- **Run e2e beyond Chromium.** The Playwright suite runs in CI on Chromium via `.github/workflows/e2e.yml`; Firefox/WebKit are still commented out in `playwright.config.ts`. Enabling them adds cross-browser confidence, though the WebGL scene may need per-browser tweaks.
+- **PWA offline support.** Add a service worker (e.g. via `@serwist/next`) for offline use. Low value while multiplayer needs the network, and a service worker must carefully exclude `/api/events` from caching.
 
 Pattern deviations (none currently) are tracked under [Patterns → Consistency notes](#consistency-notes).
 
