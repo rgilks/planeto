@@ -2,7 +2,6 @@
 import { useEffect, useState } from "react";
 
 const KOFI_URL = "https://ko-fi.com/N4N31DPNUS";
-const KOFI_BADGE = "https://storage.ko-fi.com/cdn/kofi2.png?v=6";
 
 // A discreet "?" in the corner that opens a small, non-technical "what is this"
 // card (gallery-placard style) with a Ko-fi support link.
@@ -77,16 +76,10 @@ export const InfoPanel = () => {
               href={KOFI_URL}
               target="_blank"
               rel="noopener noreferrer"
-              aria-label="Support Planeto on Ko-fi"
-              className="inline-block"
+              className="inline-flex items-center gap-1.5 rounded-full border border-white/15 px-3.5 py-1.5 text-[13px] font-semibold text-white/55 no-underline transition-colors hover:border-cyan-300/50 hover:bg-cyan-300/10 hover:text-white"
             >
-              {/* eslint-disable-next-line @next/next/no-img-element -- external Ko-fi badge, not a content image */}
-              <img
-                src={KOFI_BADGE}
-                width={120}
-                height={36}
-                alt="Buy Me a Coffee at ko-fi.com"
-              />
+              <span aria-hidden="true">☕</span>
+              Buy me a coffee
             </a>
           </div>
         </>
