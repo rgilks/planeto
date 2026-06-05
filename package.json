@@ -28,6 +28,7 @@
     "@react-three/fiber": "^9.4.2",
     "@react-three/postprocessing": "^3.0.4",
     "@react-three/rapier": "^2.2.0",
+    "@sentry/react": "^10.56.0",
     "immer": "^11.0.1",
     "nanoid": "^3.3.11",
     "next": "16.0.8",
