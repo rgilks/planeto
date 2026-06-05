@@ -45,7 +45,7 @@ npm run nuke         # rm node_modules + lockfile + .next + out, reinstall
 npm run diagrams     # render docs/diagrams/*.dot → PNG (needs Graphviz)
 ```
 
-**Before committing, run `npm run verify`** (and `npm run test:run` for anything non-trivial). CI (`.github/workflows/deploy.yml`) runs `npm run verify` + `npm run test:run` + build, then `wrangler deploy`, on every push to `main`. The Playwright e2e suite runs locally (via `npm run check` or `npm run test:e2e`), not in CI.
+**Before committing, run `npm run verify`** (and `npm run test:run` for anything non-trivial). On every push to `main`, CI runs two workflows: **Deploy** (`.github/workflows/deploy.yml`) does `npm run verify` + `npm run test:run` + build, then `wrangler deploy` and a `curl` smoke-test of the live site; **E2E** (`.github/workflows/e2e.yml`) runs the Playwright (Chromium) suite. A third workflow (`diagrams.yml`) re-checks the diagrams when their sources change. Locally, `npm run check` covers verify + unit + e2e in one go.
 
 Anything touching multiplayer needs the Worker + DO, so use `npm run preview` (or `npm run check`) — plain `next dev` has no `/api/events`.
 
