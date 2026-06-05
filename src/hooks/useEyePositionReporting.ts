@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 
 import { roundVec3, areVec3sEqual } from "@/lib/utils";
+import { useEventStore } from "@/stores/eventStore";
 
 import type { EyeUpdateType } from "@/domain";
 import type { Camera } from "@react-three/fiber";
@@ -24,13 +25,18 @@ export const useEyePositionReporting = (
       FORCE_POSITION_UPDATE_INTERVAL_MS / LOCAL_INTERVAL_MS;
 
     const send = (position: [number, number, number]) => {
+      const room = useEventStore.getState().room;
+      if (room === null) return;
       const payload: EyeUpdateType = {
         type: "eyeUpdate",
         id: myId,
         p: position,
         t: Date.now(),
       };
-      navigator.sendBeacon?.("/api/events", JSON.stringify(payload));
+      navigator.sendBeacon?.(
+        `/api/events?room=${room}`,
+        JSON.stringify(payload),
+      );
       lastSentPositionRef.current = position;
       forcePositionUpdateCounterRef.current = 0;
     };

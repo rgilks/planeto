@@ -1,40 +1,65 @@
 // Cloudflare Worker entry point. The static Next export in ./out is served by
-// the [assets] binding; only /api/events runs the Worker (run_worker_first),
-// which forwards it to the single global EventsChannel Durable Object. Anything
-// else falls through to static assets.
+// the [assets] binding; only /api/events and /api/room run the Worker
+// (run_worker_first), which forwards them to the EventsChannel (one DO per room)
+// and the RoomDirector. Anything else falls through to static assets.
+
+import { MAX_ROOMS } from "../src/domain/rooms";
 
 import { EventsChannel } from "./eventsChannel";
 import { RateLimiter, type RateLimitHit } from "./rateLimiter";
+import { RoomDirector } from "./roomDirector";
 
-export { EventsChannel, RateLimiter };
+export { EventsChannel, RateLimiter, RoomDirector };
 
 interface Env {
   EVENTS: DurableObjectNamespace;
   RATE_LIMITER: DurableObjectNamespace;
+  ROOM_DIRECTOR: DurableObjectNamespace;
   ASSETS: Fetcher;
 }
 
-const ROOM = "global";
+const DIRECTOR = "director";
 
-// Per-IP rate limit on the public /api/events endpoint, covering both the SSE
-// GET (connection opens) and the POST write path. Generous on purpose so that
-// normal play (one SSE connection plus frequent eye/symbol beacons) and the
-// Playwright e2e are never throttled. Matches antenna's public limit (120 / 60s).
+// Per-IP rate limit on the public /api endpoints, covering the SSE GET
+// (connection opens), the POST write path, and room assignment. Generous on
+// purpose so that normal play (one SSE connection plus frequent eye/symbol
+// beacons) and the Playwright e2e are never throttled. Matches antenna's public
+// limit (120 / 60s).
 const RATE_LIMIT = 120;
 const RATE_WINDOW_MS = 60_000;
+
+// Parse ?room=N, clamped to a valid room id (0-based, below MAX_ROOMS). Missing
+// or invalid values fall back to room 0 (the default room), so a direct
+// /api/events call (and the e2e) still works without a room param.
+function roomFromQuery(url: URL): number {
+  const raw = Number(url.searchParams.get("room"));
+  if (!Number.isInteger(raw) || raw < 0 || raw >= MAX_ROOMS) return 0;
+  return raw;
+}
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
+
+    // Assign a new client to the lowest non-full room.
+    if (url.pathname === "/api/room" && request.method === "GET") {
+      const limited = await isRateLimited(request, env);
+      if (limited) return limited;
+      const director = env.ROOM_DIRECTOR.get(
+        env.ROOM_DIRECTOR.idFromName(DIRECTOR),
+      );
+      return director.fetch("https://director/assign");
+    }
 
     if (url.pathname === "/api/events") {
       if (request.method === "GET" || request.method === "POST") {
         const limited = await isRateLimited(request, env);
         if (limited) return limited;
       }
-      const stub = env.EVENTS.get(env.EVENTS.idFromName(ROOM));
+      const room = roomFromQuery(url);
+      const stub = env.EVENTS.get(env.EVENTS.idFromName(`room-${room}`));
       if (request.method === "GET") {
-        return stub.fetch("https://do/subscribe");
+        return stub.fetch(`https://do/subscribe?room=${room}`);
       }
       if (request.method === "POST") {
         const body = await request.text();

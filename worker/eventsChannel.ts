@@ -1,8 +1,12 @@
-// Durable Object holding planeto's shared multiplayer state and fanning it out
-// over Server-Sent Events. A single global instance (idFromName "global") is the
-// whole "room": it keeps the latest "eye" position per user and broadcasts
-// eye/symbol events to every connected browser. State is purely in-memory — once
-// all browsers close their EventSource the DO can be evicted.
+// Durable Object holding one room's shared multiplayer state and fanning it out
+// over Server-Sent Events. Each instance (idFromName "room-N") keeps the latest
+// "eye" position per user in that room and broadcasts eye/symbol events to every
+// connected browser there. State is purely in-memory - once all browsers close
+// their EventSource the DO can be evicted.
+//
+// Rooms are capped (ROOM_CAP) so per-event fan-out stays bounded; the Worker
+// routes overflow to new rooms. Each connect/disconnect is reported to the
+// RoomDirector so it can hand new clients the lowest non-full room.
 //
 // The pure state transitions (apply event, prune stale, encode frame) live in
 // src/domain/eventsCore.ts and are unit-tested; this file is the SSE plumbing.
@@ -17,13 +21,9 @@ import {
   encodeEventFrame,
   pruneStaleEyes,
 } from "../src/domain/eventsCore";
+import { ROOM_CAP } from "../src/domain/rooms";
 
 const KEEPALIVE_MS = 20_000;
-
-// Cap on concurrent SSE connections to this single global room. Far above any
-// realistic audience, but it bounds the writer set (and the per-event fan-out
-// work) if someone tries to flood the room with connections.
-const MAX_CONNECTIONS = 200;
 
 const SSE_HEADERS = {
   "content-type": "text/event-stream",
@@ -36,20 +36,31 @@ const SSE_HEADERS = {
 
 const KEEPALIVE_FRAME = new TextEncoder().encode(`:keepalive\n\n`);
 
+interface Env {
+  ROOM_DIRECTOR: DurableObjectNamespace;
+}
+
 type Writer = {
   readonly controller: ReadableStreamDefaultController<Uint8Array>;
   readonly keepalive: ReturnType<typeof setInterval>;
+  readonly room: number;
   closed: boolean;
 };
 
 export class EventsChannel implements DurableObject {
   private readonly eyes = new Map<string, EyeUpdateType>();
   private readonly writers = new Set<Writer>();
+  private readonly env: Env;
+
+  constructor(_state: DurableObjectState, env: Env) {
+    this.env = env;
+  }
 
   async fetch(request: Request): Promise<Response> {
     const url = new URL(request.url);
     if (request.method === "GET" && url.pathname === "/subscribe") {
-      return this.subscribe();
+      const room = Number(url.searchParams.get("room") ?? 0);
+      return this.subscribe(Number.isFinite(room) ? room : 0);
     }
     if (request.method === "POST" && url.pathname === "/publish") {
       return this.publish(request);
@@ -57,8 +68,8 @@ export class EventsChannel implements DurableObject {
     return new Response("not_found", { status: 404 });
   }
 
-  private subscribe(): Response {
-    if (this.writers.size >= MAX_CONNECTIONS) {
+  private subscribe(room: number): Response {
+    if (this.writers.size >= ROOM_CAP) {
       return new Response("at_capacity", { status: 503 });
     }
     pruneStaleEyes(this.eyes, Date.now());
@@ -70,9 +81,11 @@ export class EventsChannel implements DurableObject {
           keepalive: setInterval(() => {
             if (writer) this.safeEnqueue(writer, KEEPALIVE_FRAME);
           }, KEEPALIVE_MS),
+          room,
           closed: false,
         };
         this.writers.add(writer);
+        this.notifyDirector("join", room);
         // Replay the current eyes so a fresh client immediately sees everyone.
         for (const eye of this.eyes.values()) {
           this.safeEnqueue(writer, encodeEventFrame(eye));
@@ -129,5 +142,21 @@ export class EventsChannel implements DurableObject {
     writer.closed = true;
     clearInterval(writer.keepalive);
     this.writers.delete(writer);
+    this.notifyDirector("leave", writer.room);
+  }
+
+  // Best-effort occupancy report so the director can pick non-full rooms. Fire
+  // and forget: a dropped report only causes a brief miscount, which each room's
+  // own cap absorbs.
+  private notifyDirector(path: "join" | "leave", room: number): void {
+    const stub = this.env.ROOM_DIRECTOR.get(
+      this.env.ROOM_DIRECTOR.idFromName("director"),
+    );
+    void stub
+      .fetch(`https://director/${path}`, {
+        method: "POST",
+        body: JSON.stringify({ room }),
+      })
+      .catch(() => {});
   }
 }

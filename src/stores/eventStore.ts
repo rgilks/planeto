@@ -12,8 +12,28 @@ declare global {
   }
 }
 
+// When a connection never opens (its room filled in a race), wait this long
+// before re-acquiring a room and retrying, so we never hammer /api/room.
+const RECONNECT_BACKOFF_MS = 1500;
+
+// Ask the server which room to join (the lowest non-full one). Falls back to
+// room 0 so the app still works if the request fails.
+const fetchRoom = async (): Promise<number> => {
+  try {
+    const res = await fetch("/api/room");
+    const data = (await res.json()) as { room?: number };
+    return typeof data.room === "number" ? data.room : 0;
+  } catch {
+    return 0;
+  }
+};
+
 interface EventStoreState {
   isConnected: boolean;
+  connecting: boolean;
+  // The room this client is in; null until the first connection is established.
+  // The outbound hooks read it to target their POSTs at the same room.
+  room: number | null;
   eventSourceInstance: EventSource | null;
   listeners: {
     symbol: SymbolEventListener[];
@@ -26,12 +46,13 @@ interface EventStoreActions {
   subscribeSymbolEvents: (callback: SymbolEventListener) => () => void;
   subscribeEyeUpdates: (callback: EyeUpdateEventListener) => () => void;
   _handleMessage: (event: MessageEvent) => void;
-  _handleError: (event: Event) => void;
 }
 
 export const useEventStore = create<EventStoreState & EventStoreActions>()(
   immer((set, get) => ({
     isConnected: false,
+    connecting: false,
+    room: null,
     eventSourceInstance: null,
     listeners: {
       symbol: [],
@@ -39,17 +60,47 @@ export const useEventStore = create<EventStoreState & EventStoreActions>()(
     },
 
     connect: () => {
-      if (get().eventSourceInstance || get().isConnected) {
-        return;
-      }
-      const es = new EventSource("/api/events");
-      set({ eventSourceInstance: es, isConnected: false });
+      const s = get();
+      if (s.eventSourceInstance || s.isConnected || s.connecting) return;
+      set({ connecting: true });
 
-      es.onopen = () => {
-        set({ isConnected: true });
-      };
-      es.onmessage = (event: MessageEvent) => get()._handleMessage(event);
-      es.onerror = (event: Event) => get()._handleError(event);
+      void (async () => {
+        const room = await fetchRoom();
+        const es = new EventSource(`/api/events?room=${room}`);
+        let opened = false;
+
+        es.onopen = () => {
+          opened = true;
+          set({ isConnected: true });
+        };
+        es.onmessage = (event: MessageEvent) => get()._handleMessage(event);
+        es.onerror = () => {
+          console.error(`EventSource error (room ${room})`);
+          set({ isConnected: false });
+          if (!opened) {
+            // Never connected: the room likely filled in a race. Drop this
+            // stream and re-acquire a (probably different) room after a short
+            // backoff; EventSource would otherwise retry the same full room
+            // forever.
+            es.close();
+            set({ eventSourceInstance: null, room: null, connecting: true });
+            setTimeout(() => {
+              set({ connecting: false });
+              get().connect();
+            }, RECONNECT_BACKOFF_MS);
+          }
+          // If we had connected, keep the instance: the browser auto-reconnects
+          // to the same room, and the connect-on-disconnect effect is a no-op
+          // while the instance is still set.
+        };
+
+        set({
+          eventSourceInstance: es,
+          isConnected: false,
+          room,
+          connecting: false,
+        });
+      })();
     },
 
     subscribeSymbolEvents: (callback: SymbolEventListener) => {
@@ -110,16 +161,6 @@ export const useEventStore = create<EventStoreState & EventStoreActions>()(
           event.data,
         );
       }
-    },
-
-    _handleError: (event: Event) => {
-      console.error("EventSource encountered an error:", event);
-      // Keep the instance: the browser auto-reconnects the EventSource (with
-      // backoff). Nulling it here would orphan that reconnecting stream and let
-      // the connect-on-disconnect effects open a duplicate.
-      set((state) => {
-        state.isConnected = false;
-      });
     },
   })),
 );

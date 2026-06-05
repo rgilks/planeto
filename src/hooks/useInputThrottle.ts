@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 
+import { useEventStore } from "@/stores/eventStore";
 import { useSymbolStore } from "@/stores/symbolStore";
 
 import type { SymbolState } from "@/stores/symbolStore";
@@ -17,7 +18,9 @@ export const useInputThrottle = (myId: React.RefObject<string>) => {
     const timeSinceLastSend = Date.now() - lastSentTimeRef.current;
 
     const sendEvent = () => {
-      fetch("/api/events", {
+      const room = useEventStore.getState().room;
+      if (room === null) return;
+      fetch(`/api/events?room=${room}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
