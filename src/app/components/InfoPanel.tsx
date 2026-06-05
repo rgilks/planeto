@@ -54,7 +54,7 @@ export const InfoPanel = () => {
 
             <h2 className="mb-2 text-base font-semibold text-white">Planeto</h2>
             <p className="mb-3">
-              A small shared universe — a handful of little planets drift and
+              A small shared universe - a handful of little planets drift and
               collide under their own gravity around a bright, silent sun.
             </p>
             <p className="mb-3">
@@ -62,10 +62,10 @@ export const InfoPanel = () => {
               look around, <strong>scroll</strong> to zoom, and{" "}
               <strong>double-click</strong> (or press any key) to send a glowing
               symbol into the dark. Anyone else here right now sees it flare
-              beside your eye — and you&rsquo;ll see theirs.
+              beside your eye - and you&rsquo;ll see theirs.
             </p>
             <p className="mb-4 text-white/55">
-              No goal, no score — just a quiet place to drift.
+              No goal, no score - just a quiet place to drift.
             </p>
 
             <a
