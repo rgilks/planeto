@@ -60,12 +60,17 @@ export const InfoPanel = () => {
             <p className="mb-3">
               You&rsquo;re one of the eyes watching. <strong>Drag</strong> to
               look around, <strong>scroll</strong> to zoom, and{" "}
-              <strong>double-click</strong> (or press any key) to send a glowing
-              symbol into the dark. Anyone else here right now sees it flare
-              beside your eye - and you&rsquo;ll see theirs.
+              <strong>double-click</strong> (press any key, or tap{" "}
+              <strong>Send a symbol</strong> on touch) to send a glowing symbol
+              into the dark. Anyone else here right now sees it flare beside
+              your eye - and you&rsquo;ll see theirs.
             </p>
             <p className="mb-4 text-white/55">
               No goal, no score - just a quiet place to drift.
+            </p>
+            <p className="mb-4 text-xs text-white/40">
+              No accounts. Anonymous usage + error reporting; nothing personal
+              is stored.
             </p>
 
             <a

@@ -19,25 +19,92 @@ import { Eyes } from "@components/Eyes";
 import { Planet } from "@components/Planet";
 
 import type { SymbolState } from "@/stores/symbolStore";
+import type { WebGLRenderer } from "three";
 
 type RigidBodyRef = React.RefObject<RapierRigidBody | null>;
 
 // Ambient fill, shared by the main scene and the loading fallback.
 const AMBIENT_INTENSITY = 0.08;
 
+// Shadow-map resolution: full-fat on desktop, mobile-safe on low-end (an 8192²
+// depth map is multiple hundred MB of VRAM and crashes many phone GPUs).
+const SHADOW_MAP_DESKTOP = 8192;
+const SHADOW_MAP_LOW_END = 2048;
+
+// Detect a touch / low-power device once. The desktop path is the default, so
+// anything we cannot positively identify as low-end keeps the full look (a
+// normal desktop reports a fine pointer, 8+ cores and > 4 GB, so it never
+// degrades). Guarded for SSR / static export: `window`/`matchMedia`/`navigator`
+// may be absent at build time, so fall back to the desktop (high-quality) path.
+const detectLowEnd = (): boolean => {
+  if (typeof window === "undefined") return false;
+
+  // Primary signal: a coarse pointer (phones/tablets) - no reliable hover or
+  // double-click, and almost always a weaker GPU.
+  const coarsePointer =
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(pointer: coarse)").matches;
+
+  // Secondary signals (both optional in some browsers): genuinely low core or
+  // memory counts. These only ever add devices; they cannot rescue a desktop.
+  const nav = typeof navigator !== "undefined" ? navigator : undefined;
+  const cores = nav?.hardwareConcurrency;
+  const memory = (nav as Navigator & { deviceMemory?: number })?.deviceMemory;
+  const lowCores = cores !== undefined && cores <= 4;
+  const lowMemory = memory !== undefined && memory <= 4;
+
+  return coarsePointer || lowCores || lowMemory;
+};
+
+// Computed once per module load; the result is stable for the session.
+const IS_LOW_END = detectLowEnd();
+
+// Context loss (tab backgrounded, GPU reset, driver hiccup - common on mobile)
+// otherwise leaves a silent white canvas. Swallow the default so the browser
+// keeps the context recoverable, then ask Three to restore it; if restore never
+// fires, reload as a last resort.
+const handleContextLoss = (gl: WebGLRenderer) => {
+  const canvas = gl.domElement;
+  let reloadTimer: ReturnType<typeof setTimeout> | undefined;
+
+  canvas.addEventListener(
+    "webglcontextlost",
+    (event) => {
+      event.preventDefault();
+      gl.forceContextRestore?.();
+      // If the GPU never hands the context back, a reload is the safe fallback.
+      reloadTimer = setTimeout(() => window.location.reload(), 3000);
+    },
+    false,
+  );
+
+  canvas.addEventListener(
+    "webglcontextrestored",
+    () => {
+      if (reloadTimer) clearTimeout(reloadTimer);
+    },
+    false,
+  );
+};
+
 const CanvasContent = ({ myId }: { myId: string }) => {
   const { camera } = useThree();
   useEyePositionReporting(myId, camera);
 
+  const shadowMapSize = IS_LOW_END ? SHADOW_MAP_LOW_END : SHADOW_MAP_DESKTOP;
+
   return (
     <>
-      <EffectComposer>
-        <Bloom
-          luminanceThreshold={0.05}
-          luminanceSmoothing={0.2}
-          intensity={0.5}
-        />
-      </EffectComposer>
+      {/* Bloom is GPU-heavy; skip the whole post pass on low-end devices. */}
+      {!IS_LOW_END && (
+        <EffectComposer>
+          <Bloom
+            luminanceThreshold={0.05}
+            luminanceSmoothing={0.2}
+            intensity={0.5}
+          />
+        </EffectComposer>
+      )}
       <group>
         <ambientLight intensity={AMBIENT_INTENSITY} />
         <Eyes myId={myId} />
@@ -46,8 +113,8 @@ const CanvasContent = ({ myId }: { myId: string }) => {
           intensity={6}
           color={"#fffbe6"}
           castShadow
-          shadow-mapSize-width={8192}
-          shadow-mapSize-height={8192}
+          shadow-mapSize-width={shadowMapSize}
+          shadow-mapSize-height={shadowMapSize}
           shadow-bias={-0.001}
           shadow-camera-near={1}
           shadow-camera-far={2000}
@@ -117,6 +184,7 @@ const Scene = () => {
       camera={{ position: randomEyePos() }}
       style={{ width: "100%", height: "100%" }}
       shadows
+      onCreated={({ gl }) => handleContextLoss(gl)}
       onDoubleClick={() => {
         const randomSymbol =
           SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)];

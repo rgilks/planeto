@@ -6,6 +6,7 @@ import { useSymbolStore } from "@/stores/symbolStore";
 import { InfoPanel } from "@components/InfoPanel";
 import Scene from "@components/Scene";
 import SymbolDisplay from "@components/Symbol";
+import { TouchSymbolButton } from "@components/TouchSymbolButton";
 
 const SymbolHandler = ({ children }: { children: React.ReactNode }) => {
   const setLastInput = useSymbolStore((s) => s.setLastInput);
@@ -32,6 +33,7 @@ const HomePage = () => {
       </main>
       <SymbolDisplay />
       <InfoPanel />
+      <TouchSymbolButton />
     </SymbolHandler>
   );
 };
