@@ -1,6 +1,6 @@
 "use client";
 import { Text } from "@react-three/drei";
-import { Group, Vector3 } from "three";
+import { Group } from "three";
 
 import { getSymbol, SYMBOL_COLOR } from "@/domain";
 import { ManagedEye } from "@/stores/eyesStore";
@@ -13,12 +13,11 @@ interface EyeProps {
   eye: ManagedEye;
   remoteKey?: RemoteKey;
   groupRef: (el: Group | null) => void;
-  position?: Vector3;
 }
 
-export const Eye = ({ eye, remoteKey, groupRef, position }: EyeProps) => {
+export const Eye = ({ eye, remoteKey, groupRef }: EyeProps) => {
   return (
-    <group ref={groupRef} position={position || eye.position}>
+    <group ref={groupRef} position={eye.position}>
       <mesh>
         <sphereGeometry args={[EYE_RADIUS, 32, 32]} />
         <primitive object={eye.material} attach="material" />

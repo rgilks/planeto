@@ -3,10 +3,34 @@ import { describe, it, expect } from "vitest";
 import {
   areVec3sEqual,
   blendColor,
+  randomColor,
+  randomRadius,
   roundVec3,
   seededRandom,
   VEC3_EPSILON,
 } from "./utils";
+
+const KNOWN_COLORS = [
+  "deepskyblue",
+  "limegreen",
+  "orange",
+  "violet",
+  "red",
+  "yellow",
+  "aqua",
+  "pink",
+  "white",
+  "gold",
+  "saddlebrown",
+  "slateblue",
+  "crimson",
+  "teal",
+  "coral",
+  "indigo",
+  "khaki",
+  "plum",
+  "salmon",
+];
 
 describe("roundVec3", () => {
   it("rounds each component to two decimal places", () => {
@@ -40,11 +64,20 @@ describe("areVec3sEqual", () => {
   });
 });
 
+const draw = (next: () => number, n: number): number[] =>
+  Array.from({ length: n }, () => next());
+
 describe("seededRandom", () => {
-  it("is deterministic for a given seed", () => {
-    const a = seededRandom(42);
-    const b = seededRandom(42);
-    expect([a(), a(), a()]).toEqual([b(), b(), b()]);
+  it("produces the same first N values for the same seed", () => {
+    const a = draw(seededRandom(42), 5);
+    const b = draw(seededRandom(42), 5);
+    expect(a).toEqual(b);
+  });
+
+  it("produces a different sequence for a different seed", () => {
+    const a = draw(seededRandom(1), 5);
+    const b = draw(seededRandom(2), 5);
+    expect(a).not.toEqual(b);
   });
 
   it("produces values in the [0, 1) range", () => {
@@ -54,10 +87,6 @@ describe("seededRandom", () => {
       expect(v).toBeGreaterThanOrEqual(0);
       expect(v).toBeLessThan(1);
     }
-  });
-
-  it("produces different sequences for different seeds", () => {
-    expect(seededRandom(1)()).not.toBe(seededRandom(2)());
   });
 });
 
@@ -69,5 +98,28 @@ describe("blendColor", () => {
 
   it("returns an rgb() string", () => {
     expect(blendColor("red", "blue", 0.5)).toMatch(/^rgb\(/);
+  });
+});
+
+describe("randomColor", () => {
+  it("always returns a string from the known colour set", () => {
+    for (let i = 0; i < 100; i++) {
+      const color = randomColor();
+      expect(typeof color).toBe("string");
+      expect(KNOWN_COLORS).toContain(color);
+    }
+  });
+});
+
+describe("randomRadius", () => {
+  it("always returns a finite number within [min, max]", () => {
+    const min = 0.3;
+    const max = 8;
+    for (let i = 0; i < 1000; i++) {
+      const r = randomRadius();
+      expect(Number.isFinite(r)).toBe(true);
+      expect(r).toBeGreaterThanOrEqual(min);
+      expect(r).toBeLessThanOrEqual(max);
+    }
   });
 });

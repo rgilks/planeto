@@ -24,9 +24,7 @@ export const useEyes = () => {
 
   useEffect(() => {
     const handleEyeUpdate = (event: EyeUpdateType) => {
-      if (event.p) {
-        setEyeInStore(event);
-      }
+      setEyeInStore(event);
     };
 
     const unsubscribe = subscribeToEyeUpdates(handleEyeUpdate);

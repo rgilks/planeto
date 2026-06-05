@@ -14,7 +14,6 @@ declare global {
 
 interface EventStoreState {
   isConnected: boolean;
-  lastError: string | null;
   eventSourceInstance: EventSource | null;
   listeners: {
     symbol: SymbolEventListener[];
@@ -24,7 +23,6 @@ interface EventStoreState {
 
 interface EventStoreActions {
   connect: () => void;
-  disconnect: () => void;
   subscribeSymbolEvents: (callback: SymbolEventListener) => () => void;
   subscribeEyeUpdates: (callback: EyeUpdateEventListener) => () => void;
   _handleMessage: (event: MessageEvent) => void;
@@ -34,7 +32,6 @@ interface EventStoreActions {
 export const useEventStore = create<EventStoreState & EventStoreActions>()(
   immer((set, get) => ({
     isConnected: false,
-    lastError: null,
     eventSourceInstance: null,
     listeners: {
       symbol: [],
@@ -46,24 +43,13 @@ export const useEventStore = create<EventStoreState & EventStoreActions>()(
         return;
       }
       const es = new EventSource("/api/events");
-      set({ eventSourceInstance: es, isConnected: false, lastError: null });
+      set({ eventSourceInstance: es, isConnected: false });
 
       es.onopen = () => {
-        set({ isConnected: true, lastError: null });
+        set({ isConnected: true });
       };
       es.onmessage = (event: MessageEvent) => get()._handleMessage(event);
       es.onerror = (event: Event) => get()._handleError(event);
-    },
-
-    disconnect: () => {
-      const es = get().eventSourceInstance;
-      if (es) {
-        es.close();
-        set({
-          eventSourceInstance: null,
-          isConnected: false,
-        });
-      }
     },
 
     subscribeSymbolEvents: (callback: SymbolEventListener) => {
@@ -115,7 +101,6 @@ export const useEventStore = create<EventStoreState & EventStoreActions>()(
             "Data:",
             rawData,
           );
-          set({ lastError: "Failed to parse event data" });
         }
       } catch (error) {
         console.error(
@@ -124,7 +109,6 @@ export const useEventStore = create<EventStoreState & EventStoreActions>()(
           "Data:",
           event.data,
         );
-        set({ lastError: "Error processing SSE message" });
       }
     },
 
@@ -134,7 +118,6 @@ export const useEventStore = create<EventStoreState & EventStoreActions>()(
       // backoff). Nulling it here would orphan that reconnecting stream and let
       // the connect-on-disconnect effects open a duplicate.
       set((state) => {
-        state.lastError = "EventSource connection error";
         state.isConnected = false;
       });
     },

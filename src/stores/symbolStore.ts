@@ -30,8 +30,6 @@ export const useSymbolStore = create<SymbolState>()(
       set((state) => {
         if (key) {
           state.remoteKeys[id] = { key, ts: Date.now() };
-        } else {
-          delete state.remoteKeys[id];
         }
       }),
   })),
