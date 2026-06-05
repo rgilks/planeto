@@ -20,6 +20,11 @@ import {
 
 const KEEPALIVE_MS = 20_000;
 
+// Cap on concurrent SSE connections to this single global room. Far above any
+// realistic audience, but it bounds the writer set (and the per-event fan-out
+// work) if someone tries to flood the room with connections.
+const MAX_CONNECTIONS = 200;
+
 const SSE_HEADERS = {
   "content-type": "text/event-stream",
   "cache-control": "no-cache, no-transform",
@@ -53,6 +58,9 @@ export class EventsChannel implements DurableObject {
   }
 
   private subscribe(): Response {
+    if (this.writers.size >= MAX_CONNECTIONS) {
+      return new Response("at_capacity", { status: 503 });
+    }
     pruneStaleEyes(this.eyes, Date.now());
     let writer: Writer | null = null;
     const stream = new ReadableStream<Uint8Array>({

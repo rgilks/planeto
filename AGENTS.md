@@ -57,7 +57,7 @@ Anything touching multiplayer needs the Worker + DO, so use `npm run preview` (o
 
 - _Outbound — eye position:_ `useEyePositionReporting` beacons the camera position (rounded) to `POST /api/events` as an `eyeUpdate`, only when it changed, or unconditionally every 20 s, via `navigator.sendBeacon`.
 - _Outbound — symbol:_ a key press (`SymbolHandler` in `page.tsx`) or Canvas double-click sets `symbolStore.lastInput`; `useInputThrottle` POSTs it as a `symbol` event, throttled to one per 100 ms.
-- _Server (Worker + DO):_ the Worker forwards `/api/events` to a single global `EventsChannel` Durable Object (`idFromName("global")`), which validates every POST against `EventSchema`. `eyeUpdate` → store (server-stamped `t`) **and** fan out; `symbol` → fan out only. `GET` opens an SSE stream, registers the writer, replays the current eyes, and keepalive-pings every 20 s. Stale eyes (> 30 s) are purged lazily on each publish/subscribe.
+- _Server (Worker + DO):_ the Worker forwards `/api/events` to a single global `EventsChannel` Durable Object (`idFromName("global")`), which validates every POST against `EventSchema`. `eyeUpdate` → store (server-stamped `t`) **and** fan out; `symbol` → fan out only. `GET` opens an SSE stream, registers the writer, replays the current eyes, and keepalive-pings every 20 s. Stale eyes (> 30 s) are purged lazily on each publish/subscribe. The Worker per-IP rate-limits both GET and POST (120 / 60 s, via a `RateLimiter` DO), and the room caps concurrent SSE connections at 200.
 - _Inbound:_ `eventStore` owns one `EventSource`, re-validates each frame, and fans out to listeners: `eyeUpdate` → `eyeStore` (raw) → `eyesStore` (animated) → `Eyes.tsx`; `symbol` → `symbolStore.remoteKeys` → fading text in `Eye.tsx`.
 
 The publish → fan-out round-trip:
@@ -86,10 +86,11 @@ sequenceDiagram
 
 ```
 worker/
-  index.ts            # Worker entry: routes /api/events to the EventsChannel DO; serves everything else from static assets (env.ASSETS); re-exports the DO class
-  eventsChannel.ts    # EventsChannel Durable Object — SSE plumbing: subscribe (replay + keepalive), publish (validate + fan out). The pure transitions live in src/domain/eventsCore.ts
+  index.ts            # Worker entry: routes /api/events to the EventsChannel DO (per-IP rate limit on GET+POST via the RateLimiter DO); serves everything else from static assets (env.ASSETS); re-exports the DO classes
+  eventsChannel.ts    # EventsChannel Durable Object — SSE plumbing: subscribe (replay + keepalive, capped at 200 concurrent connections), publish (validate + fan out). The pure transitions live in src/domain/eventsCore.ts
+  rateLimiter.ts      # RateLimiter Durable Object: per-IP fixed-window counter (120 / 60 s) gating /api/events
   tsconfig.json       # worker-only tsconfig (@cloudflare/workers-types, no DOM lib)
-wrangler.toml         # Worker config: [assets] ./out, run_worker_first /api/events, EVENTS DO binding + migration, planeto.tre.systems
+wrangler.toml         # Worker config: [assets] ./out, run_worker_first /api/events, EVENTS + RATE_LIMITER DO bindings + migrations, planeto.tre.systems
 src/
   app/
     layout.tsx          # root layout; fonts; metadata (manifest link)
