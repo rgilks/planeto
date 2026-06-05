@@ -13,9 +13,9 @@ Graphviz / DOT sources plus rendered PNGs. The `.dot` files are the source of tr
 Colour coding by domain:
 
 - **Blue** — the browser client (static WebGL app + the realtime stores).
-- **Green** — Cloudflare Worker code (static assets + the `/api/events` router).
-- **Teal** — the Durable Object (the in-memory room / state).
-- **Purple** — shared pure domain modules (`EventSchema`, `eventsCore`) imported by both sides.
+- **Green** — Cloudflare Worker code (static assets + the `/api` router).
+- **Teal** — the Durable Objects (a per-room `EventsChannel` + the `RoomDirector`).
+- **Purple** — shared pure domain modules (`EventSchema`, `eventsCore`, `rooms`) imported by both sides.
 - Diamonds — decisions; dashed edges — optional / "used by" relationships.
 
 Font: Avenir. Rendered at 220 DPI with `dot -Tpng:cairo`.

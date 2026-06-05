@@ -75,7 +75,7 @@ digraph SystemOverview {
       label=<
         <TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="2">
           <TR><TD ALIGN="LEFT"><FONT POINT-SIZE="17" COLOR="#1e6b43"><B>CLOUDFLARE WORKER</B></FONT></TD></TR>
-          <TR><TD ALIGN="LEFT"><FONT POINT-SIZE="12" COLOR="#4e7a61">One Worker serves the static export and routes /api/events.</FONT></TD></TR>
+          <TR><TD ALIGN="LEFT"><FONT POINT-SIZE="12" COLOR="#4e7a61">One Worker serves the static export and routes /api/room + /api/events.</FONT></TD></TR>
         </TABLE>
       >,
       labelloc=t,
@@ -88,18 +88,18 @@ digraph SystemOverview {
     ];
 
     W1 [label=<<B>Static assets</B><BR/><FONT POINT-SIZE="15">Next export → ./out (Workers Static Assets)</FONT>>, fillcolor="#eaf8ef:#ffffff", color="#22865a"];
-    W2 [label=<<B>Worker fetch — worker/index.ts</B><BR/><FONT POINT-SIZE="15">routes /api/events; everything else → assets</FONT>>, fillcolor="#eaf8ef:#ffffff", color="#22865a"];
+    W2 [label=<<B>Worker fetch — worker/index.ts</B><BR/><FONT POINT-SIZE="15">routes /api/room + /api/events; else → assets</FONT>>, fillcolor="#eaf8ef:#ffffff", color="#22865a"];
 
     W1 -> W2 [style=invis];
   }
 
-  // ---- Durable Object ----
+  // ---- Durable Objects ----
   subgraph cluster_do {
     graph [
       label=<
         <TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="2">
-          <TR><TD ALIGN="LEFT"><FONT POINT-SIZE="17" COLOR="#0f766e"><B>DURABLE OBJECT</B></FONT></TD></TR>
-          <TR><TD ALIGN="LEFT"><FONT POINT-SIZE="12" COLOR="#357a74">A single global instance is the whole room; in-memory, no database.</FONT></TD></TR>
+          <TR><TD ALIGN="LEFT"><FONT POINT-SIZE="17" COLOR="#0f766e"><B>DURABLE OBJECTS</B></FONT></TD></TR>
+          <TR><TD ALIGN="LEFT"><FONT POINT-SIZE="12" COLOR="#357a74">One EventsChannel per room (capped at 30); a RoomDirector assigns rooms. In-memory, no database.</FONT></TD></TR>
         </TABLE>
       >,
       labelloc=t,
@@ -111,7 +111,8 @@ digraph SystemOverview {
       margin=22
     ];
 
-    D1 [label=<<B>EventsChannel</B><BR/><FONT POINT-SIZE="15">eyes Map + writers Set · replay, fan-out, purge</FONT>>, fillcolor="#e6fffb:#ffffff", color="#0f766e", width=3.7];
+    D1 [label=<<B>EventsChannel — one per room</B><BR/><FONT POINT-SIZE="15">eyes Map + writers Set · replay, fan-out, purge</FONT>>, fillcolor="#e6fffb:#ffffff", color="#0f766e", width=3.7];
+    D2 [label=<<B>RoomDirector</B><BR/><FONT POINT-SIZE="15">per-room occupancy · assigns lowest non-full room</FONT>>, fillcolor="#e6fffb:#ffffff", color="#0f766e", width=3.7];
   }
 
   // ---- Shared domain ----
@@ -132,16 +133,20 @@ digraph SystemOverview {
       margin=22
     ];
 
-    M1 [label=<<B>src/domain</B><BR/><FONT POINT-SIZE="15">EventSchema (wire) · eventsCore (transitions)</FONT>>, fillcolor="#f5f3ff:#ffffff", color="#7c3aed", width=3.7];
+    M1 [label=<<B>src/domain</B><BR/><FONT POINT-SIZE="15">EventSchema · eventsCore · rooms (pickRoom)</FONT>>, fillcolor="#f5f3ff:#ffffff", color="#7c3aed", width=3.7];
   }
 
   // ---- Edges ----
   C1 -> W1 [label="GET / — loads the static app"];
-  C2 -> W2 [label="POST /api/events (sendBeacon / fetch)"];
-  C2 -> W2 [label="GET /api/events (EventSource)", style=dashed];
+  C2 -> W2 [label="GET /api/room (pick a room)", style=dotted];
+  C2 -> W2 [label="POST /api/events?room=N (sendBeacon / fetch)"];
+  C2 -> W2 [label="GET /api/events?room=N (EventSource)", style=dashed];
+  W2 -> D2 [label="assign → {room:N}"];
   W2 -> D1 [label="forward → /subscribe · /publish"];
   D1 -> C2 [label="SSE fan-out (eye / symbol events)", color="#0f766e", fontcolor="#0f766e"];
+  D1 -> D2 [label="join / leave", style=dashed, color="#0f766e", fontcolor="#0f766e", constraint=false];
 
   M1 -> C2 [label="validate frames", style=dashed, color="#7c3aed", fontcolor="#7c3aed", constraint=false];
   M1 -> D1 [label="validate + apply", style=dashed, color="#7c3aed", fontcolor="#7c3aed", constraint=false];
+  M1 -> D2 [label="pickRoom", style=dashed, color="#7c3aed", fontcolor="#7c3aed", constraint=false];
 }

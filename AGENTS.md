@@ -11,10 +11,10 @@ Planeto is a browser-based 3D toy: a procedurally generated cluster of drifting 
 - **Physics:** Rapier (`@react-three/rapier`) rigid bodies, but gravity is **custom** — an N-body loop in `usePhysicsSimulation`, not Rapier's built-in gravity.
 - **State:** Zustand (+ the `zustand/middleware/immer` middleware), five small stores.
 - **Domain:** Zod guards the wire boundary (`EventSchema` in `event.ts`); client-side shapes (`planet.ts`, `eye.ts`) are plain types.
-- **Multiplayer:** Server-Sent Events for server→client, HTTP POST for client→server, both at `/api/events`. The server is a Cloudflare **Durable Object** (`EventsChannel`) holding the shared state in memory — no database, no persistence.
-- **Deployed:** Cloudflare Workers — a single Worker serves the static export and hosts the Durable Object, at `planeto.tre.systems`.
+- **Multiplayer:** Server-Sent Events for server→client, HTTP POST for client→server, over `/api/events?room=N`. The server is a set of Cloudflare **Durable Objects** (an `EventsChannel` per room, plus a `RoomDirector` that assigns rooms) holding the shared state in memory — no database, no persistence.
+- **Deployed:** Cloudflare Workers — a single Worker serves the static export and hosts the Durable Objects, at `planeto.tre.systems`.
 
-Size: ~2k LOC, ~30 source files, 5 Zustand stores, 1 Durable Object.
+Size: ~2k LOC, ~30 source files, 5 Zustand stores, 3 Durable Objects.
 
 ## Workflow
 
@@ -57,7 +57,7 @@ Anything touching multiplayer needs the Worker + DO, so use `npm run preview` (o
 
 - _Outbound — eye position:_ `useEyePositionReporting` beacons the camera position (rounded) to `POST /api/events` as an `eyeUpdate`, only when it changed, or unconditionally every 20 s, via `navigator.sendBeacon`.
 - _Outbound — symbol:_ a key press (`SymbolHandler` in `page.tsx`) or Canvas double-click sets `symbolStore.lastInput`; `useInputThrottle` POSTs it as a `symbol` event, throttled to one per 100 ms.
-- _Server (Worker + DO):_ the Worker forwards `/api/events` to a single global `EventsChannel` Durable Object (`idFromName("global")`), which validates every POST against `EventSchema`. `eyeUpdate` → store (server-stamped `t`) **and** fan out; `symbol` → fan out only. `GET` opens an SSE stream, registers the writer, replays the current eyes, and keepalive-pings every 20 s. Stale eyes (> 30 s) are purged lazily on each publish/subscribe. The Worker per-IP rate-limits both GET and POST (120 / 60 s, via a `RateLimiter` DO), and the room caps concurrent SSE connections at 200.
+- _Server (Worker + DO):_ a client first calls `GET /api/room`, answered by the `RoomDirector` DO with the lowest non-full room; it then talks to `/api/events?room=N`. The Worker forwards that to the `EventsChannel` DO for room N (`idFromName("room-N")`), which validates every POST against `EventSchema`. `eyeUpdate` → store (server-stamped `t`) **and** fan out; `symbol` → fan out only. `GET` opens an SSE stream, registers the writer (reporting join/leave to the director), replays the current eyes, and keepalive-pings every 20 s. Stale eyes (> 30 s) are purged lazily on each publish/subscribe. Each room caps at 30 connections (overflow goes to a new room); the Worker per-IP rate-limits the `/api` endpoints (120 / 60 s, via a `RateLimiter` DO).
 - _Inbound:_ `eventStore` owns one `EventSource`, re-validates each frame, and fans out to listeners: `eyeUpdate` → `eyeStore` (raw) → `eyesStore` (animated) → `Eyes.tsx`; `symbol` → `symbolStore.remoteKeys` → fading text in `Eye.tsx`.
 
 The publish → fan-out round-trip:
@@ -68,8 +68,8 @@ sequenceDiagram
     participant W as Worker
     participant DO as EventsChannel DO
     participant B as Client B
-    Note over A,B: both hold an open EventSource on GET /api/events
-    A->>W: POST /api/events (eyeUpdate, via sendBeacon)
+    Note over A,B: both in the same room, holding an open EventSource on GET /api/events?room=N
+    A->>W: POST /api/events?room=N (eyeUpdate, via sendBeacon)
     W->>DO: forward → /publish
     DO->>DO: EventSchema.safeParse · store eye (server-stamped t)
     DO-->>A: SSE data:{eyeUpdate}
@@ -77,20 +77,22 @@ sequenceDiagram
     Note over B: eventStore → eyeStore → eyesStore → Eyes.tsx renders the eye
 ```
 
-**Wire contract** (`/api/events`, one endpoint):
+**Wire contract.** A client gets a room, then connects to it (`?room` defaults to 0; the POST body is a `SymbolEvent` or `EyeUpdate`, validated against `EventSchema`):
 
-| Method | Body                                                             | Response                                                                                       |
-| ------ | ---------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| `POST` | a `SymbolEvent` or `EyeUpdate` (validated against `EventSchema`) | `200 {ok:true}`, or `400 {error, …}` on a malformed payload                                    |
-| `GET`  | —                                                                | SSE (`text/event-stream`); each frame is `data:{event}\n\n` — current eyes replayed, then live |
+| Method | Path                 | Response                                                                      |
+| ------ | -------------------- | ----------------------------------------------------------------------------- |
+| `GET`  | `/api/room`          | `{room:N}` - the lowest non-full room to join                                 |
+| `GET`  | `/api/events?room=N` | SSE (`text/event-stream`); `data:{event}\n\n` frames - current eyes then live |
+| `POST` | `/api/events?room=N` | `200 {ok:true}`, `400 {error, ...}` on a bad payload, `429` when rate-limited |
 
 ```
 worker/
-  index.ts            # Worker entry: routes /api/events to the EventsChannel DO (per-IP rate limit on GET+POST via the RateLimiter DO); serves everything else from static assets (env.ASSETS); re-exports the DO classes
-  eventsChannel.ts    # EventsChannel Durable Object — SSE plumbing: subscribe (replay + keepalive, capped at 200 concurrent connections), publish (validate + fan out). The pure transitions live in src/domain/eventsCore.ts
-  rateLimiter.ts      # RateLimiter Durable Object: per-IP fixed-window counter (120 / 60 s) gating /api/events
+  index.ts            # Worker entry: GET /api/room -> RoomDirector; /api/events?room=N -> that room's EventsChannel; per-IP rate limit on the /api endpoints (RateLimiter DO); serves everything else from static assets (env.ASSETS); re-exports the DO classes
+  eventsChannel.ts    # EventsChannel Durable Object - one per room (idFromName "room-N"): SSE plumbing - subscribe (replay + keepalive, capped at 30 connections, reports join/leave to the director), publish (validate + fan out). Pure transitions in src/domain/eventsCore.ts
+  roomDirector.ts     # RoomDirector Durable Object: tracks per-room occupancy and hands out the lowest non-full room (pure logic in src/domain/rooms.ts)
+  rateLimiter.ts      # RateLimiter Durable Object: per-IP fixed-window counter (120 / 60 s) gating the /api endpoints
   tsconfig.json       # worker-only tsconfig (@cloudflare/workers-types, no DOM lib)
-wrangler.toml         # Worker config: [assets] ./out, run_worker_first /api/events, EVENTS + RATE_LIMITER DO bindings + migrations, planeto.tre.systems
+wrangler.toml         # Worker config: [assets] ./out, run_worker_first /api/events + /api/room, EVENTS + RATE_LIMITER + ROOM_DIRECTOR DO bindings + migrations, planeto.tre.systems
 src/
   app/
     layout.tsx          # root layout; fonts; metadata (manifest link)
@@ -113,7 +115,7 @@ src/
     usePlanetData.ts             # builds the sun + 19 planets, then their bump/colour textures progressively (yields between maps so load never freezes)
     index.ts                     # barrel (the 5 reporting/input hooks; not useEyes)
   stores/                        # Zustand, all wrapped in zustand/middleware/immer
-    eventStore.ts                # owns the single EventSource; connect/disconnect; symbol/eye listener registries; validates inbound frames
+    eventStore.ts                # owns the EventSource; acquires a room (GET /api/room) then connects with ?room (re-acquiring if that room was full); symbol/eye listener registries; validates inbound frames
     eyeStore.ts                  # raw remote eye positions { p, t } per id
     eyesStore.ts                 # animated "managed" eyes: appear/visible/disappear lifecycle, per-eye material, lerp + fade
     physicsStore.ts              # isGravityDisabled flag + disableGravityTemporarily(ms)
@@ -121,6 +123,7 @@ src/
   domain/                        # the wire protocol (Zod, shared with the Worker) + plain domain types
     event.ts                     # Vec3 / SymbolEvent / EyeUpdate / EventSchema (discriminated union) — the validation gate; EYE_STALE_MS
     eventsCore.ts                # pure DO state transitions (applyEvent, pruneStaleEyes, encodeEventFrame) — unit-tested, shared with the Worker
+    rooms.ts                     # pure room-assignment logic (pickRoom, ROOM_CAP = 30, MAX_ROOMS); unit-tested, used by the RoomDirector
     eye.ts                       # EyeState / EyeStatus + scale & fade constants (plain client-side types)
     planet.ts                    # Planet / Moon / AtmosphereLayer (plain client-side types)
     symbol.ts                    # SymbolInput + the SYMBOLS glyph list
@@ -155,7 +158,7 @@ The codebase is assembled from a small set of repeated patterns. Reach for the m
 
 **Realtime server**
 
-- **One global Durable Object is "the room"** — `idFromName("global")`, in-memory `eyes` map + `writers` set, evicted when idle.
+- **One Durable Object per room** — each `EventsChannel` (`idFromName("room-N")`) is a room: an in-memory `eyes` map + `writers` set, capped at 30 and evicted when idle. A single `RoomDirector` DO tracks occupancy and hands out the lowest non-full room, so the usually-small crowd fills room 0 first and overflows to fresh rooms only under load.
 - **Replay on subscribe.** A new SSE subscriber is immediately sent every current eye, then live updates.
 - **Lazy purge.** Stale eyes are dropped on access (each subscribe/publish), not by a background timer.
 
@@ -187,7 +190,7 @@ No known deviations — store type-naming and shared constants are uniform. Trac
 
 ## Gotchas
 
-- **Multiplayer state is one global Durable Object** (`idFromName("global")`) — a single shared room, in memory, evicted when nobody is connected. It is the only stateful piece; everything else is static. If the DO is evicted/restarted, eyes are lost — acceptable, since each client re-reports its position at least every 20 s.
+- **Multiplayer state lives in the room Durable Objects** - one `EventsChannel` per room (`idFromName("room-N")`) plus the single `RoomDirector` that assigns rooms. All in memory, evicted when idle. These are the only stateful pieces; everything else is static. If a room DO is evicted/restarted its eyes are lost, which is fine: each client re-reports its position at least every 20 s.
 - **`npm run dev` has no `/api/events`.** The realtime endpoint only exists under the Worker (`wrangler dev` / `npm run preview`). Use that for anything touching multiplayer.
 - **The DO and the client share `src/domain/event.ts`.** Change the wire schema in one place; both pick it up. The Worker imports it relatively (`../src/domain/event`).
 - **No service worker.** `public/manifest.json` + icons make the app installable, but there is no offline support — see Backlog.
@@ -199,10 +202,9 @@ Nothing here blocks day to day. The top group is what to do before sharing this 
 
 ### Before going wide (cost and scale first)
 
-Shipped: social share preview (Open Graph/Twitter, `og-image.png`); mobile/low-end adaptive quality (shadow map 8192 -> 2048 and no Bloom on coarse-pointer/low-core/low-memory devices) + WebGL context-loss recovery + a touch "Send a symbol" button; finite/bounded eye-coordinate validation. Cookieless analytics and Sentry error tracking are wired but dormant until tokens are set (see below).
+Shipped: room sharding (30 connections per room, overflow into fresh rooms via a `RoomDirector`); social share preview (Open Graph/Twitter, `og-image.png`); mobile/low-end adaptive quality (shadow map 8192 -> 2048 and no Bloom on coarse-pointer/low-core/low-memory devices) + WebGL context-loss recovery + a touch "Send a symbol" button; finite/bounded eye-coordinate validation. Cookieless analytics and Sentry error tracking are wired but dormant until tokens are set (see below).
 
-- **Shard the room** _(next - biggest change, touches the multiplayer core)._ One global Durable Object fans out O(N) per event, so a viral spike concentrates cost on one DO and hits the 200-connection cap. Cap each room at 30 and overflow into a new one when it fills, using sequential fill (room 0 until full, then room 1, ...) so the usually-small crowd stays together (a hash-into-fixed-rooms scheme would scatter a handful of users so nobody sees anyone). Needs a director DO handing out the lowest non-full room, room-scoped `/api/events` (a room id the client carries on its GET and POSTs), and leave handling. No cost exposure in waiting: the rate limit + 200 cap already bound worst-case load; this is the scale-cheaply enhancement.
-- **Cost backstop: billing alert** _(needs Rob: Cloudflare dashboard)._ Cloudflare has no hard spend cap, so set a usage/billing notification (account -> Notifications). The per-IP rate limit (120 / 60 s on GET+POST) and the 200-connection cap already bound worst-case load, so this is the safety net.
+- **Cost backstop: billing alert** _(needs Rob: Cloudflare dashboard)._ Cloudflare has no hard spend cap, so set a usage/billing notification (account -> Notifications). The per-IP rate limit (120 / 60 s) and the per-room 30-connection cap already bound worst-case load, so this is the safety net.
 - **Activate analytics + error tracking** _(needs Rob: tokens)._ The code ships dormant; set `NEXT_PUBLIC_CF_BEACON_TOKEN` (from a Cloudflare Web Analytics site) and `NEXT_PUBLIC_SENTRY_DSN` (from a Sentry project) as build-time env vars to turn them on. Optionally add Sentry source-map upload in CI for readable stack traces.
 
 ### Later / nice-to-have

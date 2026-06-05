@@ -54,7 +54,7 @@ Common scripts (full list in [AGENTS.md](AGENTS.md)):
 
 ![Planeto system overview](docs/diagrams/system-overview.png)
 
-A static WebGL client served by a single Cloudflare Worker, which routes `/api/events` to one global `EventsChannel` Durable Object — the multiplayer "room". The client renders the cluster and runs gravity locally; multiplayer is a thin presence layer (Server-Sent Events down, HTTP POST up).
+A static WebGL client served by a single Cloudflare Worker. Clients ask `GET /api/room` for the lowest non-full room (assigned by a `RoomDirector` Durable Object), then connect to `/api/events?room=N`, which the Worker routes to that room's `EventsChannel` DO - a multiplayer "room" capped at 30 connections, overflowing into fresh rooms under load. The client renders the cluster and runs gravity locally; multiplayer is a thin presence layer (Server-Sent Events down, HTTP POST up).
 
 **[AGENTS.md](AGENTS.md) is the full guide** — architecture, code map, patterns, conventions, deployment, and the `/api/events` wire contract. Diagram sources live in [docs/diagrams/](docs/diagrams/README.md).
 
