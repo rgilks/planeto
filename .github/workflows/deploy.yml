@@ -35,6 +35,10 @@ jobs:
 
       - name: Build static export
         run: npm run build
+        env:
+          NEXT_PUBLIC_SENTRY_DSN: ${{ vars.NEXT_PUBLIC_SENTRY_DSN }}
+          NEXT_PUBLIC_SENTRY_ENVIRONMENT: production
+          NEXT_PUBLIC_SENTRY_RELEASE: ${{ github.sha }}
 
       - name: Deploy to Cloudflare
         run: npx wrangler deploy
