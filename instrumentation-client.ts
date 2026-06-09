@@ -16,8 +16,11 @@ const dsn = process.env["NEXT_PUBLIC_SENTRY_DSN"];
 if (dsn) {
   Sentry.init({
     dsn,
-    environment: process.env.NODE_ENV,
-    // Errors only - no tracing, no replay (bundle + cost stay low).
+    environment:
+      process.env["NEXT_PUBLIC_SENTRY_ENVIRONMENT"] ?? process.env.NODE_ENV,
+    release: process.env["NEXT_PUBLIC_SENTRY_RELEASE"],
+    sendDefaultPii: false,
+    // Static client-side app: keep tracing off until usage justifies it.
     tracesSampleRate: 0,
     // Bound error volume: report half of captured errors.
     sampleRate: 0.5,
