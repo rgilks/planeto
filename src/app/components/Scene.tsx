@@ -31,6 +31,31 @@ const AMBIENT_INTENSITY = 0.08;
 const SHADOW_MAP_DESKTOP = 8192;
 const SHADOW_MAP_LOW_END = 2048;
 
+const detectWebglSupport = (): boolean => {
+  if (typeof window === "undefined" || typeof document === "undefined") {
+    return true;
+  }
+
+  try {
+    const canvas = document.createElement("canvas");
+    const context =
+      canvas.getContext("webgl2") ??
+      canvas.getContext("webgl") ??
+      canvas.getContext("experimental-webgl");
+
+    if (!context) {
+      return false;
+    }
+
+    const gl = context as WebGLRenderingContext | WebGL2RenderingContext;
+    const loseContext = gl.getExtension("WEBGL_lose_context");
+    loseContext?.loseContext();
+    return true;
+  } catch {
+    return false;
+  }
+};
+
 // Detect a touch / low-power device once. The desktop path is the default, so
 // anything we cannot positively identify as low-end keeps the full look (a
 // normal desktop reports a fine pointer, 8+ cores and > 4 GB, so it never
@@ -58,6 +83,7 @@ const detectLowEnd = (): boolean => {
 
 // Computed once per module load; the result is stable for the session.
 const IS_LOW_END = detectLowEnd();
+const HAS_WEBGL = detectWebglSupport();
 
 // Context loss (tab backgrounded, GPU reset, driver hiccup - common on mobile)
 // otherwise leaves a silent white canvas. Swallow the default so the browser
@@ -138,7 +164,29 @@ const CanvasContent = ({ myId }: { myId: string }) => {
   );
 };
 
+const SceneUnavailable = () => (
+  <div className="flex h-full w-full items-center justify-center bg-[#05070d] px-6 text-center text-white">
+    <div className="max-w-md rounded-3xl border border-white/10 bg-black/35 p-8 shadow-2xl backdrop-blur-sm">
+      <p className="text-xs uppercase tracking-[0.32em] text-cyan-200/70">
+        Planeto
+      </p>
+      <h2 className="mt-3 text-2xl font-semibold text-white">
+        WebGL is unavailable here
+      </h2>
+      <p className="mt-3 text-sm leading-relaxed text-white/70">
+        This browser or device has graphics acceleration disabled, so the 3D
+        scene cannot start. Try another browser or re-enable hardware
+        acceleration to explore the simulation.
+      </p>
+    </div>
+  </div>
+);
+
 const Scene = () => {
+  if (!HAS_WEBGL) {
+    return <SceneUnavailable />;
+  }
+
   const planets = usePlanetData();
   const planetRefs = useRef<RigidBodyRef[]>([]);
   const myId = useRef<string>("");
