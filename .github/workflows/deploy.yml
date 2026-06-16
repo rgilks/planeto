@@ -39,6 +39,30 @@ jobs:
           NEXT_PUBLIC_SENTRY_DSN: ${{ vars.NEXT_PUBLIC_SENTRY_DSN }}
           NEXT_PUBLIC_SENTRY_ENVIRONMENT: production
           NEXT_PUBLIC_SENTRY_RELEASE: ${{ github.sha }}
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ENVIRONMENT: production
+          SENTRY_ORG: total-reality-engineering
+          SENTRY_PROJECT: planeto
+          SENTRY_RELEASE: ${{ github.sha }}
+
+      - name: Upload Sentry source maps
+        run: |
+          if [ -z "$SENTRY_AUTH_TOKEN" ]; then
+            echo "SENTRY_AUTH_TOKEN is not set; skipping source-map upload."
+            exit 0
+          fi
+          npx sentry-cli sourcemaps upload out/_next/static \
+            --org "$SENTRY_ORG" \
+            --project "$SENTRY_PROJECT" \
+            --release "$SENTRY_RELEASE" \
+            --url-prefix "~/_next/static" \
+            --validate
+          find out -name '*.map' -delete
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: total-reality-engineering
+          SENTRY_PROJECT: planeto
+          SENTRY_RELEASE: ${{ github.sha }}
 
       - name: Deploy to Cloudflare
         run: npx wrangler deploy

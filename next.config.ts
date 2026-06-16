@@ -6,6 +6,7 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   output: "export",
   images: { unoptimized: true },
+  productionBrowserSourceMaps: Boolean(process.env["SENTRY_AUTH_TOKEN"]),
 };
 
 export default nextConfig;
