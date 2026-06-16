@@ -55,7 +55,7 @@ jobs:
             --org "$SENTRY_ORG" \
             --project "$SENTRY_PROJECT" \
             --release "$SENTRY_RELEASE" \
-            --url-prefix "~/_next/static" \
+            --url-prefix "~/_next/static/chunks" \
             --validate
           find out -name '*.map' -delete
         env:
