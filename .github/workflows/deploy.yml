@@ -51,7 +51,7 @@ jobs:
             echo "SENTRY_AUTH_TOKEN is not set; skipping source-map upload."
             exit 0
           fi
-          npx sentry-cli sourcemaps upload out/_next/static \
+          npx sentry-cli sourcemaps upload out/_next/static/chunks \
             --org "$SENTRY_ORG" \
             --project "$SENTRY_PROJECT" \
             --release "$SENTRY_RELEASE" \
