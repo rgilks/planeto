@@ -3,8 +3,8 @@
 // Next 16 runs this file on the client only (it is aliased to
 // `private-next-instrumentation-client`), so it is safe in a static export
 // (`output: 'export'`) - there is no server runtime and nothing here touches
-// server APIs. We use the browser SDK and initialise errors-only: NO
-// performance tracing, NO session replay, to keep the bundle and cost low.
+// server APIs. We keep tracing lightly sampled and session replay disabled to
+// improve production health signals without materially increasing cost.
 //
 // This is a complete no-op until `NEXT_PUBLIC_SENTRY_DSN` is provided. For a
 // static export the value is inlined at build time, so without it Sentry is
@@ -14,14 +14,35 @@ import * as Sentry from "@sentry/react";
 const dsn = process.env["NEXT_PUBLIC_SENTRY_DSN"];
 
 if (dsn) {
+  const configuredTracesSampleRate =
+    process.env["NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE"];
+  const parsedTracesSampleRate = configuredTracesSampleRate
+    ? Number(configuredTracesSampleRate)
+    : undefined;
+  const tracesSampleRate =
+    parsedTracesSampleRate !== undefined &&
+    Number.isFinite(parsedTracesSampleRate) &&
+    parsedTracesSampleRate >= 0 &&
+    parsedTracesSampleRate <= 1
+      ? parsedTracesSampleRate
+      : process.env.NODE_ENV === "production"
+        ? 0.05
+        : 0;
+
   Sentry.init({
     dsn,
     environment:
       process.env["NEXT_PUBLIC_SENTRY_ENVIRONMENT"] ?? process.env.NODE_ENV,
     release: process.env["NEXT_PUBLIC_SENTRY_RELEASE"],
     sendDefaultPii: false,
-    // Static client-side app: keep tracing off until usage justifies it.
-    tracesSampleRate: 0,
+    tracesSampleRate,
+    integrations: [
+      Sentry.browserTracingIntegration({
+        enableInp: true,
+        instrumentNavigation: true,
+        instrumentPageLoad: true,
+      }),
+    ],
     // Bound error volume: report half of captured errors.
     sampleRate: 0.5,
     // Drop common, actionable-by-nobody browser/extension noise.
