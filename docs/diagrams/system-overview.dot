@@ -63,8 +63,8 @@ digraph SystemOverview {
       margin=22
     ];
 
-    C1 [label=<<B>R3F scene + N-body sim</B><BR/><FONT POINT-SIZE="15">planets, physics, OrbitControls — all local</FONT>>, fillcolor="#edf7ff:#ffffff", color="#2f80ed"];
-    C2 [label=<<B>eventStore (one EventSource)</B><BR/><FONT POINT-SIZE="15">→ eyeStore → eyesStore · symbolStore</FONT>>, fillcolor="#edf7ff:#ffffff", color="#2f80ed"];
+    C1 [label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="0"><TR><TD><B>R3F scene + N-body sim</B></TD></TR><TR><TD CELLPADDING="4"><FONT POINT-SIZE="15">planets, physics, OrbitControls — all local</FONT></TD></TR></TABLE>>, fillcolor="#edf7ff:#ffffff", color="#2f80ed"];
+    C2 [label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="0"><TR><TD><B>eventStore (one EventSource)</B></TD></TR><TR><TD CELLPADDING="4"><FONT POINT-SIZE="15">→ eyeStore → eyesStore · symbolStore</FONT></TD></TR></TABLE>>, fillcolor="#edf7ff:#ffffff", color="#2f80ed"];
 
     C1 -> C2 [style=invis];
   }
@@ -87,8 +87,8 @@ digraph SystemOverview {
       margin=22
     ];
 
-    W1 [label=<<B>Static assets</B><BR/><FONT POINT-SIZE="15">Next export → ./out (Workers Static Assets)</FONT>>, fillcolor="#eaf8ef:#ffffff", color="#22865a"];
-    W2 [label=<<B>Worker fetch — worker/index.ts</B><BR/><FONT POINT-SIZE="15">routes /api/room + /api/events; else → assets</FONT>>, fillcolor="#eaf8ef:#ffffff", color="#22865a"];
+    W1 [label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="0"><TR><TD><B>Static assets</B></TD></TR><TR><TD CELLPADDING="4"><FONT POINT-SIZE="15">Next export → ./out (Workers Static Assets)</FONT></TD></TR></TABLE>>, fillcolor="#eaf8ef:#ffffff", color="#22865a"];
+    W2 [label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="0"><TR><TD><B>Worker fetch — worker/index.ts</B></TD></TR><TR><TD CELLPADDING="4"><FONT POINT-SIZE="15">routes /api/room + /api/events; else → assets</FONT></TD></TR></TABLE>>, fillcolor="#eaf8ef:#ffffff", color="#22865a"];
 
     W1 -> W2 [style=invis];
   }
@@ -111,8 +111,8 @@ digraph SystemOverview {
       margin=22
     ];
 
-    D1 [label=<<B>EventsChannel — one per room</B><BR/><FONT POINT-SIZE="15">eyes Map + writers Set · replay, fan-out, purge</FONT>>, fillcolor="#e6fffb:#ffffff", color="#0f766e", width=3.7];
-    D2 [label=<<B>RoomDirector</B><BR/><FONT POINT-SIZE="15">per-room occupancy · assigns lowest non-full room</FONT>>, fillcolor="#e6fffb:#ffffff", color="#0f766e", width=3.7];
+    D1 [label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="0"><TR><TD><B>EventsChannel — one per room</B></TD></TR><TR><TD CELLPADDING="4"><FONT POINT-SIZE="15">eyes Map + writers Set · replay, fan-out, purge</FONT></TD></TR></TABLE>>, fillcolor="#e6fffb:#ffffff", color="#0f766e", width=3.7];
+    D2 [label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="0"><TR><TD><B>RoomDirector</B></TD></TR><TR><TD CELLPADDING="4"><FONT POINT-SIZE="15">per-room occupancy · assigns lowest non-full room</FONT></TD></TR></TABLE>>, fillcolor="#e6fffb:#ffffff", color="#0f766e", width=3.7];
   }
 
   // ---- Shared domain ----
@@ -133,20 +133,20 @@ digraph SystemOverview {
       margin=22
     ];
 
-    M1 [label=<<B>src/domain</B><BR/><FONT POINT-SIZE="15">EventSchema · eventsCore · rooms (pickRoom)</FONT>>, fillcolor="#f5f3ff:#ffffff", color="#7c3aed", width=3.7];
+    M1 [label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="0"><TR><TD><B>src/domain</B></TD></TR><TR><TD CELLPADDING="4"><FONT POINT-SIZE="15">EventSchema · eventsCore · rooms (pickRoom)</FONT></TD></TR></TABLE>>, fillcolor="#f5f3ff:#ffffff", color="#7c3aed", width=3.7];
   }
 
   // ---- Edges ----
-  C1 -> W1 [label="GET / — loads the static app"];
-  C2 -> W2 [label="GET /api/room (pick a room)", style=dotted];
-  C2 -> W2 [label="POST /api/events?room=N (sendBeacon / fetch)"];
-  C2 -> W2 [label="GET /api/events?room=N (EventSource)", style=dashed];
-  W2 -> D2 [label="assign → {room:N}"];
-  W2 -> D1 [label="forward → /subscribe · /publish"];
-  D1 -> C2 [label="SSE fan-out (eye / symbol events)", color="#0f766e", fontcolor="#0f766e"];
-  D1 -> D2 [label="join / leave", style=dashed, color="#0f766e", fontcolor="#0f766e", constraint=false];
+  C1 -> W1 [label=<<TABLE BORDER="1" CELLBORDER="0" STYLE="ROUNDED" COLOR="#d7dee8" BGCOLOR="#ffffff" CELLSPACING="0" CELLPADDING="4"><TR><TD><FONT POINT-SIZE="13" COLOR="#3d4a5c">GET / — loads the static app</FONT></TD></TR></TABLE>>];
+  C2 -> W2 [label=<<TABLE BORDER="1" CELLBORDER="0" STYLE="ROUNDED" COLOR="#d7dee8" BGCOLOR="#ffffff" CELLSPACING="0" CELLPADDING="4"><TR><TD><FONT POINT-SIZE="13" COLOR="#3d4a5c">GET /api/room (pick a room)</FONT></TD></TR></TABLE>>, style=dotted];
+  C2 -> W2 [label=<<TABLE BORDER="1" CELLBORDER="0" STYLE="ROUNDED" COLOR="#d7dee8" BGCOLOR="#ffffff" CELLSPACING="0" CELLPADDING="4"><TR><TD><FONT POINT-SIZE="13" COLOR="#3d4a5c">POST /api/events?room=N (sendBeacon / fetch)</FONT></TD></TR></TABLE>>];
+  C2 -> W2 [label=<<TABLE BORDER="1" CELLBORDER="0" STYLE="ROUNDED" COLOR="#d7dee8" BGCOLOR="#ffffff" CELLSPACING="0" CELLPADDING="4"><TR><TD><FONT POINT-SIZE="13" COLOR="#3d4a5c">GET /api/events?room=N (EventSource)</FONT></TD></TR></TABLE>>, style=dashed];
+  W2 -> D2 [label=<<TABLE BORDER="1" CELLBORDER="0" STYLE="ROUNDED" COLOR="#d7dee8" BGCOLOR="#ffffff" CELLSPACING="0" CELLPADDING="4"><TR><TD><FONT POINT-SIZE="13" COLOR="#3d4a5c">assign → {room:N}</FONT></TD></TR></TABLE>>];
+  W2 -> D1 [label=<<TABLE BORDER="1" CELLBORDER="0" STYLE="ROUNDED" COLOR="#d7dee8" BGCOLOR="#ffffff" CELLSPACING="0" CELLPADDING="4"><TR><TD><FONT POINT-SIZE="13" COLOR="#3d4a5c">forward → /subscribe · /publish</FONT></TD></TR></TABLE>>];
+  D1 -> C2 [label=<<TABLE BORDER="1" CELLBORDER="0" STYLE="ROUNDED" COLOR="#d7dee8" BGCOLOR="#ffffff" CELLSPACING="0" CELLPADDING="4"><TR><TD><FONT POINT-SIZE="13" COLOR="#3d4a5c">SSE fan-out (eye / symbol events)</FONT></TD></TR></TABLE>>, color="#0f766e", fontcolor="#0f766e"];
+  D1 -> D2 [label=<<TABLE BORDER="1" CELLBORDER="0" STYLE="ROUNDED" COLOR="#d7dee8" BGCOLOR="#ffffff" CELLSPACING="0" CELLPADDING="4"><TR><TD><FONT POINT-SIZE="13" COLOR="#3d4a5c">join / leave</FONT></TD></TR></TABLE>>, style=dashed, color="#0f766e", fontcolor="#0f766e", constraint=false];
 
-  M1 -> C2 [label="validate frames", style=dashed, color="#7c3aed", fontcolor="#7c3aed", constraint=false];
-  M1 -> D1 [label="validate + apply", style=dashed, color="#7c3aed", fontcolor="#7c3aed", constraint=false];
-  M1 -> D2 [label="pickRoom", style=dashed, color="#7c3aed", fontcolor="#7c3aed", constraint=false];
+  M1 -> C2 [label=<<TABLE BORDER="1" CELLBORDER="0" STYLE="ROUNDED" COLOR="#d7dee8" BGCOLOR="#ffffff" CELLSPACING="0" CELLPADDING="4"><TR><TD><FONT POINT-SIZE="13" COLOR="#3d4a5c">validate frames</FONT></TD></TR></TABLE>>, style=dashed, color="#7c3aed", fontcolor="#7c3aed", constraint=false];
+  M1 -> D1 [label=<<TABLE BORDER="1" CELLBORDER="0" STYLE="ROUNDED" COLOR="#d7dee8" BGCOLOR="#ffffff" CELLSPACING="0" CELLPADDING="4"><TR><TD><FONT POINT-SIZE="13" COLOR="#3d4a5c">validate + apply</FONT></TD></TR></TABLE>>, style=dashed, color="#7c3aed", fontcolor="#7c3aed", constraint=false];
+  M1 -> D2 [label=<<TABLE BORDER="1" CELLBORDER="0" STYLE="ROUNDED" COLOR="#d7dee8" BGCOLOR="#ffffff" CELLSPACING="0" CELLPADDING="4"><TR><TD><FONT POINT-SIZE="13" COLOR="#3d4a5c">pickRoom</FONT></TD></TR></TABLE>>, style=dashed, color="#7c3aed", fontcolor="#7c3aed", constraint=false];
 }
