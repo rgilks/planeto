@@ -12,6 +12,9 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://planeto.tre.systems"),
   title,
   description,
+  alternates: {
+    canonical: "/",
+  },
   manifest: "/manifest.json",
   openGraph: {
     title,
