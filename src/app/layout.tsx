@@ -32,7 +32,13 @@ export const metadata: Metadata = {
   },
 };
 
-const beaconToken = process.env["NEXT_PUBLIC_CF_BEACON_TOKEN"];
+// The Web Analytics beacon token is public by design (it ships in the page
+// HTML). Default to the tre.systems site token - Cloudflare records the real
+// request host, so planeto.tre.systems visits are attributed correctly - and
+// keep the env override for other deployments.
+const beaconToken =
+  process.env["NEXT_PUBLIC_CF_BEACON_TOKEN"] ??
+  "893eaee1dc1d46109119d2b54cdf023e";
 
 export default function RootLayout({
   children,
