@@ -44,6 +44,7 @@ jobs:
           SENTRY_ORG: total-reality-engineering
           SENTRY_PROJECT: planeto
           SENTRY_RELEASE: ${{ github.sha }}
+          SENTRY_URL: https://de.sentry.io
 
       - name: Upload Sentry source maps
         run: |
@@ -63,6 +64,7 @@ jobs:
           SENTRY_ORG: total-reality-engineering
           SENTRY_PROJECT: planeto
           SENTRY_RELEASE: ${{ github.sha }}
+          SENTRY_URL: https://de.sentry.io
 
       - name: Deploy to Cloudflare
         run: npx wrangler deploy
